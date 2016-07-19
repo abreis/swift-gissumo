@@ -61,9 +61,34 @@ guard fcdFileURL.checkResourceIsReachableAndReturnError(&fcdFileError)
 	exit(EXIT_FAILURE)
 }
 
-print(" todo")
+// Parse XML Floating Car Data
+guard let fcdData = NSData(contentsOfURL: fcdFileURL)
+ else {
+    print(" failed\n", "Error: Unable to parse XML data from file.")
+    exit(EXIT_FAILURE)
+}
 
+let fcdXML = SWXMLHash.lazy(fcdData)
 
+// Load data onto our Trips array
+var Trips = [FCDTimestep]()
+for timestep in fcdXML["fcd-export"]["timestep"] {
+	let timestepTime = Float(timestep.element!.attributes["time"]!)
+	var timestepVehicles = [FCDVehicle]()
 
+	for vehicle in timestep["vehicle"] {
+		let v_id = UInt(vehicle.element!.attributes["id"]!)
+		let v_xgeo = Float(vehicle.element!.attributes["x"]!)
+		let v_ygeo = Float(vehicle.element!.attributes["y"]!)
+		let v_speed = Float(vehicle.element!.attributes["speed"]!)
+
+		timestepVehicles.append( FCDVehicle(id: v_id!, xgeo: v_xgeo!, ygeo: v_ygeo!, speed: v_speed!) )
+	}
+
+	Trips.append( FCDTimestep(time: timestepTime!, vehicles: timestepVehicles) )
+}
+
+print(" okay")
+print("Loaded", Trips.count, "timesteps.")
 
 exit(EXIT_SUCCESS)
