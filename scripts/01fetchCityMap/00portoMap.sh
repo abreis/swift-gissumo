@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script pulls a square map from OpenStreetMap,
 # and converts it into a SUMO-compatible format.
-WORKDIR=/data
+WORKDIR=/work
 
 # Porto Map #02 -- 1 sq.km. -- (41.1679,-8.6227),(41.1598,-8.6094)
 LONMIN='-8.6227'

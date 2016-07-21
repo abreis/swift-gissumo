@@ -2,23 +2,26 @@ FROM ubuntu:14.04
 MAINTAINER Andre Braga Reis <andrebragareis@gmail.com>
 
 ## Runscript 
-# docker run -itd --name gissumo --volume sgsdata:/data abreis/swiftgissumo
+# docker run -itd --name gissumo --volume sgsdata:/work abreis/swiftgissumo
 
 # Ready package manager
 RUN apt-get update
 
-## Install:
+# Install:
 # - build tools, essentials
 # - swift dependencies
 # - sumo dependencies
 # - gnuplot
 # - xml validator
+# - postgresql, postgis
+
 RUN apt-get install -y \
 build-essential curl nano \
 libpython2.7 libedit2 libxml2 libicu52 \
-libxerces-c-dev libproj-dev libgdal-dev \
+libxerces-c-dev libproj-dev libgdal-dev python \
 gnuplot-nox \
-libxml2-utils
+libxml2-utils \
+postgresql-9.3-postgis-2.1
 
 WORKDIR "/root"
 
@@ -33,10 +36,11 @@ RUN tar xzf swift*.tar.gz --directory / --strip-components=1 && rm -rf swift*.ta
 # Clean up package manager
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Add scripts folder
+# Add script and data folders
 ADD ./scripts /root/scripts
+ADD ./data /root/data
 
 # Share a folder with the host in which to store results
-VOLUME /data
+VOLUME /work
 
 CMD ["/bin/bash"]

@@ -1,0 +1,13 @@
+SQLVER='9.3'
+
+# Place the .shp together with the .shx and .dbf files in the 'data' directory
+SHAPEFILE='data/shapefile_porto_srid4326.shp'
+
+SQLBIN=/usr/lib/postgresql/${SQLVER}/bin/postgres
+SQLCONF=/etc/postgresql/${SQLVER}/main/postgresql.conf
+SQLDATA=/var/lib/postgresql/${SQLVER}/main
+
+SQLUSER='root' # don't change
+SQLPASS='UEgmzMx3mb6dCN'
+SQLDB='gisdb'
+SQLTABLE='buildings'
