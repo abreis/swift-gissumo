@@ -5,6 +5,7 @@ SHAPEFILE='data/shapefile_porto_srid4326.shp'
 
 SQLBIN=/usr/lib/postgresql/${SQLVER}/bin/postgres
 SQLCONF=/etc/postgresql/${SQLVER}/main/postgresql.conf
+SQLHBA=/etc/postgresql/${SQLVER}/main/pg_hba.conf
 SQLDATA=/var/lib/postgresql/${SQLVER}/main
 
 SQLUSER='root' # don't change

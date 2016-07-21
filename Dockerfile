@@ -2,7 +2,7 @@ FROM ubuntu:14.04
 MAINTAINER Andre Braga Reis <andrebragareis@gmail.com>
 
 ## Runscript 
-# docker run -itd --name gissumo --volume sgsdata:/work abreis/swiftgissumo
+# docker run -itd --name gissumo --volume sgsdata:/work -p 5432:5432 abreis/swiftgissumo
 
 # Ready package manager
 RUN apt-get update
@@ -42,5 +42,8 @@ ADD ./data /root/data
 
 # Share a folder with the host in which to store results
 VOLUME /work
+
+# Expose the PostgreSQL port for external tools
+EXPOSE 5432
 
 CMD ["/bin/bash"]
