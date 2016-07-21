@@ -41,4 +41,3 @@ netconvert --osm-files ${OSMFILE} \
  --keep-edges.by-vclass passenger
 
 if [ $? -ne 0 ]; then echo "Map conversion failed."; exit 1; fi
-
