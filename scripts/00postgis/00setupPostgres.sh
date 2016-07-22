@@ -1,5 +1,6 @@
 #!/bin/bash
 # This script sets up a superuser account and starts the PostgreSQL server.
+set -e
 
 # Load usernames, passwords, file locations from file 'vars'
 . scripts/vars

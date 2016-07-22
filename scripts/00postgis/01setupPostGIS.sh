@@ -1,6 +1,7 @@
 #!/bin/bash
 # This script setups PostGIS extensions on the postgres database, converts a
 # shapefile to SRID4326 (GPS WGS84), and loads it into the database
+set -e
 
 # Load usernames, passwords, file locations from file 'vars'
 . scripts/vars
