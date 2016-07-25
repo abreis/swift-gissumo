@@ -5,8 +5,21 @@
 	<key>debug</key>
 	<false/>
 	<key>floatingCarDataFile</key>
-	<string>fcdoutput.xml</string>
+	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
 	<integer>0</integer>
+	<key>gis</key>
+	<dict>
+		<key>host</key>
+		<string>10.0.0.10</string>
+		<key>port</key>
+		<integer>5432</integer>
+		<key>database</key>
+		<string>gisdb</string>
+		<key>user</key>
+		<string>root</string>
+		<key>password</key>
+		<string>UEgmzMx3mb6dCN</string>
+	</dict>
 </dict>
 </plist>

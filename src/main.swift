@@ -89,6 +89,29 @@ for timestep in fcdXML["fcd-export"]["timestep"] {
 }
 
 print(" okay")
-print("Loaded", Trips.count, "timesteps.")
+print("\tLoaded", Trips.count, "timesteps from data file")
+
+
+
+/* Initialize PostgreSQL connection
+ */
+print("Initializing GIS connection...", terminator: "")
+
+guard	let gisHost = config["gis"]!["host"] as? String,
+		let gisPort = config["gis"]!["port"] as? Int,
+		let gisDB = config["gis"]!["database"] as? String,
+		let gisUser = config["gis"]!["user"] as? String,
+		let gisPass = config["gis"]!["password"] as? String
+ else {
+	print(" failed\n", "Error: Invalid database configuration.")
+	exit(EXIT_FAILURE)
+}
+
+let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
+let gis = GIS(parameters: databaseParams)
+let buildingCount = gis.count(featureType: .Building)
+print(" okay")
+print("\tSaw", buildingCount, "buildings in the database")
+
 
 exit(EXIT_SUCCESS)
