@@ -77,19 +77,35 @@ let fcdXML = SWXMLHash.lazy(fcdData)
 // Load data onto our Trips array
 var Trips = [FCDTimestep]()
 for timestep in fcdXML["fcd-export"]["timestep"] {
-	let timestepTime = Double(timestep.element!.attributes["time"]!)
+	guard let timestepElement = timestep.element,
+			let s_time = timestepElement.attributes["time"],
+			let timestepTime = Double(s_time)
+	 else {
+		print(" failed\n", "Error: Invalid timestep entry.")
+		exit(EXIT_FAILURE)
+	}
+
 	var timestepVehicles = [FCDVehicle]()
 
 	for vehicle in timestep["vehicle"] {
-		let v_id = UInt(vehicle.element!.attributes["id"]!)
-		let v_xgeo = Double(vehicle.element!.attributes["x"]!)
-		let v_ygeo = Double(vehicle.element!.attributes["y"]!)
-		let v_speed = Double(vehicle.element!.attributes["speed"]!)
+		guard let vehicleElement = vehicle.element,
+				let s_id = vehicleElement.attributes["id"],
+				let s_xgeo = vehicleElement.attributes["x"],
+				let s_ygeo = vehicleElement.attributes["y"],
+				let s_speed = vehicleElement.attributes["speed"],
+				let v_id = UInt(s_id),
+				let v_xgeo = Double(s_xgeo),
+				let v_ygeo = Double(s_ygeo),
+				let v_speed = Double(s_speed)
+		else {
+			print(" failed\n", "Error: Unable to convert vehicle properties.")
+			exit(EXIT_FAILURE)
+		}
 
-		timestepVehicles.append( FCDVehicle(id: v_id!, xgeo: v_xgeo!, ygeo: v_ygeo!, speed: v_speed!) )
+		timestepVehicles.append( FCDVehicle(id: v_id, xgeo: v_xgeo, ygeo: v_ygeo, speed: v_speed) )
 	}
 
-	Trips.append( FCDTimestep(time: timestepTime!, vehicles: timestepVehicles) )
+	Trips.append( FCDTimestep(time: timestepTime, vehicles: timestepVehicles) )
 }
 
 print(" okay")
@@ -101,11 +117,12 @@ print("\tLoaded", Trips.count, "timesteps from data file")
  */
 print("Initializing GIS connection...", terminator: "")
 
-guard	let gisHost = config["gis"]!["host"] as? String,
-		let gisPort = config["gis"]!["port"] as? Int,
-		let gisDB = config["gis"]!["database"] as? String,
-		let gisUser = config["gis"]!["user"] as? String,
-		let gisPass = config["gis"]!["password"] as? String
+guard	let gisConfig = config["gis"],
+		let gisHost = gisConfig["host"] as? String,
+		let gisPort = gisConfig["port"] as? Int,
+		let gisDB = gisConfig["database"] as? String,
+		let gisUser = gisConfig["user"] as? String,
+		let gisPass = gisConfig["password"] as? String
  else {
 	print(" failed\n", "Error: Invalid database configuration.")
 	exit(EXIT_FAILURE)
