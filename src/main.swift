@@ -6,6 +6,10 @@ import Foundation
 
 
 
+/**********************/
+/*** INITIALIZATION ***/
+/**********************/
+
 /* Process command line options 
  */
 guard Process.arguments.count == 2 && Process.arguments[1].hasSuffix(".plist")
@@ -73,14 +77,14 @@ let fcdXML = SWXMLHash.lazy(fcdData)
 // Load data onto our Trips array
 var Trips = [FCDTimestep]()
 for timestep in fcdXML["fcd-export"]["timestep"] {
-	let timestepTime = Float(timestep.element!.attributes["time"]!)
+	let timestepTime = Double(timestep.element!.attributes["time"]!)
 	var timestepVehicles = [FCDVehicle]()
 
 	for vehicle in timestep["vehicle"] {
 		let v_id = UInt(vehicle.element!.attributes["id"]!)
-		let v_xgeo = Float(vehicle.element!.attributes["x"]!)
-		let v_ygeo = Float(vehicle.element!.attributes["y"]!)
-		let v_speed = Float(vehicle.element!.attributes["speed"]!)
+		let v_xgeo = Double(vehicle.element!.attributes["x"]!)
+		let v_ygeo = Double(vehicle.element!.attributes["y"]!)
+		let v_speed = Double(vehicle.element!.attributes["speed"]!)
 
 		timestepVehicles.append( FCDVehicle(id: v_id!, xgeo: v_xgeo!, ygeo: v_ygeo!, speed: v_speed!) )
 	}
@@ -113,5 +117,35 @@ let buildingCount = gis.count(featureType: .Building)
 print(" okay")
 print("\tSaw", buildingCount, "buildings in the database")
 
+
+
+
+/********************/
+/*** MAIN ROUTINE ***/
+/********************/
+
+gis.clear(featureType: .Vehicle)
+
+let pointGID = gis.add(pointOfType: .Vehicle, xgeo: -8.62051, ygeo: 41.16371, id: 1)
+print("AddPoint GID:", pointGID)
+
+let coords: (Double, Double) = gis.get(coordinatesFromGID: pointGID)
+print("Coordinates:", coords)
+
+let gids = gis.get(featuresInCircleWithRadius: 59, xCenter: -8.6200, yCenter: 41.1636, featureType: .Vehicle)
+print("GIDs:", gids)
+
+let distance = gis.get(distanceFromPointToGID: pointGID, xgeo: -8.62, ygeo: 41.1636)
+print("Distance:", distance)
+
+let nlos = gis.checkForLineOfSight(-8.620385, ygeo1: 41.164445, xgeo2: -8.62051, ygeo2: 41.16371)
+print("NLOS:", nlos)
+
+let los = gis.checkForLineOfSight(-8.620385, ygeo1: 41.164445, xgeo2: -8.619970, ygeo2: 41.164383)
+print("LOS:", los)
+
+gis.update(pointFromGID: pointGID, xgeo: -8.62052, ygeo: 41.16372)
+let newCoords: (Double, Double) = gis.get(coordinatesFromGID: pointGID)
+print("New coords:", newCoords)
 
 exit(EXIT_SUCCESS)

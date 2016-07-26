@@ -6,12 +6,12 @@ import Foundation
 
 struct FCDVehicle {
 	let id: UInt
-	let xgeo: Float
-	let ygeo: Float
-	let speed: Float
+	let xgeo: Double
+	let ygeo: Double
+	let speed: Double
 }
 
 struct FCDTimestep {
-	let time: Float
+	let time: Double
 	let vehicles: [FCDVehicle]
 }
