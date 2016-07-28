@@ -18,7 +18,7 @@ struct SimulationEvent {
 class EventList {
 	var stopTime: Double
 	var list = [SimulationEvent]()
-    let minTimestep = 0.000001 // microsecond
+	let minTimestep = 0.000001 // microsecond
 
 	init(stopTime stime: Double) {
 		stopTime = stime
@@ -26,26 +26,25 @@ class EventList {
 
 	// Add a new event, performing necessary checks
 	func add(newEvent newEvent: SimulationEvent) {
+		// Don't let two events have the same time. While events exist with the same time,
+		// push our event forward by a small timestep.
+		var newEvent = newEvent
+		while list.filter( {$0.time == newEvent.time} ).count > 0 {
+			newEvent.time += minTimestep
+		}
 
-        // Don't let two events have the same time. While events exist with the same time,
-        // push our event forward by a small timestep.
-        var newEvent = newEvent
-        while list.filter( {$0.time == newEvent.time} ).count > 0 {
-            newEvent.time += minTimestep
-        }
+		/* Add the new event and trigger a sort to place it in the right location
+		 * Built-in sort algorithms are likely faster than us running through the
+		 * array to find the correct insertion index.
+		 */
+		list.append(newEvent)
+		list.sortInPlace( {$0.time < $1.time} )
 
-        /* Add the new event and trigger a sort to place it in the right location
-         * Built-in sort algorithms are likely faster than us running through the
-         * array to find the correct insertion index.
-         */
-        list.append(newEvent)
-        list.sortInPlace( {$0.time < $1.time} )
-
-        // Debug
-        if debug.contains("EventList.add(newEvent)") {
-            print(String(format: "%.6f EventList.add(newEvent):\t", now).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
-        }
-    }
+		// Debug
+		if debug.contains("EventList.add(newEvent)") {
+			print(String(format: "%.6f EventList.add(newEvent):\t", now).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+		}
+	}
 
 
 	// Process mobility events, creating new vehicles and updating existing ones
