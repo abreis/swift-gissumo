@@ -5,7 +5,6 @@
 import Foundation
 
 
-
 /**********************/
 /*** INITIALIZATION ***/
 /**********************/
@@ -35,11 +34,18 @@ guard configFileURL.checkResourceIsReachableAndReturnError(&configFileError)
 // Load plist into a configuration dictionary array
 guard let config = NSDictionary(contentsOfURL: configFileURL)
  else {
-	print(" failed\n", "Error: Invalid configuration file format.")
+	print(" failed", "\nError: Invalid configuration file format.")
 	exit(EXIT_FAILURE)
 }
 
 print(" okay")
+
+// Load debug variable
+var debug = false
+if let debugFromConfig = config["debug"] as? Bool {
+	debug = debugFromConfig
+	if debug { print("DEBUG main()".cyan(),":\t","Debug mode is active.") }
+}
 
 
 
@@ -52,7 +58,7 @@ print("Loading floating car data...", terminator: "")
 
 guard let fcdFile = config["floatingCarDataFile"] as? String
  else {
-	print(" failed\n", "Error: Please specify a valid SUMO FCD file with 'floatingCarDataFile'.")
+	print(" failed", "\nError: Please specify a valid SUMO FCD file with 'floatingCarDataFile'.")
 	exit(EXIT_FAILURE)
 }
 
@@ -68,20 +74,20 @@ guard fcdFileURL.checkResourceIsReachableAndReturnError(&fcdFileError)
 // Parse XML Floating Car Data
 guard let fcdData = NSData(contentsOfURL: fcdFileURL)
  else {
-    print(" failed\n", "Error: Unable to parse XML data from file.")
+    print(" failed", "\nError: Unable to parse XML data from file.")
     exit(EXIT_FAILURE)
 }
 
 let fcdXML = SWXMLHash.lazy(fcdData)
 
 // Load data onto our Trips array
-var Trips = [FCDTimestep]()
+var trips = [FCDTimestep]()
 for timestep in fcdXML["fcd-export"]["timestep"] {
 	guard let timestepElement = timestep.element,
 			let s_time = timestepElement.attributes["time"],
 			let timestepTime = Double(s_time)
 	 else {
-		print(" failed\n", "Error: Invalid timestep entry.")
+		print(" failed", "\nError: Invalid timestep entry.")
 		exit(EXIT_FAILURE)
 	}
 
@@ -98,18 +104,18 @@ for timestep in fcdXML["fcd-export"]["timestep"] {
 				let v_ygeo = Double(s_ygeo),
 				let v_speed = Double(s_speed)
 		else {
-			print(" failed\n", "Error: Unable to convert vehicle properties.")
+			print(" failed", "\nError: Unable to convert vehicle properties.")
 			exit(EXIT_FAILURE)
 		}
 
-		timestepVehicles.append( FCDVehicle(id: v_id, xgeo: v_xgeo, ygeo: v_ygeo, speed: v_speed) )
+		timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo), speed: v_speed) )
 	}
 
-	Trips.append( FCDTimestep(time: timestepTime, vehicles: timestepVehicles) )
+	trips.append( FCDTimestep(time: timestepTime, vehicles: timestepVehicles) )
 }
 
 print(" okay")
-print("\tLoaded", Trips.count, "timesteps from data file")
+print("\tLoaded", trips.count, "timesteps from data file")
 
 
 
@@ -124,7 +130,7 @@ guard	let gisConfig = config["gis"],
 		let gisUser = gisConfig["user"] as? String,
 		let gisPass = gisConfig["password"] as? String
  else {
-	print(" failed\n", "Error: Invalid database configuration.")
+	print(" failed", "\nError: Invalid database configuration.")
 	exit(EXIT_FAILURE)
 }
 
@@ -141,28 +147,31 @@ print("\tSaw", buildingCount, "buildings in the database")
 /*** MAIN ROUTINE ***/
 /********************/
 
+// Clear all points from the database
 gis.clear(featureType: .Vehicle)
 
-let pointGID = gis.add(pointOfType: .Vehicle, xgeo: -8.62051, ygeo: 41.16371, id: 1)
-print("AddPoint GID:", pointGID)
+// Initialize a list of events
+guard let sTime = config["stopTime"] as? Double
+ else {
+	print("Error: Please provide a simulation stop time in the configuration.")
+	exit(EXIT_FAILURE)
+}
+var events = EventList(stopTime: sTime)
 
-let coords: (Double, Double) = gis.get(coordinatesFromGID: pointGID)
-print("Coordinates:", coords)
 
-let gids = gis.get(featuresInCircleWithRadius: 59, xCenter: -8.6200, yCenter: 41.1636, featureType: .Vehicle)
-print("GIDs:", gids)
+/*** EVENT LOOP ***/
 
-let distance = gis.get(distanceFromPointToGID: pointGID, xgeo: -8.62, ygeo: 41.1636)
-print("Distance:", distance)
+repeat {
+	guard let event = events.list.first
+	 else { print("Exhausted event list at time", events.now); exit(EXIT_SUCCESS) }
+	
+	assert(event.time >= events.now)
+	
+	print("Executing event at time", event.time)
+	event.action()
+	events.list.removeFirst()
+	
+} while events.now < events.stopTime
 
-let nlos = gis.checkForLineOfSight(-8.620385, ygeo1: 41.164445, xgeo2: -8.62051, ygeo2: 41.16371)
-print("NLOS:", nlos)
-
-let los = gis.checkForLineOfSight(-8.620385, ygeo1: 41.164445, xgeo2: -8.619970, ygeo2: 41.164383)
-print("LOS:", los)
-
-gis.update(pointFromGID: pointGID, xgeo: -8.62052, ygeo: 41.16372)
-let newCoords: (Double, Double) = gis.get(coordinatesFromGID: pointGID)
-print("New coords:", newCoords)
 
 exit(EXIT_SUCCESS)

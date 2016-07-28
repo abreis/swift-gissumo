@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>debug</key>
-	<false/>
+	<true/>
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
-	<integer>0</integer>
+	<integer>60</integer>
 	<key>gis</key>
 	<dict>
 		<key>host</key>

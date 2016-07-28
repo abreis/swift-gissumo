@@ -6,8 +6,7 @@ import Foundation
 
 struct FCDVehicle {
 	let id: UInt
-	let xgeo: Double
-	let ygeo: Double
+	let geo: (x: Double, y: Double)
 	let speed: Double
 }
 
