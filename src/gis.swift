@@ -71,7 +71,7 @@ class GIS {
 
 
 	/// Returns the geographic coordinates of a feature identified by its GID. Only works for Point type features.
-	func get(coordinatesFromGID gid: UInt) -> (xgeo: Double, ygeo: Double) {
+	func get(coordinatesFromGID gid: UInt) -> (x: Double, y: Double) {
 		let query: String = "SELECT ST_X(geom),ST_Y(geom) FROM buildings WHERE gid='" + String(gid) + "'"
 
 		do {
@@ -104,9 +104,9 @@ class GIS {
 	
 	
 	/// Returns the GIDs of features in a specified circle (center+radius).
-	func get(featuresInCircleWithRadius range: Double, xCenter: Double, yCenter: Double, featureType: FeatureType) -> [UInt]? {
+	func get(featuresInCircleWithRadius range: Double, center: (x: Double, y: Double), featureType: FeatureType) -> [UInt]? {
 		let wgs84range = range*degreesPerMeter
-		let query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(xCenter) + " " + String(yCenter) + ")',4326)," + String(wgs84range) + ") and feattyp='" + String(featureType.rawValue) + "'"
+		let query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(center.x) + " " + String(center.y) + ")',4326)," + String(wgs84range) + ") and feattyp='" + String(featureType.rawValue) + "'"
 		
 		do {
 			let result = try connection.execute(Query(query))
@@ -132,12 +132,12 @@ class GIS {
 	
 	
 	/// Returns the distance from a specific GID to a geographic location.
-	func get(distanceFromPointToGID gid: UInt, xgeo: Double, ygeo: Double) -> Double {
+	func get(distanceFromPointToGID gid: UInt, geo: (x: Double, y: Double)) -> Double {
 		// First find the coordinates of the target point
-		let gidCoords: (xgeo: Double, ygeo: Double) = get(coordinatesFromGID: gid)
+		let gidCoords: (x: Double, y: Double) = get(coordinatesFromGID: gid)
 		
 		// Then calculate the distance between the two points
-		let query: String = "SELECT ST_Distance('POINT(" + String(xgeo) + " " + String(ygeo) + ")', 'POINT(" + String(gidCoords.xgeo) + " " + String(gidCoords.ygeo) + ")')"
+		let query: String = "SELECT ST_Distance('POINT(" + String(geo.x) + " " + String(geo.y) + ")', 'POINT(" + String(gidCoords.x) + " " + String(gidCoords.y) + ")')"
 
 		do {
 			let result = try connection.execute(Query(query))
@@ -161,8 +161,8 @@ class GIS {
 	
 	
 	/// Checks whether there are any buildings in the line-of-sight between two points.
-	func checkForLineOfSight(xgeo1: Double, ygeo1: Double, xgeo2: Double, ygeo2: Double) -> Bool {
-		let query: String = "SELECT COUNT(id) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('LINESTRING(" + String(xgeo1) + " "	+ String(ygeo1) + "," + String(xgeo2) + " " + String(ygeo2) + ")',4326)) and feattyp='" + String(FeatureType.Building.rawValue) + "'"
+	func checkForLineOfSight(geo1: (x: Double, y: Double), geo2: (x: Double, y: Double)) -> Bool {
+		let query: String = "SELECT COUNT(id) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('LINESTRING(" + String(geo1.x) + " "	+ String(geo1.y) + "," + String(geo2.x) + " " + String(geo2.y) + ")',4326)) and feattyp='" + String(FeatureType.Building.rawValue) + "'"
 		
 		do {
 			let result = try connection.execute(Query(query))
@@ -187,8 +187,8 @@ class GIS {
 
 	
 	/// Checks whether there is something at a specified location.
-	func checkForObstruction(xgeo: Double, ygeo: Double) -> Bool {
-		let query: String = "SELECT COUNT(gid) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('POINT(" + String(xgeo) + " " + String(ygeo) + ")',4326))"
+	func checkForObstruction(geo: (x: Double, y: Double)) -> Bool {
+		let query: String = "SELECT COUNT(gid) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326))"
 		
 		do {
 			let result = try connection.execute(Query(query))
@@ -213,8 +213,8 @@ class GIS {
 	
 
 	/// Adds a new point feature of the specified type, and returns its new GID.
-	func add(pointOfType type: FeatureType, xgeo: Double, ygeo: Double, id: UInt) -> UInt {
-		let query: String = "INSERT INTO buildings(id, geom, feattyp) VALUES (" + String(id)		+ ", ST_GeomFromText('POINT(" + String(xgeo) + " " + String(ygeo) + ")',4326)," + String(type.rawValue) + ") RETURNING gid"
+	func add(pointOfType type: FeatureType, geo: (x: Double, y: Double), id: UInt) -> UInt {
+		let query: String = "INSERT INTO buildings(id, geom, feattyp) VALUES (" + String(id) + ", ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326)," + String(type.rawValue) + ") RETURNING gid"
 		
 		do {
 			let result = try connection.execute(Query(query))
@@ -238,8 +238,8 @@ class GIS {
 
 	
 	/// Updates the coordinates of a specific point.
-	func update(pointFromGID gid: UInt, xgeo: Double, ygeo: Double) {
-		let query: String = "UPDATE buildings SET geom=ST_GeomFromText('POINT(" + String(xgeo) + " " + String(ygeo) + ")',4326) WHERE gid='" + String(gid) + "'"
+	func update(pointFromGID gid: UInt, geo: (x: Double, y: Double)) {
+		let query: String = "UPDATE buildings SET geom=ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326) WHERE gid='" + String(gid) + "'"
 		
 		do {
 			try connection.execute(Query(query))
