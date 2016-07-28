@@ -157,6 +157,9 @@ print("\tSaw", buildingCount, "buildings in the database")
 /*** MAIN ROUTINE ***/
 /********************/
 
+// Current simulation time
+var now: Double = -1.0
+
 // Clear all points from the database
 gis.clear(featureType: .Vehicle)
 
@@ -178,7 +181,7 @@ var city = City(fromFCD: &trips)
 *
 */
 for timestep in trips {
-	let mobilityEvent = SimulationEvent(time: timestep.time, action: {events.process(mobilityEventsFromTimestep: timestep, vehicleList: &city.vehicles, gis: gis )} )
+	let mobilityEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {events.process(mobilityEventsFromTimestep: timestep, vehicleList: &city.vehicles, gis: gis )} )
 	events.add(newEvent: mobilityEvent)
 }
 
@@ -188,15 +191,19 @@ for timestep in trips {
 
 repeat {
 	guard let event = events.list.first
-	 else { print("Exhausted event list at time", events.now); exit(EXIT_SUCCESS) }
+	 else { print("Exhausted event list at time", now); exit(EXIT_SUCCESS) }
 
-	assert(event.time >= events.now)
+	// Update current time
+	assert(event.time > now)
+	now = event.time
 
-	print("Executing event at time", event.time)
+	if debug.contains("main().events"){
+		print(String(format: "%.6f main():\t", now).cyan(), "Executing", event.type, "event")
+	}
 	event.action()
 	events.list.removeFirst()
 
-} while events.now < events.stopTime
+} while now < events.stopTime
 
-
+print("Simulation completed")
 exit(EXIT_SUCCESS)

@@ -5,14 +5,18 @@
 import Foundation
 
 struct SimulationEvent {
+	enum EventType {
+		case Mobility
+		case Network
+	}
+
 	let time: Double
+	let type: EventType
 	let action: ()->()
 }
 
 class EventList {
-	var now: Double = 0.0
 	var stopTime: Double
-
 	var list = [SimulationEvent]()
 
 	init(stopTime stime: Double) {
@@ -25,7 +29,7 @@ class EventList {
 	}
 
 
-	// Processes mobility events, creating new vehicles and updating existing ones
+	// Process mobility events, creating new vehicles and updating existing ones
 	func process(mobilityEventsFromTimestep timestep: FCDTimestep, inout vehicleList: [Vehicle], gis: GIS) {
 		// Keep track of the vehicles seen in this timestep
 		var timestepVehicleIDs = [UInt]()
@@ -46,7 +50,7 @@ class EventList {
 
 				// Debug
 				if debug.contains("EventList.process(mobility).update") {
-					print("DEBUG EventList.process(mobility)".cyan(),":\t", "Update vehicle id", vehicleList[vIndex].id, "gid", vGID, "to coordinates", vehicleList[vIndex].geo)
+					print(String(format: "%.6f EventList.process(mobility):\t", now).cyan(), "Update vehicle id", vehicleList[vIndex].id, "gid", vGID, "to coordinates", vehicleList[vIndex].geo)
 				}
 			} else {
 				// If not, create the vehicle
@@ -59,7 +63,7 @@ class EventList {
 
 				// Debug
 				if debug.contains("EventList.process(mobility).create") {
-					print("DEBUG EventList.process(mobility)".cyan(),":\t", "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
+					print(String(format: "%.6f EventList.process(mobility):\t", now).cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
 				}
 			}
 		}
@@ -70,7 +74,7 @@ class EventList {
 				vehicle.active = false
 
 				if debug.contains("EventList.process(mobility).inactive") {
-					print("DEBUG EventList.process(mobility)".cyan(),":\t", "Mark vehicle id", vehicle.id, "gid", vehicle.gid!, "as inactive")
+					print(String(format: "%.6f EventList.process(mobility):\t", now).cyan(), "Mark vehicle id", vehicle.id, "gid", vehicle.gid!, "as inactive")
 				}
 			}
 

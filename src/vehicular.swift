@@ -53,14 +53,14 @@ class City {
 		}
 
 		if debug.contains("City.init(fromFCD)"){
-			print("DEBUG City.init(fromFCD)".cyan(),":\t", "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
+			print(String(format: "%.6f City.init(fromFCD):\t", now).cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
 
 		// Now determine the size of the map in cells
 		cells.x = UInt( ceil(bounds.x.max*3600) - floor(bounds.x.min*3600) )
 		cells.y = UInt( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) )
 
 		if debug.contains("City.init(fromFCD)"){
-			print("DEBUG City.init(fromFCD)".cyan(),":\t", "City cell size is ", cells.x, "x", cells.y) }
+			print(String(format: "%.6f City.init(fromFCD):\t", now).cyan(), "City cell size is ", cells.x, "x", cells.y) }
 
 	} // end init(fromFCD:)
 }

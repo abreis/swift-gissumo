@@ -45,6 +45,8 @@
 	<dict>
 		<key>main()</key>
 		<true/>
+		<key>main().events</key>
+		<false/>
 		<key>City.init(fromFCD)</key>
 		<true/>
 		<key>EventList.process(mobility).create</key>
