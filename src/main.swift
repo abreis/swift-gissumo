@@ -172,10 +172,10 @@ guard let sTime = config["stopTime"] as? Double
 var events = EventList(stopTime: sTime)
 
 
-
 /* Initialize a City with an array of Vehicles
 */
 var city = City(fromFCD: &trips)
+
 
 /* Add mobility timestep events to the eventlist
 *

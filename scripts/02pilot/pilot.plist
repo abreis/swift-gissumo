@@ -5,7 +5,7 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
-	<integer>60</integer>
+	<integer>10</integer>
 	<key>bounds</key>
 	<dict>
 		<key>x</key>
@@ -46,15 +46,17 @@
 		<key>main()</key>
 		<true/>
 		<key>main().events</key>
-		<false/>
+		<true/>
 		<key>City.init(fromFCD)</key>
 		<true/>
-		<key>EventList.process(mobility).create</key>
+		<key>EventList.add(newEvent)</key>
 		<true/>
+		<key>EventList.process(mobility).create</key>
+		<false/>
 		<key>EventList.process(mobility).update</key>
 		<false/>
 		<key>EventList.process(mobility).inactive</key>
-		<true/>
+		<false/>
 	</dict>
 </dict>
 </plist>
