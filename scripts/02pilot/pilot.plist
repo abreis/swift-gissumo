@@ -2,12 +2,32 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>debug</key>
-	<true/>
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
 	<integer>60</integer>
+	<key>bounds</key>
+	<dict>
+		<key>x</key>
+		<dict>
+			<key>min</key>
+			<real>-8.6227</real>
+			<key>max</key>
+			<real>-8.609400000000001</real>
+		</dict>
+		<key>y</key>
+		<dict>
+			<key>min</key>
+			<string>41.1598</string>
+			<key>max</key>
+			<string>41.1679</string>
+		</dict>
+	</dict>
+	<key>stats</key>
+	<dict>
+		<key>activeVehicleCount</key>
+		<string>stats/activeVehicleCount.log</string>
+	</dict>
 	<key>gis</key>
 	<dict>
 		<key>host</key>
@@ -20,6 +40,19 @@
 		<string>root</string>
 		<key>password</key>
 		<string>UEgmzMx3mb6dCN</string>
+	</dict>
+	<key>debug</key>
+	<dict>
+		<key>main()</key>
+		<true/>
+		<key>City.init(fromFCD)</key>
+		<true/>
+		<key>EventList.process(mobility).create</key>
+		<true/>
+		<key>EventList.process(mobility).update</key>
+		<false/>
+		<key>EventList.process(mobility).inactive</key>
+		<true/>
 	</dict>
 </dict>
 </plist>

@@ -40,13 +40,20 @@ guard let config = NSDictionary(contentsOfURL: configFileURL)
 
 print(" okay")
 
-// Load debug variable
-var debug = false
-if let debugFromConfig = config["debug"] as? Bool {
-	debug = debugFromConfig
-	if debug { print("DEBUG main()".cyan(),":\t","Debug mode is active.") }
-}
+// Load stop time
+let stopTime = config["stopTime"] as? Double
 
+// Load debug variable
+var debug = [String]()
+if let debugConfig = config["debug"] as? NSDictionary {
+	for element in debugConfig {
+		if let enabled = element.value as? Bool
+			where enabled == true {
+				debug.append(String(element.key))
+		}
+	}
+}
+if debug.contains("main()") { print("DEBUG main()".cyan(),":\t","Debug mode is active.") }
 
 
 /* Load floating car data from an XML file
@@ -82,7 +89,7 @@ let fcdXML = SWXMLHash.lazy(fcdData)
 
 // Load data onto our Trips array
 var trips = [FCDTimestep]()
-for timestep in fcdXML["fcd-export"]["timestep"] {
+timestepLoop: for timestep in fcdXML["fcd-export"]["timestep"] {
 	guard let timestepElement = timestep.element,
 			let s_time = timestepElement.attributes["time"],
 			let timestepTime = Double(s_time)
@@ -90,6 +97,9 @@ for timestep in fcdXML["fcd-export"]["timestep"] {
 		print(" failed", "\nError: Invalid timestep entry.")
 		exit(EXIT_FAILURE)
 	}
+
+	// Don't load timesteps that occur later than the simulation stopTime
+	if stopTime != nil && timestepTime > stopTime { break timestepLoop }
 
 	var timestepVehicles = [FCDVehicle]()
 
@@ -159,18 +169,33 @@ guard let sTime = config["stopTime"] as? Double
 var events = EventList(stopTime: sTime)
 
 
+
+/* Initialize a City with an array of Vehicles
+*/
+var city = City(fromFCD: &trips)
+
+/* Add mobility timestep events to the eventlist
+*
+*/
+for timestep in trips {
+	let mobilityEvent = SimulationEvent(time: timestep.time, action: {events.process(mobilityEventsFromTimestep: timestep, vehicleList: &city.vehicles, gis: gis )} )
+	events.add(newEvent: mobilityEvent)
+}
+
+
+
 /*** EVENT LOOP ***/
 
 repeat {
 	guard let event = events.list.first
 	 else { print("Exhausted event list at time", events.now); exit(EXIT_SUCCESS) }
-	
+
 	assert(event.time >= events.now)
-	
+
 	print("Executing event at time", event.time)
 	event.action()
 	events.list.removeFirst()
-	
+
 } while events.now < events.stopTime
 
 
