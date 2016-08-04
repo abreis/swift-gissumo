@@ -5,7 +5,7 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
-	<integer>10</integer>
+	<integer>60</integer>
 	<key>bounds</key>
 	<dict>
 		<key>x</key>

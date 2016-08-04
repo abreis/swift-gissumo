@@ -207,3 +207,13 @@ repeat {
 
 print("Simulation completed")
 exit(EXIT_SUCCESS)
+
+
+/* Converting a Vehicle to an RSU
+ * - Create a new RoadsideUnit from the Vehicle
+ * - Add the new RSU to GIS, getting its GID
+ * - Clear the Vehicle from GIS
+ * - Push the Vehicle out of city.vehicles
+ * - Append the RSU into city.roadsideUnits
+ */
+

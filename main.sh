@@ -6,12 +6,12 @@ SCRIPTDIR='scripts'
 
 unset REPLY
 echo ''
-for SCRIPTGROUP in $( find ${SCRIPTDIR} -type d ! -path ${SCRIPTDIR} -maxdepth 1 | sed 's!.*/!!' | sort ); do
+for SCRIPTGROUP in $( find ${SCRIPTDIR} -maxdepth 1 -type d ! -path ${SCRIPTDIR} | sed 's!.*/!!' | sort ); do
 
 	while [ -z $REPLY ]; do
 		read -p "Run ${SCRIPTGROUP}? [y/N] " 
 	done
-	
+
 	if [[ $REPLY =~ ^[Yy]$ ]]; then
 		for SCRIPT in $( find ${SCRIPTDIR}/${SCRIPTGROUP} -type f -iname '*.sh' | sed 's!.*/!!' | sort ); do
 			echo -e -n "\t $(basename ${SCRIPT} .sh ) ... \t"
@@ -21,6 +21,6 @@ for SCRIPTGROUP in $( find ${SCRIPTDIR} -type d ! -path ${SCRIPTDIR} -maxdepth 1
 		done
 		echo ''
 	fi
-	
+
 	unset REPLY
 done

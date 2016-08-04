@@ -1,6 +1,6 @@
 /* Andre Braga Reis, 2016
-* Licensing information can be found in the accompanying LICENSE file.
-*/
+ * Licensing information can be found in the accompanying LICENSE file.
+ */
 
 import Foundation
 
@@ -10,7 +10,7 @@ class RoadEntity {
 	var geo: (x: Double, y: Double)
 	var creationTime: Double?
 
-	init(id v_id: UInt, gid v_gid: UInt, geo v_geo:(x:Double, y:Double), creationTime ctime: Double?) {
+	init(id v_id: UInt, gid v_gid: UInt?, geo v_geo:(x:Double, y:Double), creationTime ctime: Double?) {
 		id = v_id
 		gid = v_gid
 		geo.x = v_geo.x
@@ -26,14 +26,14 @@ class Vehicle: RoadEntity {
 	var active: Bool = true
 
 	// Standard init
-	init(id v_id: UInt, gid v_gid: UInt, v_geo:(x:Double, y:Double), creationTime ctime: Double?, speed v_speed: Double?) {
+	init(id v_id: UInt, gid v_gid: UInt?, v_geo:(x:Double, y:Double), creationTime ctime: Double?, speed v_speed: Double?) {
 		super.init(id: v_id, gid: v_gid, geo: v_geo, creationTime: ctime)
 		if let sspeed = v_speed { speed = sspeed }
 	}
 
 	// Initialize from an FCD vehicle entry
 	init(createFromFCDVehicle fcdv: FCDVehicle, creationTime ctime: Double?) {
-		super.init(id: fcdv.id, gid: <#T##UInt#>, geo: fcdv.geo, creationTime: ctime)
+		super.init(id: fcdv.id, gid: nil, geo: fcdv.geo, creationTime: ctime)
 		speed = fcdv.speed
 	}
 }

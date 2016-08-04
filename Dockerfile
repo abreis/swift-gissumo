@@ -36,9 +36,12 @@ RUN tar xzf swift*.tar.gz --directory / --strip-components=1 && rm -rf swift*.ta
 # Clean up package manager
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Add script and data folders
+# Add script, data and src folders, Makefile, main.sh
 ADD ./scripts /root/scripts
 ADD ./data /root/data
+ADD ./src /root/src
+ADD Makefile /root
+ADD main.sh /root
 
 # Share a folder with the host in which to store results
 VOLUME /work
