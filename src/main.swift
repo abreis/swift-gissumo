@@ -166,7 +166,7 @@ gis.clear(featureType: .Vehicle)
 // Initialize a list of events
 guard let sTime = config["stopTime"] as? Double
  else {
-	print("Error: Please provide a simulation stop time in the configuration.")
+	print("Error: Please provide a valid simulation stop time in the configuration.")
 	exit(EXIT_FAILURE)
 }
 var events = EventList(stopTime: sTime)
