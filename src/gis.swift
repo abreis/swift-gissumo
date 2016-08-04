@@ -250,6 +250,18 @@ class GIS {
 		}
 	}
 
+	/// Deletes a point from the database by its ID
+	func delete(pointWithGID gid: UInt) {
+		let query: String = "DELETE FROM buildings WHERE gid='" + String(gid) + "'"
+		do {
+			try connection.execute(Query(query))
+		} catch {
+			print("\nDatabase query error.")
+			print("Query: " + query)
+			exit(EXIT_FAILURE)
+		}
+	}
+
 
 
 }
