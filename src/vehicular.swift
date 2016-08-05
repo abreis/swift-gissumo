@@ -7,15 +7,17 @@ import Foundation
 // A basic road entity, with an ID, GIS ID, geographic location, time of creation, and the city it belongs to
 class RoadEntity {
 	var id: UInt
-	var gid: UInt?
+	var city: City
 	var geo: (x: Double, y: Double)
-	var creationTime: Double?
-	var city: City?
 
-	init(id v_id: UInt, geo v_geo:(x:Double, y:Double), creationTime ctime: Double?) {
+	var gid: UInt?
+	var creationTime: Double?
+
+	init(id v_id: UInt, geo v_geo:(x:Double, y:Double), city v_city: City, creationTime ctime: Double?) {
 		id = v_id
 		geo.x = v_geo.x
 		geo.y = v_geo.y
+		city = v_city
 		if let time = ctime { creationTime = time }
 	}
 }

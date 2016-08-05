@@ -82,7 +82,7 @@ class EventList {
 				}
 			} else {
 				// If not, create the vehicle
-				let newVehicle = Vehicle(id: fcdVehicle.id, geo: fcdVehicle.geo, creationTime: now)
+				let newVehicle = Vehicle(id: fcdVehicle.id, geo: fcdVehicle.geo, city: city, creationTime: now)
 
 				// Add the new vehicle to GIS and record its GIS ID
 				newVehicle.gid = city.gis.add(pointOfType: .Vehicle, geo: (x:newVehicle.geo.x, y: newVehicle.geo.y), id: newVehicle.id)

@@ -11,7 +11,7 @@ import Foundation
 * It can also be constructed from a string, and recognizes the presence of a pair of
 * center coordinates in the first line, formatted as "c$X,$CY".
 */
-struct SignalMap : CustomStringConvertible, PayloadConvertible {
+struct SignalMap: CustomStringConvertible, PayloadConvertible {
 	var cells: [[Int]]
 	let size: (x: Int, y: Int)
 	var center: (x: Int, y: Int)?
@@ -22,13 +22,13 @@ struct SignalMap : CustomStringConvertible, PayloadConvertible {
 		cells = Array(count: mSize.y, repeatedValue: Array(count: mSize.x, repeatedValue: val))
 	}
 	
-	// Implement CustomStringConvertible
+	// Computed property implementing CustomStringConvertible
 	var description: String {
 		var desc = String()
 		
 		// If we have center coordinates, print them on the first line
 		if let ccenter = center {
-			desc += "c" + String(ccenter.x) + "," + String(ccenter.y) + "\n"
+			desc += "c" + String(ccenter.x) + ";" + String(ccenter.y) + "\n"
 		}
 		
 		for row in cells {
@@ -48,13 +48,13 @@ struct SignalMap : CustomStringConvertible, PayloadConvertible {
 		
 		if let firstLine = lines.first where firstLine.hasPrefix("c") {
 			lines.removeFirst()
-			let centerCoords = firstLine.stringByReplacingOccurrencesOfString("c", withString: "").componentsSeparatedByString(",")
+			let centerCoords = firstLine.stringByReplacingOccurrencesOfString("c", withString: "").componentsSeparatedByString(";")
 			
-			guard let xcenter = Int(centerCoords[0]),
-				let ycenter = Int(centerCoords[1])
-				else {
-					print("Error: Signal map center coordinate conversion from string failed.")
-					exit(EXIT_FAILURE)
+			guard	let xcenter = Int(centerCoords[0]),
+					let ycenter = Int(centerCoords[1])
+					else {
+						print("Error: Signal map center coordinate conversion from string failed.")
+						exit(EXIT_FAILURE)
 			}
 			center = (x: xcenter, y: ycenter)
 		}
@@ -76,7 +76,7 @@ struct SignalMap : CustomStringConvertible, PayloadConvertible {
 	}
 	
 	// Implement PayloadConvertible protocol
-	func toPayload () -> Payload {
+	func toPayload() -> Payload {
 		let payload = Payload(content: description)
 		return payload
 	}
