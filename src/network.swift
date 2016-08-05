@@ -11,6 +11,9 @@ class Network {
 	// Maximum radio range (for GIS queries)
 	// Match with the chosen propagation algorithm
 	let maxRange: Double = 155
+
+	// Propagation algorithm
+	let getSignalStrength: (distance: Double, lineOfSight: Bool) -> Double = portoEmpiricalDataModel
 }
 
 
@@ -135,3 +138,21 @@ struct SignalMap : CustomStringConvertible, PayloadConvertible {
 }
 
 
+
+/*** SIGNAL STRENGTH ALGORITHMS ***/
+
+// A discrete propagation model built with empirical data from the city of Porto
+func portoEmpiricalDataModel(distance: Double, lineOfSight: Bool) -> Double {
+	if lineOfSight {
+		if distance<70 { return 5 }
+		if distance<115 { return 4 }
+		if distance<135 { return 3 }
+		if distance<155 { return 2 }
+	} else {
+		if distance<58 { return 5 }
+		if distance<65 { return 4 }
+		if distance<105 { return 3 }
+		if distance<130 { return 2 }
+	}
+	return 0
+}
