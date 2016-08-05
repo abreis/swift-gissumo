@@ -4,6 +4,55 @@
 
 import Foundation
 
+class Network {
+	// A standard message delay for all transmissions, 10ms
+	let messageDelay: Double = 0.010
+
+	// Maximum radio range (for GIS queries)
+	// Match with the chosen propagation algorithm
+	let maxRange: Double = 155
+}
+
+
+// A payload is a simple text field
+struct Payload {
+	var content: String
+}
+
+// Objects that conform to PayloadConvertible must be able to be completely expressed
+// as a Payload type (i.e., a string) and be created from a Payload as well
+protocol PayloadConvertible {
+	func toPayload () -> Payload
+	init (fromPayload: Payload)
+}
+
+
+
+/*** PACKETS ***/
+
+// List of payload types so a payload can be correctly cast to a message
+enum PayloadType {
+	case Beacon
+	case RequestCoverageMap
+	case CoverageMap
+}
+
+// A message packet
+// TODO: methods for geocasting, TTL, controlled propagation
+struct Packet {
+	var id: Int
+	var src, dst: Int
+
+	var created: Double
+
+	var payload: Payload
+	var payloadType: PayloadType
+}
+
+
+
+/*** SIGNAL MAPS ***/
+
 /* A signal map stores signal strength values from 0 to 5.
  * It conforms to CustomStringConvertible, i.e., can be converted into a string.
  * This lets us transform a map into a string and place it inside a packet's Payload.
@@ -14,22 +63,22 @@ struct SignalMap : CustomStringConvertible, PayloadConvertible {
 	var cells: [[Int]]
 	let size: (x: Int, y: Int)
 	var center: (x: Int, y: Int)?
-	
+
 	init(ofSize mSize:(x: Int, y: Int), withValue val: Int, center mCenter: (x: Int, y: Int)?) {
 		size = mSize
 		center = mCenter
 		cells = Array(count: mSize.y, repeatedValue: Array(count: mSize.x, repeatedValue: val))
 	}
-	
+
 	// Implement CustomStringConvertible
 	var description: String {
 		var desc = String()
-		
+
 		// If we have center coordinates, print them on the first line
 		if let ccenter = center {
 			desc += "c" + String(ccenter.x) + "," + String(ccenter.y) + "\n"
 		}
-		
+
 		for row in cells {
 			for element in row {
 				desc += String(element)
@@ -38,12 +87,13 @@ struct SignalMap : CustomStringConvertible, PayloadConvertible {
 		}
 		return desc
 	}
-	
+
+	// Construct a new SignalMap from a textual representation
 	init(fromString str: String) {
 		// Break string into lines
 		var lines: [String] = []
 		str.enumerateLines{ lines.append($0.line) }
-		
+
 		if let firstLine = lines.first where firstLine.hasPrefix("c") {
 			lines.removeFirst()
 			let centerCoords = firstLine.stringByReplacingOccurrencesOfString("c", withString: "").componentsSeparatedByString(",")
@@ -84,31 +134,4 @@ struct SignalMap : CustomStringConvertible, PayloadConvertible {
 	}
 }
 
-// List of payload types so a payload can be correctly cast to a message
-enum PayloadType {
-	case RequestCoverageMap
-	case CoverageMap
-}
 
-// A payload is a simple text field
-struct Payload {
-	var content: String
-}
-
-// Objects that conform to PayloadConvertible must be able to be completely expressed
-// as a Payload type (i.e., a string) and be created from a Payload as well
-protocol PayloadConvertible {
-	func toPayload () -> Payload
-	init (fromPayload: Payload)
-}
-
-// A message packet. TODO: methods for geocasting, TTL, controlled propagation
-struct Packet {
-	var id: Int
-	var src, dst: Int
-
-	var created: Double
-
-	var payload: Payload
-	var payloadType: PayloadType
-}
