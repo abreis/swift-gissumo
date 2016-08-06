@@ -98,9 +98,26 @@ class GIS {
 
 
 	/// Returns the GIDs of features in a specified circle (center+radius)
-	func get(featuresInCircleWithRadius range: Double, center: (x: Double, y: Double), featureType: FeatureType) -> [UInt]? {
+	func get(featuresInCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: FeatureType...) -> [UInt]? {
 		let wgs84range = range*degreesPerMeter
-		let query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(center.x) + " " + String(center.y) + ")',4326)," + String(wgs84range) + ") and feattyp='" + String(featureType.rawValue) + "'"
+		var query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(center.x) + " " + String(center.y) + ")',4326)," + String(wgs84range) + ")"
+
+		// Should always have at least one featureType
+		guard let firstType = featureTypes.first else {
+			print("\nError: At least one feature type must be specified.")
+			exit(EXIT_FAILURE)
+		}
+
+		// Append first feature type to request
+		query += " AND (feattyp='" + String(firstType.rawValue) + "'"
+
+		// Append additional feature types to the query using OR clauses
+		let additionalFeatureTypes = featureTypes.dropFirst()
+		for type in additionalFeatureTypes {
+			query += " OR feattyp='" + String(type.rawValue) + "'"
+		}
+		query += ")"
+
 		do {
 			let result = try connection.execute(Query(query))
 			if result.numberOfRows == 0 {
