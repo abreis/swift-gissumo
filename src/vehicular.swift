@@ -173,7 +173,7 @@ class City {
 
 
 	/// Update the location of a vehicle in this City and on GIS
-	func updateVehicleLocation(id v_id: UInt, geo v_geo: (x: Double, y: Double)) {
+	func updateVehicleLocation(id v_id: UInt, geo new_geo: (x: Double, y: Double)) {
 		guard	let vIndex = vehicles.indexOf( {$0.id == v_id} ),
 				let vGID = vehicles[vIndex].gid
 				else {
@@ -182,10 +182,10 @@ class City {
 		}
 
 		// Update the vehicle coordinates
-		vehicles[vIndex].geo = v_geo
+		vehicles[vIndex].geo = new_geo
 
 		// Move the corresponding point in GIS
-		gis.update(pointFromGID: vGID, geo: v_geo)
+		gis.update(pointFromGID: vGID, geo: new_geo)
 
 		// Debug
 		if debug.contains("City.updateVehicleLocation()") {
