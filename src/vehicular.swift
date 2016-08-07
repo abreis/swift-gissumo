@@ -67,10 +67,10 @@ class City {
 	var events: EventList
 
 	// City bounds (initialized with the WGS84 extreme bounds)
-	var bounds = (
-		x: (min:  180.0, max: -180.0),
-		y: (min:   90.0, max:  -90.0)
-	)
+	var bounds = Square(x: (min:  180.0, max: -180.0), y: (min:   90.0, max:  -90.0))
+
+	// Inner bounds for data analysis (supplied in configuration file)
+	var innerBounds: Square?
 
 	// City size in cells
 	var cells = (x: UInt(0), y:UInt(0))

@@ -53,6 +53,18 @@ if let debugConfig = config["debug"] as? NSDictionary {
 	}
 }
 
+// Load inner bounds
+var cityInnerBounds: Square?
+if	let innerBoundsConfig = config["innerBounds"] as? NSDictionary,
+	let innerX = innerBoundsConfig["x"] as? NSDictionary,
+	let innerXmin = innerX["min"] as? Double,
+	let innerXmax = innerX["max"] as? Double,
+	let innerY = innerBoundsConfig["y"] as? NSDictionary,
+	let innerYmin = innerY["min"] as? Double,
+	let innerYmax = innerY["max"] as? Double {
+		cityInnerBounds = Square(x: (min: innerXmin, max: innerXmax), y: (min: innerYmin, max: innerYmax))
+}
+
 print(" okay")
 
 
@@ -159,6 +171,9 @@ var simCity = City(gis: gisdb, network: Network(), eventlist: EventList(stopTime
 
 // Load city characteristics, bounds, cell size from the FCD trips
 simCity.determine(boundsfromFCD: fcdTrips)
+
+// Store inner city bounds from configuration file
+simCity.innerBounds = cityInnerBounds
 
 // Clear all points from the database
 simCity.gis.clear(featureType: .Vehicle)

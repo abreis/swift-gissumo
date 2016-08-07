@@ -6,7 +6,7 @@
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
 	<integer>60</integer>
-	<key>bounds</key>
+	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
 		<dict>
@@ -18,9 +18,9 @@
 		<key>y</key>
 		<dict>
 			<key>min</key>
-			<string>41.1598</string>
+			<real>41.1598</real>
 			<key>max</key>
-			<string>41.1679</string>
+			<real>41.1679</real>
 		</dict>
 	</dict>
 	<key>stats</key>

@@ -16,6 +16,38 @@ class Network {
 	let getSignalStrength: (distance: Double, lineOfSight: Bool) -> Double = portoEmpiricalDataModel
 }
 
+/*** GEOCAST AREAS ***/
+
+protocol AreaType {
+	func isPointInside(point: (x: Double, y: Double)) -> Bool
+}
+
+struct Square: AreaType {
+	var x: (min: Double, max: Double)
+	var y: (min: Double, max: Double)
+
+	// Ensure bounds are always correct (min<max)
+	init(x xIn: (min: Double, max: Double), y yIn: (min: Double, max: Double)) {
+		x = xIn
+		y = yIn
+
+		if x.min > x.max {
+			x.min = xIn.max
+			x.max = xIn.min
+		}
+		if y.min > y.max {
+			y.min = yIn.max
+			y.max = yIn.min
+		}
+	}
+
+	func isPointInside(point: (x: Double, y: Double)) -> Bool {
+		if point.x > x.min && point.x < x.max && point.y > y.min && point.y < y.max {
+			return true
+		} else { return false }
+	}
+}
+
 
 
 /*** PACKETS ***/
