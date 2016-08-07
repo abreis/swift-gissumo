@@ -51,12 +51,6 @@
 		<true/>
 		<key>EventList.add(newEvent)</key>
 		<true/>
-		<key>EventList.process(mobility).create</key>
-		<false/>
-		<key>EventList.process(mobility).update</key>
-		<false/>
-		<key>EventList.process(mobility).inactive</key>
-		<false/>
 	</dict>
 </dict>
 </plist>
