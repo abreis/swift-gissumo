@@ -75,6 +75,7 @@ class EventList {
 			let existingVehicleIDs = fcdVehicleIDs.intersect(cityVehicleIDs)
 			let missingVehicleIDs = cityVehicleIDs.subtract(fcdVehicleIDs)
 
+			// Debug
 			if debug.contains("EventList.processMobilityEvents(fromTimestep)"){
 				print(String(format: "%.6f EventList.processMobilityEvents(fromTimestep):\t", now).cyan(), "Timestep", timestep.time, "sees:" )
 				print("\t\tFCD vehicles:", fcdVehicleIDs)

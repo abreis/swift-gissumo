@@ -64,7 +64,7 @@ struct Packet {
 	enum Destination {
 		case Unicast(destinationID: UInt)
 		case Broadcast(hopLimit: UInt)
-		case Geocast // TODO: implement an Area type to represent geocasts
+		case Geocast(targetArea: AreaType)
 	}
 
 	var id: UInt
@@ -149,6 +149,31 @@ func portoEmpiricalDataModel(distance: Double, lineOfSight: Bool) -> Double {
 
 /*** TRANSPORT ***/
 
+// Extend RoadEntity types with the ability to broadcast messages
+extension RoadEntity {
+	func broadcastPacket(packet: Packet) {
+		let neighborGIDarray = city.gis.get(featuresInCircleWithRadius: city.network.maxRange, center: geo, featureTypes: .Vehicle, .RoadsideUnit)
+
+		if let neighborGIDs = neighborGIDarray {
+			// Fetch vehicles and
+			let matchingVehicles = city.vehicles.filter( {neighborGIDs.contains($0.gid!)} )
+			let matchingRSUs = city.roadsideUnits.filter( {neighborGIDs.contains($0.gid!)} )
+
+			for neighborVehicle in matchingVehicles {
+				// TODO after Vehicle.receive(packet)
+			}
+
+			for neighborRSU in matchingRSUs {
+				let newReceivePacketEvent = SimulationEvent(time: city.events.now + city.network.messageDelay, type: .Network, action: { neighborRSU.receive(packet) }, description: "RSU \(neighborRSU.id) receive packet \(packet.id) from \(self.id)")
+				city.events.add(newEvent: newReceivePacketEvent)
+			}
+		}
+	}
+}
+
+
+
+
 // Extend Roadside Units with the ability to receive packets
 extension RoadsideUnit: PacketReceiver {
 	func receive(packet: Packet) {
@@ -163,12 +188,15 @@ extension RoadsideUnit: PacketReceiver {
 		case .Unicast(let destinationID):
 			// Disregard if we're not the message target
 			if destinationID != id { return }
+			break
 		case .Broadcast:
 			// TODO: reduce TTL and rebroadcast
 			break
-		case .Geocast:
-			// TODO: see if we're in the destination Area
-			exit(EXIT_FAILURE)
+		case .Geocast(let targetArea):
+			// Disregard if we're not in the destination area
+			// TODO: rebroadcast
+			if targetArea.isPointInside(geo) == false { return }
+			break
 		}
 
 		// Process payload
