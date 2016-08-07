@@ -75,6 +75,15 @@ class City {
 	// City size in cells
 	var cells = (x: UInt(0), y:UInt(0))
 
+	// Returns a set of all vehicle IDs in the City
+	var setOfIdentifiers: Set<UInt> {
+		var idSet = Set<UInt>()
+		for vehicle in vehicles {
+			idSet.insert(vehicle.id)
+		}
+		return idSet
+	}
+
 	/// Standard init, provide a database, network and eventlist
 	init(gis ingis: GIS, network innet: Network, eventlist inevents: EventList) {
 		network = innet
@@ -120,5 +129,114 @@ class City {
 		if let vIndex = vehicles.indexOf( { $0.gid == vgid } ) {
 			return vehicles[vIndex]
 		} else { return nil }
+	}
+
+
+
+	/*** ROAD ENTITY ACTIONS ***/
+
+	/// Add a new vehicle to the City and to GIS
+	func addNewVehicle(id v_id: UInt, geo v_geo: (x: Double, y: Double)) {
+		let newVehicle = Vehicle(id: v_id, geo: v_geo, city: self, creationTime: events.now)
+
+		// Add the new vehicle to GIS and record its GIS ID
+		newVehicle.gid = gis.add(pointOfType: .Vehicle, geo: newVehicle.geo, id: newVehicle.id)
+
+		// Append the new vehicle to the city's vehicle list
+		vehicles.append(newVehicle)
+
+		// Debug
+		if debug.contains("City.addNewVehicle()") {
+			print(String(format: "%.6f City.addNewVehicle():\t", events.now).cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
+		}
+	}
+
+
+	/// Add a new RoadsideUnit to the City and to GIS, returning its GID
+	func addNewRSU(id r_id: UInt, geo r_geo: (x: Double, y: Double), type r_type: RoadsideUnitType) -> UInt {
+		let newRSU = RoadsideUnit(id: r_id, geo: r_geo, city: self, creationTime: events.now)
+		newRSU.type = r_type
+
+		// Add the new RSU to GIS and record its GIS ID
+		newRSU.gid = gis.add(pointOfType: .RoadsideUnit, geo: newRSU.geo, id: newRSU.id)
+
+		// Append the new vehicle to the city's vehicle list
+		roadsideUnits.append(newRSU)
+
+		// Debug
+		if debug.contains("City.addNewRSU()") {
+			print(String(format: "%.6f City.addNewRSU():\t", events.now).cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
+		}
+
+		return newRSU.gid!
+	}
+
+
+	/// Update the location of a vehicle in this City and on GIS
+	func updateVehicleLocation(id v_id: UInt, geo v_geo: (x: Double, y: Double)) {
+		guard	let vIndex = vehicles.indexOf( {$0.id == v_id} ),
+				let vGID = vehicles[vIndex].gid
+				else {
+					print("Error: Trying to update a non-existent vehicle.")
+					exit(EXIT_FAILURE)
+		}
+
+		// Update the vehicle coordinates
+		vehicles[vIndex].geo = v_geo
+
+		// Move the corresponding point in GIS
+		gis.update(pointFromGID: vGID, geo: v_geo)
+
+		// Debug
+		if debug.contains("City.updateVehicleLocation()") {
+			print(String(format: "%.6f City.updateVehicleLocation():\t", events.now).cyan(), "Update vehicle id", vehicles[vIndex].id, "gid", vGID, "to coordinates", vehicles[vIndex].geo)
+		}
+	}
+
+
+	/// Remove a vehicle from the City and from GIS
+	func removeVehicle(id v_id: UInt) {
+		guard	let vIndex = vehicles.indexOf( {$0.id == v_id} ),
+				let vGID = vehicles[vIndex].gid
+				else {
+					print("Error: Trying to remove a non-existent vehicle.")
+					exit(EXIT_FAILURE)
+		}
+
+		// Remove the vehicle from the City
+		vehicles.removeAtIndex(vIndex)
+
+		// Clear the corresponding point from GIS
+		gis.delete(pointWithGID: vGID)
+
+		// Debug
+		if debug.contains("City.removeVehicle()") {
+			print(String(format: "%.6f City.removeVehicle():\t", events.now).cyan(), "Removed vehicle id", v_id, "gid", vGID)
+		}
+	}
+
+
+	/// Removes a vehicle from the City and creates a parked car RSU in its place
+	func convertVehicleToParkedCarRSU(id v_id: UInt) {
+		guard	let vIndex = vehicles.indexOf( {$0.id == v_id} ),
+				let vGID = vehicles[vIndex].gid
+				else {
+					print("Error: Trying to convert a non-existent vehicle to an RSU.")
+					exit(EXIT_FAILURE)
+		}
+
+		// Remove the vehicle from GIS to avoid potential ID collisions
+		gis.delete(pointWithGID: vGID)
+
+		// Create a new RoadsideUnit from the Vehicle
+		let newRSUgid = addNewRSU(id: vehicles[vIndex].id, geo: vehicles[vIndex].geo, type: .ParkedCar)
+
+		// Remove the vehicle from the City
+		vehicles.removeAtIndex(vIndex)
+
+		// Debug
+		if debug.contains("City.convertVehicleToParkedCarRSU()") {
+			print(String(format: "%.6f City.convertVehicleToParkedCarRSU():\t", events.now).cyan(), "Converted vehicle id", v_id, "gid", vGID, "to an RSU gid", newRSUgid)
+		}
 	}
 }
