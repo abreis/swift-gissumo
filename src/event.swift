@@ -58,46 +58,61 @@ class EventList {
 
 
 	// Process mobility timesteps, adding events to create, update and remove vehicles
-	func processMobilityEvents(fromTimestep timestep: FCDTimestep, city: City) {
-		/* Create a set of vehicle IDs in this timestep
-		 * This is done by mapping the timestep's array of FCDVehicles into an array of
-		 * the vehicle's IDs, and then initializing the Set<UInt> with that array.
-		 */
-		let fcdVehicleIDs = Set<UInt>( timestep.vehicles.map( { (fcdVeh: FCDVehicle) -> UInt in return fcdVeh.id} ) )
+	func scheduleMobilityEvents(fromFCD fcdTimesteps: [FCDTimestep], city: City) {
+		// A temporary array to store vehicles that will be active
+		var cityVehicleIDs = Set<UInt>()
 
-		// Get a set of vehicle IDs already the City
-		let cityVehicleIDs = city.setOfIdentifiers
+		// The array of timesteps is assumed sorted
+		for timestep in fcdTimesteps {
+			/* Create a set of vehicle IDs in this timestep
+			 * This is done by mapping the timestep's array of FCDVehicles into an array of
+			 * the vehicle's IDs, and then initializing the Set<UInt> with that array.
+			 */
+			let fcdVehicleIDs = Set<UInt>( timestep.vehicles.map({$0.id}) )
 
-		// Through set relations we can now get the IDs of all new, existing and removed vehicles
-		let newVehicleIDs = fcdVehicleIDs.subtract(cityVehicleIDs)
-		let existingVehicleIDs = fcdVehicleIDs.intersect(cityVehicleIDs)
-		let missingVehicleIDs = cityVehicleIDs.subtract(fcdVehicleIDs)
+			// Through set relations we can now get the IDs of all new, existing and removed vehicles
+			let newVehicleIDs = fcdVehicleIDs.subtract(cityVehicleIDs)
+			let existingVehicleIDs = fcdVehicleIDs.intersect(cityVehicleIDs)
+			let missingVehicleIDs = cityVehicleIDs.subtract(fcdVehicleIDs)
 
+			if debug.contains("EventList.processMobilityEvents(fromTimestep)"){
+				print(String(format: "%.6f EventList.processMobilityEvents(fromTimestep):\t", now).cyan(), "Timestep", timestep.time, "sees:" )
+				print("\t\tFCD vehicles:", fcdVehicleIDs)
+				print("\t\tCity vehicles:", cityVehicleIDs)
+				print("\t\tNew vehicles:", newVehicleIDs)
+				print("\t\tExisting vehicles:", existingVehicleIDs)
+				print("\t\tMissing vehicles:", missingVehicleIDs)
+			}
 
-		// Schedule events to create new vehicles
-		for newFCDvehicleID in newVehicleIDs {
-			let newFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == newFCDvehicleID} )! ]
-			// (note: the IDs came from timestep.vehicles, so an .indexOf on the array can be force-unwrapped safely)
+			// Insert and remove vehicles into our temporary array
+			cityVehicleIDs.unionInPlace(newVehicleIDs)
+			cityVehicleIDs.subtractInPlace(missingVehicleIDs)
 
-			let newVehicleEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.addNewVehicle(id: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
+			// Schedule events to create new vehicles
+			for newFCDvehicleID in newVehicleIDs {
+				let newFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == newFCDvehicleID} )! ]
+				// (note: the IDs came from timestep.vehicles, so an .indexOf on the array can be force-unwrapped safely)
 
-			add(newEvent: newVehicleEvent)
-		}
+				let newVehicleEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.addNewVehicle(id: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
 
-		// Schedule events to update existing vehicles
-		for existingFDCvehicleID in existingVehicleIDs {
-			let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == existingFDCvehicleID} )! ]
+				add(newEvent: newVehicleEvent)
+			}
 
-			let updateVehicleEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.updateVehicleLocation(id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
+			// Schedule events to update existing vehicles
+			for existingFDCvehicleID in existingVehicleIDs {
+				let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == existingFDCvehicleID} )! ]
 
-			add(newEvent: updateVehicleEvent)
-		}
+				let updateVehicleEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.updateVehicleLocation(id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
 
-		// Schedule events to remove missing vehicles
-		for missingFDCvehicleID in missingVehicleIDs {
-			let removeVehicleEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.removeVehicle(id: missingFDCvehicleID)}, description: "removeVehicle id \(missingFDCvehicleID)")
+				add(newEvent: updateVehicleEvent)
+			}
 
-			add(newEvent: removeVehicleEvent)
+			// Schedule events to remove missing vehicles
+			for missingFDCvehicleID in missingVehicleIDs {
+				let removeVehicleEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.removeVehicle(id: missingFDCvehicleID)}, description: "removeVehicle id \(missingFDCvehicleID)")
+
+				add(newEvent: removeVehicleEvent)
+			}
 		}
 	}
 }

@@ -170,7 +170,7 @@ print("\tSaw", buildingCount, "buildings in the database")
 var simCity = City(gis: gisdb, network: Network(), eventlist: EventList(stopTime: configStopTime))
 
 // Load city characteristics, bounds, cell size from the FCD trips
-simCity.determine(boundsfromFCD: fcdTrips)
+simCity.determineBounds(fromFCD: fcdTrips)
 
 // Store inner city bounds from configuration file
 simCity.innerBounds = cityInnerBounds
@@ -179,13 +179,8 @@ simCity.innerBounds = cityInnerBounds
 simCity.gis.clear(featureType: .Vehicle)
 
 
-/* Add mobility timestep events to the eventlist
- * TODO: rewrite with individual events per vehicle, plus descriptions
- */
-for fcdTripTimestep in fcdTrips {
-	let newMobilityEvent = SimulationEvent(time: fcdTripTimestep.time, type: .Mobility, action: { simCity.events.processMobilityEvents(fromTimestep: fcdTripTimestep, city: simCity) }, description: String("processMobilityEvents"))
-	simCity.events.add(newEvent: newMobilityEvent)
-}
+// Add mobility timestep events to the eventlist
+simCity.events.scheduleMobilityEvents(fromFCD: fcdTrips, city: simCity)
 
 
 /*** EVENT LOOP ***/
@@ -200,7 +195,7 @@ repeat {
 	simCity.events.now = nextEvent.time
 
 	if debug.contains("main().events"){
-		print(String(format: "%.6f main():\t", simCity.events.now).cyan(), "Executing", nextEvent.type, "event")
+		print(String(format: "%.6f main():\t", simCity.events.now).cyan(), "Executing", nextEvent.type, "event", nextEvent.description.darkGray())
 	}
 	nextEvent.action()
 	simCity.events.list.removeFirst()

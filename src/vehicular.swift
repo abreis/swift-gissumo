@@ -66,23 +66,14 @@ class City {
 	// Our list of events
 	var events: EventList
 
-	// City bounds (initialized with the WGS84 extreme bounds)
-	var bounds = Square(x: (min:  180.0, max: -180.0), y: (min:   90.0, max:  -90.0))
+	// City bounds
+	var bounds = Square(x: (min: 0, max: 0), y: (min: 0, max: 0))
 
 	// Inner bounds for data analysis (supplied in configuration file)
 	var innerBounds: Square?
 
 	// City size in cells
 	var cells = (x: UInt(0), y:UInt(0))
-
-	// Returns a set of all vehicle IDs in the City
-	var setOfIdentifiers: Set<UInt> {
-		var idSet = Set<UInt>()
-		for vehicle in vehicles {
-			idSet.insert(vehicle.id)
-		}
-		return idSet
-	}
 
 	/// Standard init, provide a database, network and eventlist
 	init(gis ingis: GIS, network innet: Network, eventlist inevents: EventList) {
@@ -92,7 +83,11 @@ class City {
 	}
 
 	/// Automatically determine bounds and cell map sizes from FCD data
-	func determine(boundsfromFCD trips: [FCDTimestep]) {
+	func determineBounds(fromFCD trips: [FCDTimestep]) {
+		// Initialize the city bounds with reversed WGS84 extreme bounds
+		bounds.x = (min:  180.0, max: -180.0)
+		bounds.y = (min:   90.0, max:  -90.0)
+
 		// Locate the min and max coordinate pairs of the vehicles in the supplied Floating Car Data
 		// Run through every timestep and find min and max coordinates
 		for timestep in trips {
@@ -104,15 +99,15 @@ class City {
 			}
 		}
 
-		if debug.contains("City.init(fromFCD)"){
-			print(String(format: "%.6f City.init(fromFCD):\t", events.now).cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
+		if debug.contains("City.determineBounds(fromFCD)"){
+			print(String(format: "%.6f City.determineBounds(fromFCD):\t", events.now).cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
 
 		// Now determine the size of the map in cells
 		cells.x = UInt( ceil(bounds.x.max*3600) - floor(bounds.x.min*3600) )
 		cells.y = UInt( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) )
 
-		if debug.contains("City.init(fromFCD)"){
-			print(String(format: "%.6f City.init(fromFCD):\t", events.now).cyan(), "City cell size is ", cells.x, "x", cells.y) }
+		if debug.contains("City.determineBounds(fromFCD)"){
+			print(String(format: "%.6f City.determineBounds(fromFCD):\t", events.now).cyan(), "City cell size is ", cells.x, "x", cells.y) }
 	}
 
 
