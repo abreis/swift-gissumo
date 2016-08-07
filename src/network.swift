@@ -127,17 +127,22 @@ struct Beacon: PayloadConvertible {
 // A discrete propagation model built with empirical data from the city of Porto
 func portoEmpiricalDataModel(distance: Double, lineOfSight: Bool) -> Double {
 	if lineOfSight {
-		if distance<70 { return 5 }
-		if distance<115 { return 4 }
-		if distance<135 { return 3 }
-		if distance<155 { return 2 }
+		switch distance {
+		case   0..<70	: return 5
+		case  70..<115	: return 4
+		case 115..<135	: return 3
+		case 135..<155	: return 2
+		default			: return 0
+		}
 	} else {
-		if distance<58 { return 5 }
-		if distance<65 { return 4 }
-		if distance<105 { return 3 }
-		if distance<130 { return 2 }
+		switch distance {
+		case   0..<58	: return 5
+		case  58..<65	: return 4
+		case  65..<105	: return 3
+		case 105..<130	: return 2
+		default			: return 0
+		}
 	}
-	return 0
 }
 
 
