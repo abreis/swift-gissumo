@@ -8,6 +8,9 @@ class Network {
 	// A standard message delay for all transmissions, 10ms
 	let messageDelay: Double = 0.010
 
+	// Delay between beacon broadcasts (1 sec)
+	let beaconingInterval: Double = 1.0
+
 	// Maximum radio range (for GIS queries)
 	// Match with the chosen propagation algorithm
 	let maxRange: Double = 155
@@ -101,6 +104,8 @@ struct Beacon: PayloadConvertible {
 	// The payload is simply the sending vehicle's geographic coordinates
 	let geo: (x: Double, y: Double)
 
+	init(geo ingeo: (x: Double, y: Double)) { geo = ingeo }
+
 	// Convert coordinates to a Payload string
 	func toPayload() -> Payload {
 		let payloadContent = String(geo.x) + ";" + String(geo.y)
@@ -159,11 +164,14 @@ extension RoadEntity {
 			let matchingVehicles = city.vehicles.filter( {neighborGIDs.contains($0.gid!)} )
 			let matchingRSUs = city.roadsideUnits.filter( {neighborGIDs.contains($0.gid!)} )
 
+			// Send the packet to all neighboring vehicles
 			for neighborVehicle in matchingVehicles {
 				// TODO after Vehicle.receive(packet)
 			}
 
+			// Send the packet to all neighboring RSUs
 			for neighborRSU in matchingRSUs {
+				// Schedule a receive(packet) event for time=now+transmissionDelay
 				let newReceivePacketEvent = SimulationEvent(time: city.events.now + city.network.messageDelay, type: .Network, action: { neighborRSU.receive(packet) }, description: "RSU \(neighborRSU.id) receive packet \(packet.id) from \(self.id)")
 				city.events.add(newEvent: newReceivePacketEvent)
 			}
@@ -171,6 +179,40 @@ extension RoadEntity {
 	}
 }
 
+
+// Extend Vehicles with the ability to send beacons
+extension Vehicle {
+	func broadcastBeacon() {
+		// Construct the beacon payload with the sender's coordinates (Cooperative Awareness Message)
+		let beaconPayload: Payload = Beacon(geo: self.geo).toPayload()
+
+		// Construct the beacon packet, a broadcast with hoplimit = 1
+		let beaconPacket = Packet(id: UInt(arc4random()), src: self.id, dst: .Broadcast(hopLimit: 1), created: city.events.now, payload: beaconPayload, payloadType: .Beacon)
+
+		// Send the beacon to our neighbors
+		self.broadcastPacket(beaconPacket)
+	}
+}
+
+
+// Extend Vehicles with a recurrent beaconing routine
+// This must be initiated when the vehicle is created
+extension Vehicle {
+	func recurrentBeaconing() {
+		// Ensure this vehicle is still active -- a beaconing event can be scheduled for after the vehicle is removed
+		guard self.active else { return }
+
+		// A safer, but slower way to do this, is to check whether the vehicle in question is still in the City
+//		guard city.vehicles.contains( {$0 === self} ) else { return }
+
+		// Send a beacon right away
+		self.broadcastBeacon()
+
+		// Schedule a new beacon to be sent in now+beaconingInterval
+		let newBeaconEvent = SimulationEvent(time: city.events.now + city.network.beaconingInterval, type: .Network, action: {self.recurrentBeaconing()}, description: "recurrentBroadcastBeacon vehicle \(self.id)")
+		city.events.add(newEvent: newBeaconEvent)
+	}
+}
 
 
 
@@ -181,7 +223,7 @@ extension RoadsideUnit: PacketReceiver {
 		assert(packet.src != id)
 
 		if debug.contains("RoadsideUnit.receive(packet)"){
-			print(String(format: "%.6f RoadsideUnit.receive(packet):\t", city.events.now).cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payloadT", packet.payloadType) }
+			print(String(format: "%.6f RoadsideUnit.receive(packet):\t", city.events.now).cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
 
 		// Process destination field
 		switch packet.dst {

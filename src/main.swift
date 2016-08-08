@@ -170,17 +170,24 @@ print("\tSaw", buildingCount, "buildings in the database")
 var simCity = City(gis: gisdb, network: Network(), eventlist: EventList(stopTime: configStopTime))
 
 // Load city characteristics, bounds, cell size from the FCD trips
-simCity.determineBounds(fromFCD: fcdTrips)
+simCity.determineBounds(fromFCD: &fcdTrips)
 
 // Store inner city bounds from configuration file
 simCity.innerBounds = cityInnerBounds
 
 // Clear all points from the database
 simCity.gis.clear(featureType: .Vehicle)
-
+simCity.gis.clear(featureType: .RoadsideUnit)
 
 // Add mobility timestep events to the eventlist
-simCity.events.scheduleMobilityEvents(fromFCD: fcdTrips, city: simCity)
+simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
+
+
+/*** TEST CODE ***/
+// Add an RSU at a center location
+let testRSUgid = simCity.addNewRSU(id: 31337, geo: (x: -8.6184, y: 41.1675), type: .ParkedCar)
+let testRSUobstructed = simCity.gis.checkForObstruction((x: -8.6184, y: 41.1675))
+print("New RSU gid \(testRSUgid) obstructed \(testRSUobstructed)")
 
 
 /*** EVENT LOOP ***/

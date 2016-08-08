@@ -140,6 +140,10 @@ class City {
 		// Append the new vehicle to the city's vehicle list
 		vehicles.append(newVehicle)
 
+		// Schedule an initial recurrent beaconing
+		let newBeaconEvent = SimulationEvent(time: events.now + network.beaconingInterval, type: .Network, action: {newVehicle.recurrentBeaconing()}, description: "firstBroadcastBeacon vehicle \(newVehicle.id)")
+		events.add(newEvent: newBeaconEvent)
+
 		// Debug
 		if debug.contains("City.addNewVehicle()") {
 			print(String(format: "%.6f City.addNewVehicle():\t", events.now).cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
@@ -200,6 +204,9 @@ class City {
 					exit(EXIT_FAILURE)
 		}
 
+		// Mark the vehicle as inactive
+		vehicles[vIndex].active = false
+
 		// Remove the vehicle from the City
 		vehicles.removeAtIndex(vIndex)
 
@@ -221,6 +228,9 @@ class City {
 					print("Error: Trying to convert a non-existent vehicle to an RSU.")
 					exit(EXIT_FAILURE)
 		}
+
+		// Mark the vehicle as inactive
+		vehicles[vIndex].active = false
 
 		// Remove the vehicle from GIS to avoid potential ID collisions
 		gis.delete(pointWithGID: vGID)

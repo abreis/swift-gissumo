@@ -1,11 +1,12 @@
 CC = swiftc
 CMODE = -emit-executable
-INPUTS := $(shell find src -type f -iname '*.swift')
+OPTIMIZATION = -O -whole-module-optimization
+INPUTS := $(shell find src -type f -iname *.swift)
 SEARCHPATH = src/lib/libpq
-OUTPUT = build/gissumoc
+OUTPUT = build/gissumo_fast
 
 all:
-	${CC} ${CMODE} ${INPUTS} -I ${SEARCHPATH} -o ${OUTPUT}
+	${CC} ${CMODE} ${OPTIMIZATION} ${INPUTS} -I ${SEARCHPATH} -o ${OUTPUT}
 
 clean:
 	rm -rf ${OUTPUT}

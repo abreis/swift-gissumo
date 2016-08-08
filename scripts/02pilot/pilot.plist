@@ -46,13 +46,13 @@
 		<key>main()</key>
 		<true/>
 		<key>main().events</key>
-		<false/>
-		<key>City.determineBounds(fromFCD)</key>
 		<true/>
 		<key>EventList.add(newEvent)</key>
 		<false/>
-		<key>EventList.processMobilityEvents(fromTimestep)</key>
+		<key>EventList.scheduleMobilityEvents(fromFCD)</key>
 		<false/>
+		<key>City.determineBounds(fromFCD)</key>
+		<true/>
 		<key>City.addNewVehicle()</key>
 		<false/>
 		<key>City.addNewRSU()</key>
@@ -63,6 +63,8 @@
 		<false/>
 		<key>City.convertVehicleToParkedCarRSU()</key>
 		<false/>
+		<key>RoadsideUnit.receive(packet)</key>
+		<true/>
 	</dict>
 </dict>
 </plist>
