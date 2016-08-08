@@ -184,9 +184,9 @@ class GIS {
 	}
 
 
-	/// Checks whether there is something at a specified location
+	/// Checks whether there is a building at a specified location
 	func checkForObstruction(geo: (x: Double, y: Double)) -> Bool {
-		let query: String = "SELECT COUNT(gid) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326))"
+		let query: String = "SELECT COUNT(gid) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326)) AND feattyp='" + String(FeatureType.Building.rawValue) + "'"
 		do {
 			let result = try connection.execute(Query(query))
 			guard	let resultRow = result.rows.first,

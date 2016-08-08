@@ -83,7 +83,7 @@ class City {
 	}
 
 	/// Automatically determine bounds and cell map sizes from FCD data
-	func determineBounds(fromFCD trips: [FCDTimestep]) {
+	func determineBounds(inout fromFCD trips: [FCDTimestep]) {
 		// Initialize the city bounds with reversed WGS84 extreme bounds
 		bounds.x = (min:  180.0, max: -180.0)
 		bounds.y = (min:   90.0, max:  -90.0)
@@ -131,7 +131,7 @@ class City {
 	/*** ROAD ENTITY ACTIONS ***/
 
 	/// Add a new vehicle to the City and to GIS
-	func addNewVehicle(id v_id: UInt, geo v_geo: (x: Double, y: Double)) {
+	func addNewVehicle(id v_id: UInt, geo v_geo: (x: Double, y: Double)) -> UInt {
 		let newVehicle = Vehicle(id: v_id, geo: v_geo, city: self, creationTime: events.now)
 
 		// Add the new vehicle to GIS and record its GIS ID
@@ -144,6 +144,8 @@ class City {
 		if debug.contains("City.addNewVehicle()") {
 			print(String(format: "%.6f City.addNewVehicle():\t", events.now).cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
 		}
+
+		return newVehicle.gid!
 	}
 
 

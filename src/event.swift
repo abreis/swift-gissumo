@@ -58,7 +58,7 @@ class EventList {
 
 
 	// Process mobility timesteps, adding events to create, update and remove vehicles
-	func scheduleMobilityEvents(fromFCD fcdTimesteps: [FCDTimestep], city: City) {
+	func scheduleMobilityEvents(inout fromFCD fcdTimesteps: [FCDTimestep], city: City) {
 		// A temporary array to store vehicles that will be active
 		var cityVehicleIDs = Set<UInt>()
 
@@ -76,8 +76,8 @@ class EventList {
 			let missingVehicleIDs = cityVehicleIDs.subtract(fcdVehicleIDs)
 
 			// Debug
-			if debug.contains("EventList.processMobilityEvents(fromTimestep)"){
-				print(String(format: "%.6f EventList.processMobilityEvents(fromTimestep):\t", now).cyan(), "Timestep", timestep.time, "sees:" )
+			if debug.contains("EventList.scheduleMobilityEvents(fromFCD)"){
+				print(String(format: "%.6f EventList.scheduleMobilityEvents(fromFCD):\t", now).cyan(), "Timestep", timestep.time, "sees:" )
 				print("\t\tFCD vehicles:", fcdVehicleIDs)
 				print("\t\tCity vehicles:", cityVehicleIDs)
 				print("\t\tNew vehicles:", newVehicleIDs)
