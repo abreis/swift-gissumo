@@ -78,7 +78,13 @@ guard let fcdFile = config["floatingCarDataFile"] as? String else {
 	exit(EXIT_FAILURE)
 }
 
-var fcdTrips = loadFloatingCarData(fromFile: fcdFile, stopTime: configStopTime)
+var fcdTrips: [FCDTimestep]
+do {
+	try fcdTrips = loadFloatingCarData(fromFile: fcdFile, stopTime: configStopTime)
+} catch let error as FloatingCarDataError {
+	print(" failed", "\nError:", error.description)
+	exit(EXIT_FAILURE)
+}
 
 print(" okay")
 print("\tLoaded", fcdTrips.count, "timesteps from data file")
@@ -119,7 +125,7 @@ print("\tSaw", buildingCount, "buildings in the database")
 var simCity = City(gis: gisdb, network: Network(), eventlist: EventList(stopTime: configStopTime))
 
 // Load city characteristics, bounds, cell size from the FCD trips
-simCity.determineBounds(fromFCD: &fcdTrips)
+simCity.determineBounds(fromFCD: fcdTrips)
 
 // Store inner city bounds from configuration file
 simCity.innerBounds = cityInnerBounds

@@ -30,20 +30,32 @@ class FCDTimestep {
  * - See if file exists
  * - Parse XML
  */
-func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Double) -> [FCDTimestep] {
+enum FloatingCarDataError: ErrorType, CustomStringConvertible{
+	case FileError
+	case UnableToParse
+	case InvalidTimestamp
+	case FailedConversion
+
+	var description: String {
+		switch self {
+		case .FileError: return "Unable to read data file."
+		case .UnableToParse: return "Unable to parse XML data from file."
+		case .InvalidTimestamp: return "Invalid timestep entry."
+		case .FailedConversion:	return "Unable to convert vehicle properties."
+		}
+	}
+}
+
+func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Double) throws -> [FCDTimestep] {
 	// See if the file exists
 	let fcdFileURL = NSURL.fileURLWithPath(fcdFile)
-	var fcdFileError: NSError?
-	guard fcdFileURL.checkResourceIsReachableAndReturnError(&fcdFileError) else {
-		print(" failed\n", fcdFileError)
-		exit(EXIT_FAILURE)
+	guard fcdFileURL.checkResourceIsReachableAndReturnError(nil) else {
+		throw FloatingCarDataError.FileError
 	}
 
 	// Parse XML Floating Car Data
-	guard let fcdData = NSData(contentsOfURL: fcdFileURL)
-		else {
-			print(" failed", "\nError: Unable to parse XML data from file.")
-			exit(EXIT_FAILURE)
+	guard let fcdData = NSData(contentsOfURL: fcdFileURL) else {
+			throw FloatingCarDataError.UnableToParse
 	}
 	let fcdXML = SWXMLHash.parse(fcdData)
 
@@ -54,8 +66,7 @@ func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Doub
 			let s_time = timestepElement.attributes["time"],
 			let timestepTime = Double(s_time)
 			else {
-				print(" failed", "\nError: Invalid timestep entry.")
-				exit(EXIT_FAILURE)
+				throw FloatingCarDataError.InvalidTimestamp
 		}
 
 		// Don't load timesteps that occur later than the simulation stopTime
@@ -73,8 +84,7 @@ func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Doub
 				let v_ygeo = Double(s_ygeo),
 				let v_speed = Double(s_speed)
 				else {
-					print(" failed", "\nError: Unable to convert vehicle properties.")
-					exit(EXIT_FAILURE)
+					throw FloatingCarDataError.FailedConversion
 			}
 			timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo), speed: v_speed) )
 		}
