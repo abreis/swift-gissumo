@@ -90,7 +90,7 @@ class City {
 	}
 
 	/// Automatically determine bounds and cell map sizes from FCD data
-	func determineBounds(inout fromFCD trips: [FCDTimestep]) {
+	func determineBounds(fromFCD trips: [FCDTimestep]) {
 		// Initialize the city bounds with reversed WGS84 extreme bounds
 		bounds.x = (min:  180.0, max: -180.0)
 		bounds.y = (min:   90.0, max:  -90.0)

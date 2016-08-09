@@ -70,9 +70,6 @@ print(" okay")
 
 
 /* Load floating car data from an XML file
- * - Check for floatingCarDataFile config entry
- * - See if file exists
- * - Parse XML
  */
 print("Loading floating car data...", terminator: "")
 
@@ -81,55 +78,7 @@ guard let fcdFile = config["floatingCarDataFile"] as? String else {
 	exit(EXIT_FAILURE)
 }
 
-// See if the file exists
-let fcdFileURL = NSURL.fileURLWithPath(fcdFile)
-var fcdFileError: NSError?
-guard fcdFileURL.checkResourceIsReachableAndReturnError(&fcdFileError) else {
-	print(" failed\n", fcdFileError)
-	exit(EXIT_FAILURE)
-}
-
-// Parse XML Floating Car Data
-guard let fcdData = NSData(contentsOfURL: fcdFileURL)
- else {
-	print(" failed", "\nError: Unable to parse XML data from file.")
-	exit(EXIT_FAILURE)
-}
-let fcdXML = SWXMLHash.parse(fcdData)
-
-// Load data onto our Trips array
-var fcdTrips = [FCDTimestep]()
-timestepLoop: for timestep in fcdXML["fcd-export"]["timestep"] {
-	guard let timestepElement = timestep.element,
-		let s_time = timestepElement.attributes["time"],
-		let timestepTime = Double(s_time)
-		else {
-			print(" failed", "\nError: Invalid timestep entry.")
-			exit(EXIT_FAILURE)
-	}
-
-	// Don't load timesteps that occur later than the simulation stopTime
-	if timestepTime > configStopTime { break timestepLoop }
-
-	var timestepVehicles = [FCDVehicle]()
-	for vehicle in timestep["vehicle"] {
-		guard let vehicleElement = vehicle.element,
-			let s_id = vehicleElement.attributes["id"],
-			let s_xgeo = vehicleElement.attributes["x"],
-			let s_ygeo = vehicleElement.attributes["y"],
-			let s_speed = vehicleElement.attributes["speed"],
-			let v_id = UInt(s_id),
-			let v_xgeo = Double(s_xgeo),
-			let v_ygeo = Double(s_ygeo),
-			let v_speed = Double(s_speed)
-			else {
-				print(" failed", "\nError: Unable to convert vehicle properties.")
-				exit(EXIT_FAILURE)
-		}
-		timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo), speed: v_speed) )
-	}
-	fcdTrips.append( FCDTimestep(time: timestepTime, vehicles: timestepVehicles) )
-}
+var fcdTrips = loadFloatingCarData(fromFile: fcdFile, stopTime: configStopTime)
 
 print(" okay")
 print("\tLoaded", fcdTrips.count, "timesteps from data file")
@@ -185,8 +134,8 @@ simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
 
 /*** TEST CODE ***/
 // Add an RSU at a center location
-let testRSUgid = simCity.addNewRSU(id: 31337, geo: (x: -8.6184, y: 41.1675), type: .ParkedCar)
-let testRSUobstructed = simCity.gis.checkForObstruction(atPoint: (x: -8.6184, y: 41.1675))
+let testRSUgid = simCity.addNewRSU(id: 31337, geo: (x: -8.614326, y: 41.167026), type: .ParkedCar)
+let testRSUobstructed = simCity.gis.checkForObstruction(atPoint: (x: -8.614326, y: 41.167026))
 print("New RSU gid \(testRSUgid) obstructed \(testRSUobstructed)")
 
 
