@@ -12,8 +12,11 @@ import Foundation
  * center coordinates in the first line, formatted as "c$X,$Y".
  * Note: Its construction will fail if the Object is not representable as a single Character.
  */
+/* IMPORTANT: Direct subscript access to cells[][] is done as [y][x], not [x][y]
+ * To avoid errors access the cells directly with cellmap[x,y] instead of cellmap.cells[][]
+ */
 struct CellMap: CustomStringConvertible, PayloadConvertible {
-	var cells: [[Any]]
+	private var cells: [[Any]]
 	let size: (x: Int, y: Int)
 	var topLeftCoordinate: (x: Int, y: Int) = (0,0)
 	var centerCoordinate: (x: Int, y: Int)?
@@ -40,11 +43,33 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 		cells = Array(count: mSize.y, repeatedValue: Array(count: mSize.x, repeatedValue: val))
 
 		// Set the top left coordinate in WGS84 seconds
-		topLeftCoordinate = ( x: Int(floor(topLeft.x)), y: Int(floor(topLeft.x)) )
+		topLeftCoordinate = ( x: Int(floor(topLeft.x * 3600)), y: Int(floor(topLeft.y * 3600)) )
 
 		// Set the center coordinate if the map size is odd
 		if size.x % 2 != 0 && size.y % 2 != 0 {
 			centerCoordinate = (x: topLeftCoordinate.x + (size.x-1)/2, y: topLeftCoordinate.y + (size.y-1)/2 )
+		}
+	}
+
+	// Allow correct access to the cells in a (x,y) format
+	subscript(x: Int, y: Int) -> Any {
+		get {
+			return cells[y][x]
+		}
+		set {
+			cells[y][x] = newValue
+		}
+	}
+
+	// Allow access to a cell via a coordinate pair
+	subscript(geo: (x: Double, y: Double))-> Any {
+		get {
+			let index = (x: Int(floor(geo.x * 3600)) - topLeftCoordinate.x, y: Int(floor(geo.y * 3600)) - topLeftCoordinate.y)
+			return cells[index.y][index.x]
+		}
+		set {
+			let index = (x: Int(floor(geo.x * 3600)) - topLeftCoordinate.x, y: Int(floor(geo.y * 3600)) - topLeftCoordinate.y)
+			cells[index.y][index.x] = newValue
 		}
 	}
 
