@@ -20,7 +20,7 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
 
 * stats
 
-  A dictionary of (statistic, filename) pairs. The specified statistic will be collected and saved to the specified file.
+  A dictionary of (statistic, filename) pairs. The specified statistic will be collected and saved to the specified file. See `Statistics.md` for a list.
 
 
 * gis

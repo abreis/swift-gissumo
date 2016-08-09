@@ -73,6 +73,9 @@ class City {
 	// Our list of events
 	var events: EventList
 
+	// Our statistics module
+	let stats: Statistics
+
 	// City bounds
 	var bounds = Square(x: (min: 0, max: 0), y: (min: 0, max: 0))
 
@@ -83,10 +86,11 @@ class City {
 	var cells = (x: UInt(0), y:UInt(0))
 
 	/// Standard init, provide a database, network and eventlist
-	init(gis ingis: GIS, network innet: Network, eventlist inevents: EventList) {
+	init(gis ingis: GIS, network innet: Network, eventList inevents: EventList, statistics instats: Statistics) {
 		network = innet
 		gis = ingis
 		events = inevents
+		stats = instats
 	}
 
 	/// Automatically determine bounds and cell map sizes from FCD data

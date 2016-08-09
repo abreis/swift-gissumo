@@ -25,8 +25,23 @@
 	</dict>
 	<key>stats</key>
 	<dict>
-		<key>activeVehicleCount</key>
-		<string>stats/activeVehicleCount.log</string>
+		<key>statsFolder</key>
+		<string>stats/</string>
+		<key>collectionInterval</key>
+		<real>1</real>
+		<key>collectionStartTime</key>
+		<integer>5</integer>
+		<key>hooks</key>
+		<dict>
+			<key>activeVehicleCount</key>
+			<true/>
+			<key>activeRoadsideUnitCount</key>
+			<true/>
+			<key>finalCityCoverageMap</key>
+			<true/>
+			<key>cityCoverageMapEvolution</key>
+			<true/>
+		</dict>
 	</dict>
 	<key>gis</key>
 	<dict>

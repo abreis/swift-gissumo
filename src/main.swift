@@ -65,6 +65,11 @@ if	let innerBoundsConfig = config["innerBounds"] as? NSDictionary,
 		cityInnerBounds = Square(x: (min: innerXmin, max: innerXmax), y: (min: innerYmin, max: innerYmax))
 }
 
+guard let statisticsConfig = config["stats"] as? NSDictionary else {
+	print("Error: Please provide a statistics entry in the configuration.")
+	exit(EXIT_FAILURE)
+}
+
 print(" okay")
 
 
@@ -120,9 +125,9 @@ print("\tSaw", buildingCount, "buildings in the database")
 /********************/
 
 
-/* Initialize a new City, plus a new network, and a new eventlist
+/* Initialize a new City, plus a new network, a new eventlist, and a new statistics module
  */
-var simCity = City(gis: gisdb, network: Network(), eventlist: EventList(stopTime: configStopTime))
+var simCity = City(gis: gisdb, network: Network(), eventList: EventList(stopTime: configStopTime), statistics: Statistics(config: statisticsConfig))
 
 // Load city characteristics, bounds, cell size from the FCD trips
 simCity.determineBounds(fromFCD: fcdTrips)
@@ -133,6 +138,9 @@ simCity.innerBounds = cityInnerBounds
 // Clear all points from the database
 simCity.gis.clearFeatures(withType: .Vehicle)
 simCity.gis.clearFeatures(withType: .RoadsideUnit)
+
+// Add statistics collection events to the eventlist
+//simCity.stats.scheduleCollectionEvents(city: simCity)
 
 // Add mobility timestep events to the eventlist
 simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
