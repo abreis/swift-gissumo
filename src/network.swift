@@ -270,6 +270,10 @@ extension RoadsideUnit {
 		let beaconSignalStrength = city.network.getSignalStrength(distance: beaconDistance, lineOfSight: beaconLOS)
 
 		// Store the signal strength seen at the beacon location
-		localCoverageMap[(beacon.geo)] = beaconSignalStrength
+		localCoverageMap[(beacon.geo)] = UInt(beaconSignalStrength)
+
+		// Debug
+		if debug.contains("RoadsideUnit.trackSignalStrength()"){
+			print(String(format: "%.6f RoadsideUnit.trackSignalStrength():\t", city.events.now).cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
 	}
 }

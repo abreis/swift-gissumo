@@ -114,7 +114,7 @@ class City {
 		cells.y = UInt( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) )
 
 		if debug.contains("City.determineBounds(fromFCD)"){
-			print(String(format: "%.6f City.determineBounds(fromFCD):\t", events.now).cyan(), "City cell size is ", cells.x, "x", cells.y) }
+			print(String(format: "%.6f City.determineBounds(fromFCD):\t", events.now).cyan(), "City cell size is", cells.x, "x", cells.y) }
 	}
 
 

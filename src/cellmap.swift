@@ -14,6 +14,7 @@ import Foundation
  */
 /* IMPORTANT: Direct subscript access to cells[][] is done as [y][x], not [x][y]
  * To avoid errors access the cells directly with cellmap[x,y] instead of cellmap.cells[][]
+ * IMPORTANT: Geographic Y axis is higher->north, lower->south
  */
 struct CellMap: CustomStringConvertible, PayloadConvertible {
 	private var cells: [[Any]]
@@ -34,7 +35,7 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 		centerCoordinate = (x: Int(floor(mCenter.x * 3600)), y: Int(floor(mCenter.y * 3600)) )
 
 		// Set the top left cell coordinate
-		topLeftCoordinate = (x: centerCoordinate!.x - (size.x-1)/2, y: centerCoordinate!.y - (size.y-1)/2)
+		topLeftCoordinate = (x: centerCoordinate!.x - (size.x-1)/2, y: centerCoordinate!.y + (size.y-1)/2)
 	}
 
 	// Initialize with the coordinates of the top-left-most cell (e.g. a city map)
@@ -47,11 +48,12 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 
 		// Set the center coordinate if the map size is odd
 		if size.x % 2 != 0 && size.y % 2 != 0 {
-			centerCoordinate = (x: topLeftCoordinate.x + (size.x-1)/2, y: topLeftCoordinate.y + (size.y-1)/2 )
+			centerCoordinate = (x: topLeftCoordinate.x + (size.x-1)/2, y: topLeftCoordinate.y - (size.y-1)/2 )
 		}
 	}
 
 	// Allow correct access to the cells in a (x,y) format
+	// Note: this is not the Y->Latitude and X->Longitude, as Y must be reversed for that
 	subscript(x: Int, y: Int) -> Any {
 		get {
 			return cells[y][x]
@@ -68,7 +70,7 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 			return cells[index.y][index.x]
 		}
 		set {
-			let index = (x: Int(floor(geo.x * 3600)) - topLeftCoordinate.x, y: Int(floor(geo.y * 3600)) - topLeftCoordinate.y)
+			let index = (x: Int(floor(geo.x * 3600)) - topLeftCoordinate.x, y: topLeftCoordinate.y - Int(floor(geo.y * 3600)))
 			cells[index.y][index.x] = newValue
 		}
 	}
@@ -84,7 +86,7 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 			for element in row {
 				let stringElement = String(element)
 				guard stringElement.characters.count == 1 else {
-					print("Error: Attempted to store an object not representable by a single Character in a CellMap.")
+					print("Error: Attempted to retrieve an object not representable by a single Character in a CellMap.")
 					exit(EXIT_FAILURE)
 				}
 				desc += stringElement

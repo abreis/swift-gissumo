@@ -46,7 +46,7 @@
 		<key>main()</key>
 		<true/>
 		<key>main().events</key>
-		<true/>
+		<false/>
 		<key>EventList.add(newEvent)</key>
 		<false/>
 		<key>EventList.scheduleMobilityEvents(fromFCD)</key>
@@ -64,6 +64,8 @@
 		<key>City.convertVehicleToParkedCarRSU()</key>
 		<false/>
 		<key>RoadsideUnit.receive(packet)</key>
+		<true/>
+		<key>RoadsideUnit.trackSignalStrength()</key>
 		<true/>
 	</dict>
 </dict>
