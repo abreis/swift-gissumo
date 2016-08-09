@@ -5,20 +5,21 @@
 import Foundation
 
 
-/* A signal map stores signal strength values from 0 to 5.
-* It conforms to CustomStringConvertible, i.e., can be converted into a string.
-* This lets us transform a map into a string and place it inside a packet's Payload.
-* It can also be constructed from a string, and recognizes the presence of a pair of
-* center coordinates in the first line, formatted as "c$X,$Y".
-*/
+/* A cell map is a 2D map of objects, typically Int for signal strength or Char for visualization.
+ * It conforms to CustomStringConvertible, i.e., can be converted into a string.
+ * This lets us transform a map into a string and place it inside a packet's Payload.
+ * It can also be constructed from a string, and recognizes the presence of a pair of
+ * center coordinates in the first line, formatted as "c$X,$Y".
+ * Note: Its construction will fail if the Object is not representable as a single Character.
+ */
 struct CellMap: CustomStringConvertible, PayloadConvertible {
-	var cells: [[Int]]
+	var cells: [[Any]]
 	let size: (x: Int, y: Int)
 	var topLeftCoordinate: (x: Int, y: Int) = (0,0)
 	var centerCoordinate: (x: Int, y: Int)?
 
 	// Initialize with coordinates of the middle cell (e.g. an RSU)
-	init(ofSize mSize:(x: Int, y: Int), withValue val: Int, geographicCenter mCenter: (x: Double, y: Double)) {
+	init(ofSize mSize:(x: Int, y: Int), withValue val: Any, geographicCenter mCenter: (x: Double, y: Double)) {
 		size = mSize
 		cells = Array(count: mSize.y, repeatedValue: Array(count: mSize.x, repeatedValue: val))
 
@@ -34,7 +35,7 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 	}
 
 	// Initialize with the coordinates of the top-left-most cell (e.g. a city map)
-	init(ofSize mSize:(x: Int, y: Int), withValue val: Int, geographicTopLeft topLeft: (x: Double, y: Double)) {
+	init(ofSize mSize:(x: Int, y: Int), withValue val: Any, geographicTopLeft topLeft: (x: Double, y: Double)) {
 		size = mSize
 		cells = Array(count: mSize.y, repeatedValue: Array(count: mSize.x, repeatedValue: val))
 
@@ -56,14 +57,20 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 
 		for row in cells {
 			for element in row {
-				desc += String(element)
+				let stringElement = String(element)
+				guard stringElement.characters.count == 1 else {
+					print("Error: Attempted to store an object not representable by a single Character in a CellMap.")
+					exit(EXIT_FAILURE)
+				}
+				desc += stringElement
 			}
 			desc += "\n"
 		}
 		return desc
 	}
 
-	// Construct a new CellMap from a textual representation
+	// Construct a CellMap from a textual representation
+	// This routine will automatically create both numeric and character maps
 	init(fromString str: String) {
 		// Break string into lines
 		var lines: [String] = []
@@ -71,12 +78,12 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 
 		if let firstLine = lines.first where firstLine.hasPrefix("tl") {
 			lines.removeFirst()
-			let topLeftCoords = firstLine.stringByReplacingOccurrencesOfString("c", withString: "").componentsSeparatedByString(";")
+			let topLeftCoords = firstLine.stringByReplacingOccurrencesOfString("tl", withString: "").componentsSeparatedByString(";")
 
 			guard	let xTopLeft = Int(topLeftCoords[0]),
 					let yTopLeft = Int(topLeftCoords[1])
 					else {
-						print("Error: Signal map center coordinate conversion from string failed.")
+						print("Error: Cell map center coordinate conversion from string failed.")
 						exit(EXIT_FAILURE)
 			}
 			topLeftCoordinate = (x: xTopLeft, y: yTopLeft)
@@ -89,9 +96,11 @@ struct CellMap: CustomStringConvertible, PayloadConvertible {
 		cells = Array(count: size.y, repeatedValue: [])
 		var nrow = 0
 		for row in lines {
-			for signalChar in row.characters {
-				if let signalNum = Int(String(signalChar)) {
-					cells[nrow].append(signalNum)
+			for cellChar in row.characters {
+				if let cellNum = Int(String(cellChar)) {
+					cells[nrow].append(cellNum)
+				} else {
+					cells[nrow].append(cellChar)
 				}
 			}
 			nrow += 1
