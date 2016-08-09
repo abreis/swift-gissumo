@@ -157,19 +157,19 @@ func portoEmpiricalDataModel(distance: Double, lineOfSight: Bool) -> Double {
 // Extend RoadEntity types with the ability to broadcast messages
 extension RoadEntity {
 	func broadcastPacket(packet: Packet) {
-		let neighborGIDarray = city.gis.get(featuresInCircleWithRadius: city.network.maxRange, center: geo, featureTypes: .Vehicle, .RoadsideUnit)
+		let neighborGIDarray = city.gis.getFeatureGIDs(inCircleWithRadius: city.network.maxRange, center: geo, featureTypes: .Vehicle, .RoadsideUnit)
 
 		if let neighborGIDs = neighborGIDarray {
 			// Fetch vehicles and
-			let matchingVehicles = city.vehicles.filter( {neighborGIDs.contains($0.gid!)} )
-			let matchingRSUs = city.roadsideUnits.filter( {neighborGIDs.contains($0.gid!)} )
 
 			// Send the packet to all neighboring vehicles
-			for neighborVehicle in matchingVehicles {
-				// TODO after Vehicle.receive(packet)
-			}
+			// TODO after Vehicle.receive(packet)
+//			let matchingVehicles = city.vehicles.filter( {neighborGIDs.contains($0.gid!)} )
+//			for neighborVehicle in matchingVehicles {
+//			}
 
 			// Send the packet to all neighboring RSUs
+			let matchingRSUs = city.roadsideUnits.filter( {neighborGIDs.contains($0.gid!)} )
 			for neighborRSU in matchingRSUs {
 				// Schedule a receive(packet) event for time=now+transmissionDelay
 				let newReceivePacketEvent = SimulationEvent(time: city.events.now + city.network.messageDelay, type: .Network, action: { neighborRSU.receive(packet) }, description: "RSU \(neighborRSU.id) receive packet \(packet.id) from \(self.id)")
@@ -178,6 +178,7 @@ extension RoadEntity {
 		}
 	}
 }
+
 
 
 // Extend Vehicles with the ability to send beacons
@@ -193,6 +194,7 @@ extension Vehicle {
 		self.broadcastPacket(beaconPacket)
 	}
 }
+
 
 
 // Extend Vehicles with a recurrent beaconing routine
@@ -230,23 +232,21 @@ extension RoadsideUnit: PacketReceiver {
 		case .Unicast(let destinationID):
 			// Disregard if we're not the message target
 			if destinationID != id { return }
-			break
 		case .Broadcast:
 			// TODO: reduce TTL and rebroadcast
 			break
 		case .Geocast(let targetArea):
 			// Disregard if we're not in the destination area
-			// TODO: rebroadcast
 			if targetArea.isPointInside(geo) == false { return }
-			break
+			// TODO: rebroadcast
 		}
 
 		// Process payload
 		switch packet.payloadType {
 		case .Beacon:
 			// RSUs use beacons to construct their coverage maps
-//			addBeacon(toSignalMap: localCoverageMap, beacon: Beacon(fromPayload: packet.payload) )
-			break
+			let receivedBeacon = Beacon(fromPayload: packet.payload)
+			trackSignalStrength(fromBeacon: receivedBeacon)
 		case .CoverageMapRequest:
 			// TODO: send over the coverage map
 			break
@@ -254,5 +254,22 @@ extension RoadsideUnit: PacketReceiver {
 			// TODO
 			break
 		}
+	}
+}
+
+
+
+/*** SIGNAL STRENGTH MAPS ***/
+
+// Extend RoadsideUnits with the ability to receive a Beacon payload and register a signal coverage metric
+extension RoadsideUnit {
+	func trackSignalStrength(fromBeacon beacon: Beacon) {
+		// Get the signal strength we see to the beacon's geographic coordinates
+		let beaconDistance = city.gis.getDistance(fromPoint: self.geo, toPoint: beacon.geo)
+		let beaconLOS = city.gis.checkForLineOfSight(fromPoint: self.geo, toPoint: beacon.geo)
+		let beaconSignalStrength = city.network.getSignalStrength(distance: beaconDistance, lineOfSight: beaconLOS)
+
+		// Store the signal strength seen at the beacon location
+		localCoverageMap[(beacon.geo)] = beaconSignalStrength
 	}
 }
