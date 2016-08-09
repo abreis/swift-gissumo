@@ -9,27 +9,50 @@ import Foundation
 * It conforms to CustomStringConvertible, i.e., can be converted into a string.
 * This lets us transform a map into a string and place it inside a packet's Payload.
 * It can also be constructed from a string, and recognizes the presence of a pair of
-* center coordinates in the first line, formatted as "c$X,$CY".
+* center coordinates in the first line, formatted as "c$X,$Y".
 */
-struct SignalMap: CustomStringConvertible, PayloadConvertible {
+struct CellMap: CustomStringConvertible, PayloadConvertible {
 	var cells: [[Int]]
 	let size: (x: Int, y: Int)
-	var center: (x: Int, y: Int)?
+	var topLeftCoordinate: (x: Int, y: Int) = (0,0)
+	var centerCoordinate: (x: Int, y: Int)?
 
-	init(ofSize mSize:(x: Int, y: Int), withValue val: Int, center mCenter: (x: Int, y: Int)?) {
+	// Initialize with coordinates of the middle cell (e.g. an RSU)
+	init(ofSize mSize:(x: Int, y: Int), withValue val: Int, geographicCenter mCenter: (x: Double, y: Double)) {
 		size = mSize
-		center = mCenter
 		cells = Array(count: mSize.y, repeatedValue: Array(count: mSize.x, repeatedValue: val))
+
+		// Set the center coordinate in WGS84 seconds
+		guard size.x % 2 != 0 && size.y % 2 != 0 else {
+			print("Error: Attempted to access a center coordinate in an even-sized map.")
+			exit(EXIT_FAILURE)
+		}
+		centerCoordinate = (x: Int(floor(mCenter.x * 3600)), y: Int(floor(mCenter.y * 3600)) )
+
+		// Set the top left cell coordinate
+		topLeftCoordinate = (x: centerCoordinate!.x - (size.x-1)/2, y: centerCoordinate!.y - (size.y-1)/2)
+	}
+
+	// Initialize with the coordinates of the top-left-most cell (e.g. a city map)
+	init(ofSize mSize:(x: Int, y: Int), withValue val: Int, geographicTopLeft topLeft: (x: Double, y: Double)) {
+		size = mSize
+		cells = Array(count: mSize.y, repeatedValue: Array(count: mSize.x, repeatedValue: val))
+
+		// Set the top left coordinate in WGS84 seconds
+		topLeftCoordinate = ( x: Int(floor(topLeft.x)), y: Int(floor(topLeft.x)) )
+
+		// Set the center coordinate if the map size is odd
+		if size.x % 2 != 0 && size.y % 2 != 0 {
+			centerCoordinate = (x: topLeftCoordinate.x + (size.x-1)/2, y: topLeftCoordinate.y + (size.y-1)/2 )
+		}
 	}
 
 	// Computed property implementing CustomStringConvertible
 	var description: String {
 		var desc = String()
 
-		// If we have center coordinates, print them on the first line
-		if let ccenter = center {
-			desc += "c" + String(ccenter.x) + ";" + String(ccenter.y) + "\n"
-		}
+		// Print top-left coordinate on the first line
+		desc += "tl" + String(topLeftCoordinate.x) + ";" + String(topLeftCoordinate.y) + "\n"
 
 		for row in cells {
 			for element in row {
@@ -40,23 +63,23 @@ struct SignalMap: CustomStringConvertible, PayloadConvertible {
 		return desc
 	}
 
-	// Construct a new SignalMap from a textual representation
+	// Construct a new CellMap from a textual representation
 	init(fromString str: String) {
 		// Break string into lines
 		var lines: [String] = []
 		str.enumerateLines{ lines.append($0.line) }
 
-		if let firstLine = lines.first where firstLine.hasPrefix("c") {
+		if let firstLine = lines.first where firstLine.hasPrefix("tl") {
 			lines.removeFirst()
-			let centerCoords = firstLine.stringByReplacingOccurrencesOfString("c", withString: "").componentsSeparatedByString(";")
+			let topLeftCoords = firstLine.stringByReplacingOccurrencesOfString("c", withString: "").componentsSeparatedByString(";")
 
-			guard	let xcenter = Int(centerCoords[0]),
-					let ycenter = Int(centerCoords[1])
+			guard	let xTopLeft = Int(topLeftCoords[0]),
+					let yTopLeft = Int(topLeftCoords[1])
 					else {
 						print("Error: Signal map center coordinate conversion from string failed.")
 						exit(EXIT_FAILURE)
 			}
-			center = (x: xcenter, y: ycenter)
+			topLeftCoordinate = (x: xTopLeft, y: yTopLeft)
 		}
 
 		// Define boundaries
