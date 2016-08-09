@@ -142,7 +142,7 @@ class City {
 		let newVehicle = Vehicle(id: v_id, geo: v_geo, city: self, creationTime: events.now)
 
 		// Add the new vehicle to GIS and record its GIS ID
-		newVehicle.gid = gis.add(pointOfType: .Vehicle, geo: newVehicle.geo, id: newVehicle.id)
+		newVehicle.gid = gis.addPoint(ofType: .Vehicle, geo: newVehicle.geo, id: newVehicle.id)
 
 		// Append the new vehicle to the city's vehicle list
 		vehicles.append(newVehicle)
@@ -166,7 +166,7 @@ class City {
 		newRSU.type = r_type
 
 		// Add the new RSU to GIS and record its GIS ID
-		newRSU.gid = gis.add(pointOfType: .RoadsideUnit, geo: newRSU.geo, id: newRSU.id)
+		newRSU.gid = gis.addPoint(ofType: .RoadsideUnit, geo: newRSU.geo, id: newRSU.id)
 
 		// Append the new vehicle to the city's vehicle list
 		roadsideUnits.append(newRSU)
@@ -193,7 +193,7 @@ class City {
 		vehicles[vIndex].geo = new_geo
 
 		// Move the corresponding point in GIS
-		gis.update(pointFromGID: vGID, geo: new_geo)
+		gis.updatePoint(withGID: vGID, geo: new_geo)
 
 		// Debug
 		if debug.contains("City.updateVehicleLocation()") {
@@ -218,7 +218,7 @@ class City {
 		vehicles.removeAtIndex(vIndex)
 
 		// Clear the corresponding point from GIS
-		gis.delete(pointWithGID: vGID)
+		gis.deletePoint(withGID: vGID)
 
 		// Debug
 		if debug.contains("City.removeVehicle()") {
@@ -240,7 +240,7 @@ class City {
 		vehicles[vIndex].active = false
 
 		// Remove the vehicle from GIS to avoid potential ID collisions
-		gis.delete(pointWithGID: vGID)
+		gis.deletePoint(withGID: vGID)
 
 		// Create a new RoadsideUnit from the Vehicle
 		let newRSUgid = addNewRSU(id: vehicles[vIndex].id, geo: vehicles[vIndex].geo, type: .ParkedCar)

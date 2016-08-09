@@ -38,7 +38,7 @@ class GIS {
 	/*****************************/
 
 	/// Returns the number of features with the specified type
-	func count (featureType featureType: FeatureType) -> UInt {
+	func countFeatures(withType featureType: FeatureType) -> UInt {
 		let query: String = "SELECT COUNT(gid) FROM buildings WHERE feattyp='" + String(featureType.rawValue) + "'"
 		do {
 			let result = try connection.execute(Query(query))
@@ -58,7 +58,7 @@ class GIS {
 	}
 
 	/// Removes all features with the specified type from the database
-	func clear(featureType featureType: FeatureType) {
+	func clearFeatures(withType featureType: FeatureType) {
 		let query: String = "DELETE FROM buildings WHERE feattyp='" + String(featureType.rawValue) + "'"
 		do {
 			try connection.execute(Query(query))
@@ -71,7 +71,7 @@ class GIS {
 
 
 	/// Returns the geographic coordinates of a feature identified by its GID (only works for Point type features)
-	func get(coordinatesFromGID gid: UInt) -> (x: Double, y: Double) {
+	func getCoordinates(fromGID gid: UInt) -> (x: Double, y: Double) {
 		let query: String = "SELECT ST_X(geom),ST_Y(geom) FROM buildings WHERE gid='" + String(gid) + "'"
 		do {
 			let result = try connection.execute(Query(query))
@@ -98,7 +98,7 @@ class GIS {
 
 
 	/// Returns the GIDs of features in a specified circle (center+radius)
-	func get(featuresInCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: FeatureType...) -> [UInt]? {
+	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: FeatureType...) -> [UInt]? {
 		let wgs84range = range*degreesPerMeter
 		var query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(center.x) + " " + String(center.y) + ")',4326)," + String(wgs84range) + ")"
 
@@ -138,9 +138,9 @@ class GIS {
 
 
 	/// Returns the distance from a specified GID to a geographic location
-	func get(distanceFromPointToGID gid: UInt, geo: (x: Double, y: Double)) -> Double {
+	func getDistance(fromGID gid: UInt, toPoint geo: (x: Double, y: Double)) -> Double {
 		// First find the coordinates of the target point
-		let gidCoords: (x: Double, y: Double) = get(coordinatesFromGID: gid)
+		let gidCoords: (x: Double, y: Double) = getCoordinates(fromGID: gid)
 
 		// Then calculate the distance between the two points
 		let query: String = "SELECT ST_Distance('POINT(" + String(geo.x) + " " + String(geo.y) + ")', 'POINT(" + String(gidCoords.x) + " " + String(gidCoords.y) + ")')"
@@ -162,8 +162,31 @@ class GIS {
 	}
 
 
+	/// Returns the distance between two geographic locations
+	func getDistance(fromPoint geo1: (x: Double, y: Double), toPoint geo2: (x: Double, y: Double)) -> Double {
+		// Then calculate the distance between the two points
+		let query: String = "SELECT ST_Distance('POINT(" + String(geo1.x) + " " + String(geo1.y) + ")', 'POINT(" + String(geo2.x) + " " + String(geo2.y) + ")')"
+
+		do {
+			let result = try connection.execute(Query(query))
+			guard	let resultRow = result.rows.first,
+				let distance = resultRow["st_distance"] as? Double
+				else {
+					print("\nInvalid distance returned.")
+					print("Query: " + query)
+					exit(EXIT_FAILURE)
+			}
+			return distance/degreesPerMeter
+		} catch {
+			print("\nDatabase query error.")
+			print("Query: " + query)
+			exit(EXIT_FAILURE)
+		}
+	}
+
+
 	/// Checks whether there are any buildings in the line-of-sight between two points
-	func checkForLineOfSight(geo1: (x: Double, y: Double), geo2: (x: Double, y: Double)) -> Bool {
+	func checkForLineOfSight(fromPoint geo1: (x: Double, y: Double), toPoint geo2: (x: Double, y: Double)) -> Bool {
 		let query: String = "SELECT COUNT(id) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('LINESTRING(" + String(geo1.x) + " "	+ String(geo1.y) + "," + String(geo2.x) + " " + String(geo2.y) + ")',4326)) and feattyp='" + String(FeatureType.Building.rawValue) + "'"
 		do {
 			let result = try connection.execute(Query(query))
@@ -185,7 +208,7 @@ class GIS {
 
 
 	/// Checks whether there is a building at a specified location
-	func checkForObstruction(geo: (x: Double, y: Double)) -> Bool {
+	func checkForObstruction(atPoint geo: (x: Double, y: Double)) -> Bool {
 		let query: String = "SELECT COUNT(gid) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326)) AND feattyp='" + String(FeatureType.Building.rawValue) + "'"
 		do {
 			let result = try connection.execute(Query(query))
@@ -207,7 +230,7 @@ class GIS {
 
 
 	/// Adds a new point feature of the specified type, and returns its new GID
-	func add(pointOfType type: FeatureType, geo: (x: Double, y: Double), id: UInt) -> UInt {
+	func addPoint(ofType type: FeatureType, geo: (x: Double, y: Double), id: UInt) -> UInt {
 		let query: String = "INSERT INTO buildings(id, geom, feattyp) VALUES (" + String(id) + ", ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326)," + String(type.rawValue) + ") RETURNING gid"
 		do {
 			let result = try connection.execute(Query(query))
@@ -228,7 +251,7 @@ class GIS {
 
 
 	/// Updates the coordinates of a specific point
-	func update(pointFromGID gid: UInt, geo: (x: Double, y: Double)) {
+	func updatePoint(withGID gid: UInt, geo: (x: Double, y: Double)) {
 		let query: String = "UPDATE buildings SET geom=ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326) WHERE gid='" + String(gid) + "'"
 		do {
 			try connection.execute(Query(query))
@@ -241,7 +264,7 @@ class GIS {
 
 
 	/// Deletes a point from the database by its GID
-	func delete(pointWithGID gid: UInt) {
+	func deletePoint(withGID gid: UInt) {
 		let query: String = "DELETE FROM buildings WHERE gid='" + String(gid) + "'"
 		do {
 			try connection.execute(Query(query))

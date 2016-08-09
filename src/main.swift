@@ -153,7 +153,7 @@ guard	let gisConfig = config["gis"],
 
 let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
 let gisdb = GIS(parameters: databaseParams)
-let buildingCount = gisdb.count(featureType: .Building)
+let buildingCount = gisdb.countFeatures(withType: .Building)
 print(" okay")
 print("\tSaw", buildingCount, "buildings in the database")
 
@@ -176,8 +176,8 @@ simCity.determineBounds(fromFCD: &fcdTrips)
 simCity.innerBounds = cityInnerBounds
 
 // Clear all points from the database
-simCity.gis.clear(featureType: .Vehicle)
-simCity.gis.clear(featureType: .RoadsideUnit)
+simCity.gis.clearFeatures(withType: .Vehicle)
+simCity.gis.clearFeatures(withType: .RoadsideUnit)
 
 // Add mobility timestep events to the eventlist
 simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
@@ -186,7 +186,7 @@ simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
 /*** TEST CODE ***/
 // Add an RSU at a center location
 let testRSUgid = simCity.addNewRSU(id: 31337, geo: (x: -8.6184, y: 41.1675), type: .ParkedCar)
-let testRSUobstructed = simCity.gis.checkForObstruction((x: -8.6184, y: 41.1675))
+let testRSUobstructed = simCity.gis.checkForObstruction(atPoint: (x: -8.6184, y: 41.1675))
 print("New RSU gid \(testRSUgid) obstructed \(testRSUobstructed)")
 
 
