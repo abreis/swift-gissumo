@@ -140,7 +140,7 @@ simCity.gis.clearFeatures(withType: .Vehicle)
 simCity.gis.clearFeatures(withType: .RoadsideUnit)
 
 // Add statistics collection events to the eventlist
-//simCity.stats.scheduleCollectionEvents(city: simCity)
+simCity.stats.scheduleCollectionEvents(onCity: simCity)
 
 // Add mobility timestep events to the eventlist
 simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
@@ -165,12 +165,21 @@ repeat {
 	simCity.events.now = nextEvent.time
 
 	if debug.contains("main().events"){
-		print(String(format: "%.6f main():\t", simCity.events.now).cyan(), "Executing", nextEvent.type, "event", nextEvent.description.darkGray())
+		print(String(format: "%.6f main():\t", simCity.events.now).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
 	}
 	nextEvent.action()
 	simCity.events.list.removeFirst()
 
 } while simCity.events.now < simCity.events.stopTime
 
-print("Simulation completed")
+// Cleanup stage events
+for event in simCity.events.cleanup {
+	event.action()
+	if debug.contains("main().events"){
+		print("[cleanup] main():\t".cyan(), "Executing", event.type, "event\t", event.description.darkGray())
+	}
+}
+
+// Successful exit
+print("Simulation complete.")
 exit(EXIT_SUCCESS)

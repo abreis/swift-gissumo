@@ -8,7 +8,9 @@ class Statistics {
 	var folder: String = "stats/"
 	var interval: Double = 1.0
 	var startTime: Double = 1.0
-	var hooks = [String]()
+
+	// A dictionary containing (statisticName,statisticData) pairs
+	var hooks = [String:String]()
 
 	init(config: NSDictionary) {
 		// Load general statistics configurations, if defined: folder, interval, startTime
@@ -25,21 +27,75 @@ class Statistics {
 			startTime = configStartTime
 		}
 
-		// Load hook list
+		// Load hook list and ready statistics collection point
 		if let hookList = config["hooks"] as? NSDictionary {
 			for element in hookList {
 				if let enabled = element.value as? Bool where enabled == true {
-					hooks.append(String(element.key))
+					let hook = String(element.key)
+					hooks[hook] = ""
 				}
 			}
 		}
 	}
 
+	// Write all collected statistical data, overwriting existing files
+	func writeStatisticsToFiles() {
+		// Try to create the statistics folder if it doesn't exist
+		let folderURL = NSURL.fileURLWithPath(folder)
+		do {
+			if !folderURL.checkResourceIsReachableAndReturnError(nil) {
+				try NSFileManager.defaultManager().createDirectoryAtURL(folderURL, withIntermediateDirectories: true, attributes: nil)
+			}
+		} catch let error as NSError {
+			print("Error: Failed to create collection directory", folderURL)
+			print(error)
+			exit(EXIT_FAILURE)
+		}
 
-	func scheduleCollectionEvents(fromCity city: City) {
-		
+		// Write all collected data
+		for (statName, statData) in hooks {
+			let hookURL = NSURL.fileURLWithPath("\(folder)\(statName).log")
+			do {
+				try statData.writeToURL(hookURL, atomically: true, encoding: NSUTF8StringEncoding)
+			} catch {
+				print("Error: Failed to write statistical data to", hookURL)
+				print(error)
+				exit(EXIT_FAILURE)
+			}
+		}
 	}
 
+	// Add data to a specific statistic
+	func writeToHook(name: String, data: String) {
+		guard hooks[name] != nil else {
+			print("Error: Tried to write to an undeclared stat hook.")
+			exit(EXIT_FAILURE)
+		}
+		hooks[name]! += data
+	}
+
+
+	// Schedule collection events by startTime & interval until stopTime
+	// Note: If another event is scheduled to time:(stopTime-minTimestep), the collection will never occur
+	func scheduleCollectionEvents(onCity city: City) {
+		// Schedule collection events on startTime+interval*N, until city.events.stopTime is reached
+		var scheduledCollectionTime = startTime
+		repeat {
+			// Create and schedule an event
+			let scheduledCollectionEvent = SimulationEvent(time: scheduledCollectionTime, type: .Statistics, action: { city.stats.collectStatistics(fromCity: city)}, description: "scheduledCollectStats")
+			city.events.add(newEvent: scheduledCollectionEvent)
+
+			// Jump to next collection time
+			scheduledCollectionTime += interval
+		} while scheduledCollectionTime < city.events.stopTime
+		
+		// Schedule a cleanup-stage event to write all statistical data to files
+		let statWriteEvent = SimulationEvent(time: city.events.stopTime-city.events.minTimestep, type: .Statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
+		city.events.add(cleanupEvent: statWriteEvent)
+	}
+
+
+	// Periodic (intervalled) statistics collection routine
 	func collectStatistics(fromCity city: City) {
 		
 	}

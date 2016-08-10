@@ -8,6 +8,7 @@ struct SimulationEvent {
 	enum EventType {
 		case Mobility
 		case Network
+		case Statistics
 	}
 
 	var time: Double
@@ -27,6 +28,9 @@ class EventList {
 
 	// Array of simulation events
 	var list = [SimulationEvent]()
+
+	// Events to be executed post-simulation
+	var cleanup = [SimulationEvent]()
 
 	// Init with the simulation stop time
 	init(stopTime stime: Double) {
@@ -56,6 +60,10 @@ class EventList {
 		}
 	}
 
+	// Add events to the post-simulation (cleanup) stage
+	func add(cleanupEvent event: SimulationEvent) {
+		cleanup.append(event)
+	}
 
 	// Process mobility timesteps, adding events to create, update and remove vehicles
 	func scheduleMobilityEvents(inout fromFCD fcdTimesteps: [FCDTimestep], city: City) {
