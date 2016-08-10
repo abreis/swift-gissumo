@@ -5,12 +5,16 @@
 import Foundation
 
 class Statistics {
+	// Configuration entries
 	var folder: String = "stats/"
 	var interval: Double = 1.0
 	var startTime: Double = 1.0
 
 	// A dictionary containing (statisticName,statisticData) pairs
 	var hooks = [String:String]()
+
+	// Data separator (e.g. ',' or ';' for CSV (comma not recommended in Europe, prefer semicolon), '\t' for TSV
+	let separator = "\t"
 
 	init(config: NSDictionary) {
 		// Load general statistics configurations, if defined: folder, interval, startTime
@@ -35,6 +39,16 @@ class Statistics {
 					hooks[hook] = ""
 				}
 			}
+		}
+
+		// Add header lines to enabled hooks
+		addHookHeaders()
+	}
+
+	// Add header lines to enabled hooks
+	func addHookHeaders() {
+		if hooks["activeVehicleCount"] != nil {
+			writeToHook("activeVehicleCount", data: "time\(separator)count\n")
 		}
 	}
 
@@ -97,6 +111,8 @@ class Statistics {
 
 	// Periodic (intervalled) statistics collection routine
 	func collectStatistics(fromCity city: City) {
-		
+		if hooks["activeVehicleCount"] != nil {
+			writeToHook("activeVehicleCount", data: "\(city.events.now)\(separator)\(city.vehicles.count)\n")
+		}
 	}
 }
