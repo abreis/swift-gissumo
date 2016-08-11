@@ -21,6 +21,7 @@ class GIS {
 		case Building	= 9790
 		case Vehicle	= 2222
 		case RoadsideUnit = 2223
+		case ParkedCar = 2224
 	}
 
 	// Conversion rate from meters to degrees.

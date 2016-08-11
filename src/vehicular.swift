@@ -4,6 +4,12 @@
 
 import Foundation
 
+enum RoadEntityType {
+	case Vehicle
+	case RoadsideUnit
+	case ParkedCar
+}
+
 // A basic road entity, with an ID, GIS ID, geographic location, time of creation, and the city it belongs to
 class RoadEntity {
 	var id: UInt
@@ -27,6 +33,11 @@ class RoadEntity {
 class Vehicle: RoadEntity {
 	var speed: Double?
 	var active: Bool = true
+}
+
+// A parked car
+class ParkedCar: Vehicle {
+
 }
 
 // A roadside unit entity
@@ -60,9 +71,10 @@ class RoadsideUnit: RoadEntity {
  * access these features when necessary.
  */
 class City {
-	// Arrays for vehicles and roadside units in the city
+	// Arrays for vehicles, roadside units and parked cars in the city
 	var vehicles = [Vehicle]()
 	var roadsideUnits = [RoadsideUnit]()
+	var parkedCars = [ParkedCar]()
 
 	// Our GIS database
 	var gis: GIS
@@ -230,31 +242,88 @@ class City {
 		}
 	}
 
-
-	/// Removes a vehicle from the City and creates a parked car RSU in its place
-	func convertVehicleToParkedCarRSU(id v_id: UInt) {
-		guard	let vIndex = vehicles.indexOf( {$0.id == v_id} ),
-				let vGID = vehicles[vIndex].gid
-				else {
-					print("Error: Trying to convert a non-existent vehicle to an RSU.")
-					exit(EXIT_FAILURE)
+	/// Generic conversion routine to create parked cars from vehicles, RSUs from parked cars, etcetera
+	func convertEntity(entity: RoadEntity, to targetType: RoadEntityType) {
+		guard let vGID = entity.gid else {
+			print("Error: Tried to convert a RoadEntity with no GID.")
+			exit(EXIT_FAILURE)
 		}
 
-		// Mark the vehicle as inactive
-		vehicles[vIndex].active = false
+		// GID of the new entity
+		var newEntityGID: UInt?
 
-		// Remove the vehicle from GIS to avoid potential ID collisions
-		gis.deletePoint(withGID: vGID)
+		// From vehicle to...
+		if let vehicle = entity as? Vehicle {
+			// Ensure we're converting a vehicle that's part of the city
+			guard let vIndex = vehicles.indexOf( {$0 === entity} )	else {
+						print("Error: Trying to convert a vehicle not in the city.")
+						exit(EXIT_FAILURE)
+			}
 
-		// Create a new RoadsideUnit from the Vehicle
-		let newRSUgid = addNewRSU(id: vehicles[vIndex].id, geo: vehicles[vIndex].geo, type: .ParkedCar)
+			// Perform the requested conversion
+			switch targetType {
+			case .RoadsideUnit:
+				// Mark the vehicle as inactive
+				vehicle.active = false
+				// Remove the vehicle from GIS to avoid potential ID collisions
+				gis.deletePoint(withGID: vGID)
+				// Create a new parked car RoadsideUnit from the Vehicle
+				newEntityGID = addNewRSU(id: entity.id, geo: entity.geo, type: .ParkedCar)
+				// Remove the vehicle from the City
+				vehicles.removeAtIndex(vIndex)
+			case .ParkedCar:
+				// TODO
+				break
+			case .Vehicle:
+				print("Error: Attempted to convert a Vehicle to a Vehicle again.")
+				exit(EXIT_FAILURE)
+			}
+		}
 
-		// Remove the vehicle from the City
-		vehicles.removeAtIndex(vIndex)
+		// From parked car to...
+		// TODO
+
+		// From RSU to...
+		// TODO
 
 		// Debug
-		if debug.contains("City.convertVehicleToParkedCarRSU()") {
-			print(String(format: "%.6f City.convertVehicleToParkedCarRSU():\t", events.now).cyan(), "Converted vehicle id", v_id, "gid", vGID, "to an RSU gid", newRSUgid)
+		if debug.contains("City.convertEntity()") {
+			print(String(format: "%.6f City.convertEntity():\t", events.now).cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", vGID, "to a", targetType, "gid", newEntityGID)
 		}
+	}
+
+
+
+	/*** END TRIP ACTIONS ***/
+
+	/// Action to perform on vehicles that end their FCD trips
+	func endTripHook(vehicleID v_id: UInt) {
+		// Pick the routine to be ran whenever a vehicle ends its trip here
+		let endTripRoutine = endTripRemoveVehicle
+		let routineName = "endTripRemoveVehicle" // For debugging, match the name in the previous line
+
+		// Schedule an event right away for the end trip action
+		let endTripEvent = SimulationEvent(time: events.now + events.minTimestep, type: .Mobility, action: { endTripRoutine(vehicleID: v_id) }, description: "\(routineName) id \(v_id)")
+		events.add(newEvent: endTripEvent)
+	}
+
+	/* One of these routines can be executed when a vehicle ends its trip in the FDC data.
+	* The routines can, e.g., simply remove the vehicle, park the vehicle, park and convert the
+	* vehicle to an RSU immediately, park the first N vehicles and remove the rest, etcetera.
+	* Pick a routine and assign it to 'endTripRoutine' inside endTripHook() above.
+	*/
+	// Remove vehicles that end their trips
+	func endTripRemoveVehicle(vehicleID v_id: UInt) {
+		removeVehicle(id: v_id)
+	}
+
+	// Convert all vehicles that end their trips to RoadsideUnits
+	func endTripConvertToRSU(vehicleID v_id: UInt) {
+		// TODO
+	}
+
+	// Convert all vehicles that end their trips to parked cars
+	func endTripConvertToParkedCar(vehicleID v_id: UInt) {
+		// TODO
 	}
 }
