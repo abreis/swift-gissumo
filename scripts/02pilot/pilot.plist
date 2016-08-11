@@ -39,10 +39,12 @@
 			<true/>
 			<key>beaconCounts</key>
 			<true/>
-			<key>finalCityCoverageMap</key>
-			<false/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
+			<key>finalCityCoverageMap</key>
+			<false/>
+			<key>finalRoadsideUnitCoverageMaps</key>
+			<true/>
 		</dict>
 	</dict>
 	<key>gis</key>

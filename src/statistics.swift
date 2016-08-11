@@ -140,7 +140,7 @@ class Statistics {
 	func finalCollection(onCity city: City) {
 		if hooks["finalRoadsideUnitCoverageMaps"] != nil {
 			for rsu in city.roadsideUnits {
-				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!q)\n")
+				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!)\n")
 				writeToHook("finalRoadsideUnitCoverageMaps", data: rsu.localCoverageMap.description)
 			}
 		}

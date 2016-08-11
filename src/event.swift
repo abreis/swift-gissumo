@@ -39,6 +39,64 @@ class EventList {
 
 	// Add a new event, keeping the event list sorted
 	func add(newEvent newEvent: SimulationEvent) {
+		orderedBisectAdd(newEvent: newEvent)
+	}
+
+	// A bisection-based ordered-insertion algorithm
+	func orderedBisectAdd(newEvent newEvent: SimulationEvent) {
+		var insertionIndex: Int = 0
+
+		// Make event mutable
+		var newEvent = newEvent
+
+		if !list.isEmpty {
+			// Quick insertion at the edges
+			if newEvent.time > list.last!.time {
+				insertionIndex = list.count
+			} else if newEvent.time < list.first!.time {
+				insertionIndex = 0
+			} else if newEvent.time == list.last!.time {
+				newEvent.time += minTimestep
+				insertionIndex = list.count
+			}
+			// Locate position through bisection
+			else {
+				var low = 0
+				var high = list.count
+
+				// Bisection, adapted from python's bisect.py
+				while low < high {
+					let mid = (low+high)/2
+					if newEvent.time <= list[mid].time {
+						high = mid
+					} else {
+						low = mid + 1
+					}
+				}
+				insertionIndex = low
+
+				/* Don't let two events have the same time. While events exist
+				* with the same time, push our event forward by a small timestep.
+				*/
+				while insertionIndex != list.count && list[insertionIndex].time == newEvent.time {
+					newEvent.time += minTimestep
+					insertionIndex += 1
+				}
+			}
+		}
+
+		// Now insert the new event at the correct position
+		list.insert(newEvent, atIndex: insertionIndex)
+
+		// Debug
+		if debug.contains("EventList.add()") {
+			print(String(format: "%.6f EventList.add():\t", now).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+		}
+	}
+
+	// A safe version of ordered event insertion
+	// Test new ordered insertion routines against this one
+	func reverseIteratorAdd(newEvent newEvent: SimulationEvent) {
 		var insertionIndex: Int = 0
 
 		// Make event mutable
@@ -46,10 +104,10 @@ class EventList {
 
 		// Don't run any code for the first event
 		if !list.isEmpty {
-			/* Find the position to insert our event in. As new events are more 
-			 * likely to be scheduled for the end of the simulation, we run
-			 * through the eventlist in reverse order.
-			 */
+			/* Find the position to insert our event in. As new events are more
+			* likely to be scheduled for the end of the simulation, we run
+			* through the eventlist in reverse order.
+			*/
 			forevent: for (pos, iteratorEvent) in list.enumerate().reverse() {
 				insertionIndex = pos
 				if iteratorEvent.time < newEvent.time {
@@ -59,8 +117,8 @@ class EventList {
 			}
 
 			/* Don't let two events have the same time. While events exist
-			 * with the same time, push our event forward by a small timestep.
-			 */
+			* with the same time, push our event forward by a small timestep.
+			*/
 			while insertionIndex != list.count && list[insertionIndex].time == newEvent.time {
 				newEvent.time += minTimestep
 				insertionIndex += 1
@@ -75,6 +133,7 @@ class EventList {
 			print(String(format: "%.6f EventList.add():\t", now).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
 		}
 	}
+
 
 	// Add events to the post-simulation (cleanup) stage
 	func add(cleanupEvent event: SimulationEvent) {

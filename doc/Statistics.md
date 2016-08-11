@@ -28,3 +28,7 @@ This is a list of availabe statistics hooks and what enabling each does.
   Prints the number of packets with Beacon payloads being sent and received.
 
 
+* finalRoadsideUnitCoverageMaps (end)
+
+  Prints the coverage map of every roadside unit active at the end of the simulation.
+
