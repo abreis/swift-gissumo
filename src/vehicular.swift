@@ -292,6 +292,31 @@ class City {
 		}
 	}
 
+	// Convenience function that first tries to locate the entity in the city's entity lists
+	func convertEntity(entityID: UInt, to targetType: RoadEntityType) {
+		// Try to match to a vehicle
+		if let vIndex = vehicles.indexOf( {$0.id == entityID} ) {
+			convertEntity(vehicles[vIndex], to: targetType)
+			return
+		}
+
+		// Try to match to a roadside unit
+		if let rIndex = roadsideUnits.indexOf( {$0.id == entityID} ) {
+			convertEntity(roadsideUnits[rIndex], to: targetType)
+			return
+		}
+
+		// Try to match to a parked car
+		if let pIndex = parkedCars.indexOf( {$0.id == entityID} ) {
+			convertEntity(parkedCars[pIndex], to: targetType)
+			return
+		}
+
+		// If nothing is matched, abort
+		print("Error: Tried to convert entity not in present in the city.")
+		exit(EXIT_FAILURE)
+	}
+
 
 
 	/*** END TRIP ACTIONS ***/
@@ -319,11 +344,11 @@ class City {
 
 	// Convert all vehicles that end their trips to RoadsideUnits
 	func endTripConvertToRSU(vehicleID v_id: UInt) {
-		// TODO
+		convertEntity(v_id, to: .RoadsideUnit)
 	}
 
 	// Convert all vehicles that end their trips to parked cars
 	func endTripConvertToParkedCar(vehicleID v_id: UInt) {
-		// TODO
+		convertEntity(v_id, to: .ParkedCar)
 	}
 }
