@@ -192,6 +192,14 @@ extension Vehicle {
 
 		// Send the beacon to our neighbors
 		self.broadcastPacket(beaconPacket)
+
+		// Track number of beacons sent
+		if city.stats.hooks["beaconCounts"] != nil {
+			if var sentBeacons = city.stats.metrics["beaconsSent"] as? UInt {
+				sentBeacons += 1
+				city.stats.metrics["beaconsSent"] = sentBeacons
+			}
+		}
 	}
 }
 
@@ -247,6 +255,14 @@ extension RoadsideUnit: PacketReceiver {
 			// RSUs use beacons to construct their coverage maps
 			let receivedBeacon = Beacon(fromPayload: packet.payload)
 			trackSignalStrength(fromBeacon: receivedBeacon)
+
+			// Track number of beacons received
+			if city.stats.hooks["beaconCounts"] != nil {
+				if var recvBeacons = city.stats.metrics["beaconsReceived"] as? UInt {
+					recvBeacons += 1
+					city.stats.metrics["beaconsReceived"] = recvBeacons
+				}
+			}
 		case .CoverageMapRequest:
 			// TODO: send over the coverage map
 			break

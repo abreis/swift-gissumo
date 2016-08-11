@@ -13,6 +13,9 @@ class Statistics {
 	// A dictionary containing (statisticName,statisticData) pairs
 	var hooks = [String:String]()
 
+	// A dictionary of metrics for other routines to store data on
+	var metrics = [String:Any]()
+
 	// Data separator (e.g. ',' or ';' for CSV (comma not recommended in Europe, prefer semicolon), '\t' for TSV
 	let separator = "\t"
 
@@ -41,15 +44,11 @@ class Statistics {
 			}
 		}
 
+		// Initialize metrics
+		initMetrics()
+
 		// Add header lines to enabled hooks
 		addHookHeaders()
-	}
-
-	// Add header lines to enabled hooks
-	func addHookHeaders() {
-		if hooks["activeVehicleCount"] != nil {
-			writeToHook("activeVehicleCount", data: "time\(separator)count\n")
-		}
 	}
 
 	// Write all collected statistical data, overwriting existing files
@@ -111,8 +110,48 @@ class Statistics {
 
 	// Periodic (intervalled) statistics collection routine
 	func collectStatistics(fromCity city: City) {
+		// activeVehicleCount
 		if hooks["activeVehicleCount"] != nil {
 			writeToHook("activeVehicleCount", data: "\(city.events.now)\(separator)\(city.vehicles.count)\n")
 		}
+
+		// activeRoadsideUnitCount
+		if hooks["activeRoadsideUnitCount"] != nil {
+			writeToHook("activeRoadsideUnitCount", data: "\(city.events.now)\(separator)\(city.roadsideUnits.count)\n")
+		}
+
+		// beaconCounts
+		if hooks["beaconCounts"] != nil {
+			guard	let beaconsSent = metrics["beaconsSent"] as? UInt,
+					let beaconsRecv = metrics["beaconsReceived"] as? UInt
+					else {
+						print("Error: Metrics unavailable for beaconCounts hook.")
+						exit(EXIT_FAILURE)
+			}
+			writeToHook("beaconCounts", data: "\(city.events.now)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\n")
+		}
+	}
+
+	// Hook header lines
+	func addHookHeaders() {
+		// activeVehicleCount
+		if hooks["activeVehicleCount"] != nil {
+			writeToHook("activeVehicleCount", data: "time\(separator)count\n")
+		}
+
+		// activeRoadsideUnitCount
+		if hooks["activeRoadsideUnitCount"] != nil {
+			writeToHook("activeRoadsideUnitCount", data: "time\(separator)count\n")
+		}
+
+		if hooks["beaconCounts"] != nil {
+			writeToHook("beaconCounts", data: "time\(separator)sent\(separator)recv\n")
+		}
+	}
+
+	// Metrics
+	func initMetrics() {
+		metrics["beaconsSent"] = UInt(0)
+		metrics["beaconsReceived"] = UInt(0)
 	}
 }

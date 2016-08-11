@@ -30,7 +30,7 @@
 		<key>collectionInterval</key>
 		<real>1</real>
 		<key>collectionStartTime</key>
-		<integer>5</integer>
+		<integer>1</integer>
 		<key>hooks</key>
 		<dict>
 			<key>activeVehicleCount</key>
@@ -38,8 +38,10 @@
 			<key>activeRoadsideUnitCount</key>
 			<true/>
 			<key>finalCityCoverageMap</key>
-			<true/>
+			<false/>
 			<key>cityCoverageMapEvolution</key>
+			<false/>
+			<key>beaconCounts</key>
 			<true/>
 		</dict>
 	</dict>
@@ -79,9 +81,9 @@
 		<key>City.convertVehicleToParkedCarRSU()</key>
 		<false/>
 		<key>RoadsideUnit.receive(packet)</key>
-		<true/>
+		<false/>
 		<key>RoadsideUnit.trackSignalStrength()</key>
-		<true/>
+		<false/>
 	</dict>
 </dict>
 </plist>
