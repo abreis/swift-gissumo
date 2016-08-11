@@ -37,26 +37,40 @@ class EventList {
 		stopTime = stime
 	}
 
+	// Add a new event, keeping the event list sorted
+	func add(newEvent newEvent: SimulationEvent) {
+		var insertionIndex: Int = 0
 
-	// Add a new event, performing necessary checks
-	func add(newEvent event: SimulationEvent) {
-		// Don't let two events have the same time. While events exist with the same time,
-		// push our event forward by a small timestep.
-		var newEvent = event
-		while list.filter( {$0.time == newEvent.time} ).count > 0 {
-			newEvent.time += minTimestep
+		// Don't run any code for the first event
+		if !list.isEmpty {
+			/* Find the position to insert our event in. As new events are more 
+			 * likely to be scheduled for the end of the simulation, we run
+			 * through the eventlist in reverse order.
+			 */
+			forevent: for (pos, iteratorEvent) in list.enumerate().reverse() {
+				insertionIndex = pos
+				if iteratorEvent.time < newEvent.time {
+					insertionIndex += 1
+					break forevent
+				}
+			}
+
+			/* Don't let two events have the same time. While events exist
+			 * with the same time, push our event forward by a small timestep.
+			 */
+			var newEvent = newEvent	// make event mutable
+			while insertionIndex != list.count && list[insertionIndex].time == newEvent.time {
+				newEvent.time += minTimestep
+				insertionIndex += 1
+			}
 		}
 
-		/* Add the new event and trigger a sort to place it in the right location
-		 * Built-in sort algorithms are likely faster than us running through the
-		 * array to find the correct insertion index.
-		 */
-		list.append(newEvent)
-		list.sortInPlace( {$0.time < $1.time} )
+		// Now insert the new event at the correct position
+		list.insert(newEvent, atIndex: insertionIndex)
 
 		// Debug
-		if debug.contains("EventList.add(newEvent)") {
-			print(String(format: "%.6f EventList.add(newEvent):\t", now).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+		if debug.contains("EventList.add()") {
+			print(String(format: "%.6f EventList.add():\t", now).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
 		}
 	}
 
@@ -84,8 +98,8 @@ class EventList {
 			let missingVehicleIDs = cityVehicleIDs.subtract(fcdVehicleIDs)
 
 			// Debug
-			if debug.contains("EventList.scheduleMobilityEvents(fromFCD)"){
-				print(String(format: "%.6f EventList.scheduleMobilityEvents(fromFCD):\t", now).cyan(), "Timestep", timestep.time, "sees:" )
+			if debug.contains("EventList.scheduleMobilityEvents()"){
+				print(String(format: "%.6f EventList.scheduleMobilityEvents():\t", now).cyan(), "Timestep", timestep.time, "sees:" )
 				print("\t\tFCD vehicles:", fcdVehicleIDs)
 				print("\t\tCity vehicles:", cityVehicleIDs)
 				print("\t\tNew vehicles:", newVehicleIDs)
