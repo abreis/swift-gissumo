@@ -5,7 +5,7 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
-	<integer>60</integer>
+	<integer>120</integer>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
@@ -30,19 +30,19 @@
 		<key>collectionInterval</key>
 		<real>1</real>
 		<key>collectionStartTime</key>
-		<integer>1</integer>
+		<integer>5</integer>
 		<key>hooks</key>
 		<dict>
 			<key>activeVehicleCount</key>
 			<true/>
 			<key>activeRoadsideUnitCount</key>
 			<true/>
+			<key>beaconCounts</key>
+			<true/>
 			<key>finalCityCoverageMap</key>
 			<false/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
-			<key>beaconCounts</key>
-			<true/>
 		</dict>
 	</dict>
 	<key>gis</key>
@@ -64,11 +64,11 @@
 		<true/>
 		<key>main().events</key>
 		<false/>
-		<key>EventList.add(newEvent)</key>
+		<key>EventList.add()</key>
 		<false/>
-		<key>EventList.scheduleMobilityEvents(fromFCD)</key>
+		<key>EventList.scheduleMobilityEvents()</key>
 		<false/>
-		<key>City.determineBounds(fromFCD)</key>
+		<key>City.determineBounds()</key>
 		<true/>
 		<key>City.addNewVehicle()</key>
 		<false/>
@@ -78,9 +78,9 @@
 		<false/>
 		<key>City.removeVehicle()</key>
 		<false/>
-		<key>City.convertVehicleToParkedCarRSU()</key>
+		<key>City.convertEntity()</key>
 		<false/>
-		<key>RoadsideUnit.receive(packet)</key>
+		<key>RoadsideUnit.receive()</key>
 		<false/>
 		<key>RoadsideUnit.trackSignalStrength()</key>
 		<false/>

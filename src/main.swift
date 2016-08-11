@@ -136,21 +136,22 @@ simCity.determineBounds(fromFCD: fcdTrips)
 simCity.innerBounds = cityInnerBounds
 
 // Clear all points from the database
+print("Clearing old features from GIS...", terminator: "")
 simCity.gis.clearFeatures(withType: .Vehicle)
 simCity.gis.clearFeatures(withType: .RoadsideUnit)
+simCity.gis.clearFeatures(withType: .ParkedCar)
+print(" okay")
 
 // Add statistics collection events to the eventlist
+print("Scheduling collection events...", terminator: "")
 simCity.stats.scheduleCollectionEvents(onCity: simCity)
+print(" okay")
 
 // Add mobility timestep events to the eventlist
+print("Scheduling mobility events...", terminator: "")
 simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
+print(" okay")
 
-
-/*** TEST CODE ***/
-// Add an RSU at a center location
-let testRSUgid = simCity.addNewRSU(id: 31337, geo: (x: -8.614326, y: 41.167026), type: .ParkedCar)
-let testRSUobstructed = simCity.gis.checkForObstruction(atPoint: (x: -8.614326, y: 41.167026))
-print("New RSU gid \(testRSUgid) obstructed \(testRSUobstructed)")
 
 
 /*** EVENT LOOP ***/

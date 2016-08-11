@@ -122,15 +122,15 @@ class City {
 			}
 		}
 
-		if debug.contains("City.determineBounds(fromFCD)"){
-			print(String(format: "%.6f City.determineBounds(fromFCD):\t", events.now).cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
+		if debug.contains("City.determineBounds()"){
+			print(String(format: "%.6f City.determineBounds():\t", events.now).cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
 
 		// Now determine the size of the map in cells
 		cells.x = UInt( ceil(bounds.x.max*3600) - floor(bounds.x.min*3600) )
 		cells.y = UInt( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) )
 
-		if debug.contains("City.determineBounds(fromFCD)"){
-			print(String(format: "%.6f City.determineBounds(fromFCD):\t", events.now).cyan(), "City cell size is", cells.x, "x", cells.y) }
+		if debug.contains("City.determineBounds()"){
+			print(String(format: "%.6f City.determineBounds():\t", events.now).cyan(), "City cell size is", cells.x, "x", cells.y) }
 	}
 
 
@@ -288,7 +288,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.convertEntity()") {
-			print(String(format: "%.6f City.convertEntity():\t", events.now).cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", vGID, "to a", targetType, "gid", newEntityGID)
+			print(String(format: "%.6f City.convertEntity():\t", events.now).cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", vGID, "to a", targetType, "gid", newEntityGID!)
 		}
 	}
 
@@ -324,8 +324,8 @@ class City {
 	/// Action to perform on vehicles that end their FCD trips
 	func endTripHook(vehicleID v_id: UInt) {
 		// Pick the routine to be ran whenever a vehicle ends its trip here
-		let endTripRoutine = endTripRemoveVehicle
-		let routineName = "endTripRemoveVehicle" // For debugging, match the name in the previous line
+		let endTripRoutine = endTripConvertToRSU
+		let routineName = "endTripConvertToRSU" // For debugging, match the name in the previous line
 
 		// Schedule an event right away for the end trip action
 		let endTripEvent = SimulationEvent(time: events.now + events.minTimestep, type: .Mobility, action: { endTripRoutine(vehicleID: v_id) }, description: "\(routineName) id \(v_id)")

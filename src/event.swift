@@ -41,6 +41,9 @@ class EventList {
 	func add(newEvent newEvent: SimulationEvent) {
 		var insertionIndex: Int = 0
 
+		// Make event mutable
+		var newEvent = newEvent
+
 		// Don't run any code for the first event
 		if !list.isEmpty {
 			/* Find the position to insert our event in. As new events are more 
@@ -58,7 +61,6 @@ class EventList {
 			/* Don't let two events have the same time. While events exist
 			 * with the same time, push our event forward by a small timestep.
 			 */
-			var newEvent = newEvent	// make event mutable
 			while insertionIndex != list.count && list[insertionIndex].time == newEvent.time {
 				newEvent.time += minTimestep
 				insertionIndex += 1

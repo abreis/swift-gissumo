@@ -219,7 +219,7 @@ extension Vehicle {
 		self.broadcastBeacon()
 
 		// Schedule a new beacon to be sent in now+beaconingInterval
-		let newBeaconEvent = SimulationEvent(time: city.events.now + city.network.beaconingInterval, type: .Network, action: {self.recurrentBeaconing()}, description: "recurrentBroadcastBeacon vehicle \(self.id)")
+		let newBeaconEvent = SimulationEvent(time: city.events.now + city.network.beaconingInterval, type: .Network, action: {self.recurrentBeaconing()}, description: "broadcastBeacon vehicle \(self.id)")
 		city.events.add(newEvent: newBeaconEvent)
 	}
 }
@@ -232,8 +232,8 @@ extension RoadsideUnit: PacketReceiver {
 		// We should never receive packets sent by ourselves
 		assert(packet.src != id)
 
-		if debug.contains("RoadsideUnit.receive(packet)"){
-			print(String(format: "%.6f RoadsideUnit.receive(packet):\t", city.events.now).cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
+		if debug.contains("RoadsideUnit.receive()"){
+			print(String(format: "%.6f RoadsideUnit.receive():\t", city.events.now).cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
 
 		// Process destination field
 		switch packet.dst {
