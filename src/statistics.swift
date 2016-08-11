@@ -101,9 +101,13 @@ class Statistics {
 			// Jump to next collection time
 			scheduledCollectionTime += interval
 		} while scheduledCollectionTime < city.events.stopTime
-		
+
+		// Schedule a cleanup-stage event to collect final statistics
+		let finalCollectionEvent = SimulationEvent(time: 0, type: .Statistics, action: {city.stats.finalCollection(onCity: city)}, description: "finalCollectStats")
+		city.events.add(cleanupEvent: finalCollectionEvent)
+
 		// Schedule a cleanup-stage event to write all statistical data to files
-		let statWriteEvent = SimulationEvent(time: city.events.stopTime-city.events.minTimestep, type: .Statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
+		let statWriteEvent = SimulationEvent(time: 0, type: .Statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
 		city.events.add(cleanupEvent: statWriteEvent)
 	}
 
@@ -131,6 +135,17 @@ class Statistics {
 			writeToHook("beaconCounts", data: "\(city.events.now)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\n")
 		}
 	}
+
+	// Final statistics collection routine
+	func finalCollection(onCity city: City) {
+		if hooks["finalRoadsideUnitCoverageMaps"] != nil {
+			for rsu in city.roadsideUnits {
+				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!q)\n")
+				writeToHook("finalRoadsideUnitCoverageMaps", data: rsu.localCoverageMap.description)
+			}
+		}
+	}
+
 
 	// Hook header lines
 	func addHookHeaders() {
