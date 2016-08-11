@@ -17,6 +17,13 @@ class Network {
 
 	// Propagation algorithm
 	let getSignalStrength: (distance: Double, lineOfSight: Bool) -> Double = portoEmpiricalDataModel
+
+	// Packet ID generator - can be made to create random IDs
+	var nextPacketID: UInt = 0
+	func getNextPacketID() -> UInt {
+		defer { nextPacketID += 1 }
+		return nextPacketID
+	}
 }
 
 /*** GEOCAST AREAS ***/
@@ -188,7 +195,7 @@ extension Vehicle {
 		let beaconPayload: Payload = Beacon(geo: self.geo).toPayload()
 
 		// Construct the beacon packet, a broadcast with hoplimit = 1
-		let beaconPacket = Packet(id: UInt(arc4random()), src: self.id, dst: .Broadcast(hopLimit: 1), created: city.events.now, payload: beaconPayload, payloadType: .Beacon)
+		let beaconPacket = Packet(id: city.network.getNextPacketID(), src: self.id, dst: .Broadcast(hopLimit: 1), created: city.events.now, payload: beaconPayload, payloadType: .Beacon)
 
 		// Send the beacon to our neighbors
 		self.broadcastPacket(beaconPacket)
