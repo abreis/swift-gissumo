@@ -244,7 +244,7 @@ extension RoadsideUnit: PacketReceiver {
 		assert(packet.src != id)
 
 		if debug.contains("RoadsideUnit.receive()"){
-			print(String(format: "%.6f RoadsideUnit.receive():\t", city.events.now).cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
+			print(String(format: "%.6f RoadsideUnit.receive():\t", city.events.now.milli).cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
 
 		// Process destination field
 		switch packet.dst {
@@ -301,6 +301,6 @@ extension RoadsideUnit {
 
 		// Debug
 		if debug.contains("RoadsideUnit.trackSignalStrength()"){
-			print(String(format: "%.6f RoadsideUnit.trackSignalStrength():\t", city.events.now).cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
+			print(String(format: "%.6f RoadsideUnit.trackSignalStrength():\t", city.events.now.milli).cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
 	}
 }

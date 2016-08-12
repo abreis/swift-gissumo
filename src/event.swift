@@ -17,6 +17,11 @@ struct SimulationEvent {
 	var description: String = ""
 }
 
+// Extend Double with a convenience for printing with millisecond precision
+extension Double {
+	var milli: String { return String(format: "%6f", self) }
+}
+
 class EventList {
 	let minTimestep = 0.000001 // microsecond
 
@@ -90,7 +95,7 @@ class EventList {
 
 		// Debug
 		if debug.contains("EventList.add()") {
-			print(String(format: "%.6f EventList.add():\t", now).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+			print(String(format: "%.6f EventList.add():\t", now.milli).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
 		}
 	}
 
@@ -130,7 +135,7 @@ class EventList {
 
 		// Debug
 		if debug.contains("EventList.add()") {
-			print(String(format: "%.6f EventList.add():\t", now).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+			print(String(format: "%.6f EventList.add():\t", now.milli).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
 		}
 	}
 
@@ -160,7 +165,7 @@ class EventList {
 
 			// Debug
 			if debug.contains("EventList.scheduleMobilityEvents()"){
-				print(String(format: "%.6f EventList.scheduleMobilityEvents():\t", now).cyan(), "Timestep", timestep.time, "sees:" )
+				print(String(format: "%.6f EventList.scheduleMobilityEvents():\t", now.milli).cyan(), "Timestep", timestep.time, "sees:" )
 				print("\t\tFCD vehicles:", fcdVehicleIDs)
 				print("\t\tCity vehicles:", cityVehicleIDs)
 				print("\t\tNew vehicles:", newVehicleIDs)

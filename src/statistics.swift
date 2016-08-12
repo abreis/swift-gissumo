@@ -116,12 +116,12 @@ class Statistics {
 	func collectStatistics(fromCity city: City) {
 		// activeVehicleCount
 		if hooks["activeVehicleCount"] != nil {
-			writeToHook("activeVehicleCount", data: "\(city.events.now)\(separator)\(city.vehicles.count)\n")
+			writeToHook("activeVehicleCount", data: "\(city.events.now.milli)\(separator)\(city.vehicles.count)\n")
 		}
 
 		// activeRoadsideUnitCount
 		if hooks["activeRoadsideUnitCount"] != nil {
-			writeToHook("activeRoadsideUnitCount", data: "\(city.events.now)\(separator)\(city.roadsideUnits.count)\n")
+			writeToHook("activeRoadsideUnitCount", data: "\(city.events.now.milli)\(separator)\(city.roadsideUnits.count)\n")
 		}
 
 		// beaconCounts
@@ -132,7 +132,7 @@ class Statistics {
 						print("Error: Metrics unavailable for beaconCounts hook.")
 						exit(EXIT_FAILURE)
 			}
-			writeToHook("beaconCounts", data: "\(city.events.now)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\n")
+			writeToHook("beaconCounts", data: "\(city.events.now.milli)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\n")
 		}
 	}
 
@@ -140,7 +140,7 @@ class Statistics {
 	func finalCollection(onCity city: City) {
 		if hooks["finalRoadsideUnitCoverageMaps"] != nil {
 			for rsu in city.roadsideUnits {
-				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!)\n")
+				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!.milli)\n")
 				writeToHook("finalRoadsideUnitCoverageMaps", data: rsu.localCoverageMap.description)
 			}
 		}

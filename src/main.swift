@@ -157,7 +157,7 @@ print(" okay")
 /*** EVENT LOOP ***/
 repeat {
 	guard let nextEvent = simCity.events.list.first else {
-		print("Exhausted event list at time", simCity.events.now)
+		print("Exhausted event list at time", simCity.events.now.milli)
 		exit(EXIT_SUCCESS)
 	}
 
@@ -166,7 +166,7 @@ repeat {
 	simCity.events.now = nextEvent.time
 
 	if debug.contains("main().events"){
-		print(String(format: "%.6f main():\t", simCity.events.now).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
+		print(String(format: "%.6f main():\t", simCity.events.now.milli).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
 	}
 	nextEvent.action()
 	simCity.events.list.removeFirst()
