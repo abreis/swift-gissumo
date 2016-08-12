@@ -50,12 +50,8 @@ enum RoadsideUnitType {
 class RoadsideUnit: RoadEntity {
 	var type: RoadsideUnitType = .ParkedCar
 
-	// The size, in cells, of a local coverage map
-	// Our coverage maps are 11x11, or ~330m wide (for an assumed radio range of 155m and average cell size of 30m)
-	lazy var localCoverageMapSize: Int = Int(ceil(self.city.network.maxRange*2/30))
-
 	// Initialize the local coverage map
-	lazy var localCoverageMap: CellMap = CellMap(ofSize: (x: self.localCoverageMapSize, y: self.localCoverageMapSize), withValue: UInt(0), geographicCenter: self.geo)
+	lazy var localCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.localCoverageMapSize, y: self.city.network.localCoverageMapSize), withValue: 0, geographicCenter: self.geo)
 }
 
 
