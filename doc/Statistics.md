@@ -13,11 +13,6 @@ This is a list of availabe statistics hooks and what enabling each does.
   Prints how many roadside units are active.
 
 
-* finalCityCoverageMap (end)
-
-  Prints the final coverage map of the complete city.
-
-
 * cityCoverageMapEvolution (interval)
 
   Prints the current coverage map of the complete city.
@@ -31,4 +26,19 @@ This is a list of availabe statistics hooks and what enabling each does.
 * finalRoadsideUnitCoverageMaps (end)
 
   Prints the coverage map of every roadside unit active at the end of the simulation.
+
+
+* finalCityCoverageMap (end)
+
+  Prints a map of signal coverage on the city.
+
+
+* finalCitySaturationMap (end)
+
+  Prints a map of RSU saturation on the city.
+
+
+* finalCityEntitiesMap (end)
+
+  Prints a map with the entities on the city.
 

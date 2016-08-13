@@ -17,7 +17,7 @@ class Network {
 
 	// The size, in cells, of a local coverage map
 	// Our coverage maps are 11x11, or ~330m wide (for an assumed radio range of 155m and average cell size of 30m)
-	lazy var localCoverageMapSize: Int = Int(ceil(self.maxRange*2/30))
+	lazy var selfCoverageMapSize: Int = Int(ceil(self.maxRange*2/30))
 
 	// Propagation algorithm
 	let getSignalStrength: (distance: Double, lineOfSight: Bool) -> Double = portoEmpiricalDataModel
@@ -297,7 +297,7 @@ extension RoadsideUnit {
 		let beaconSignalStrength = city.network.getSignalStrength(distance: beaconDistance, lineOfSight: beaconLOS)
 
 		// Store the signal strength seen at the beacon location
-		localCoverageMap[(beacon.geo)] = Int(beaconSignalStrength)
+		selfCoverageMap[(beacon.geo)] = Int(beaconSignalStrength)
 
 		// Debug
 		if debug.contains("RoadsideUnit.trackSignalStrength()"){

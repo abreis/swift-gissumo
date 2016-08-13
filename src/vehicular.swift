@@ -51,7 +51,7 @@ class RoadsideUnit: RoadEntity {
 	var type: RoadsideUnitType = .ParkedCar
 
 	// Initialize the local coverage map
-	lazy var localCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.localCoverageMapSize, y: self.city.network.localCoverageMapSize), withValue: 0, geographicCenter: self.geo)
+	lazy var selfCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.selfCoverageMapSize, y: self.city.network.selfCoverageMapSize), withValue: 0, geographicCenter: self.geo)
 }
 
 
@@ -91,7 +91,7 @@ class City {
 	var innerBounds: Square?
 
 	// City size in cells
-	var cells = (x: UInt(0), y:UInt(0))
+	var cells: (x: Int, y: Int) = (0,0)
 
 	/// Standard init, provide a database, network and eventlist
 	init(gis ingis: GIS, network innet: Network, eventList inevents: EventList, statistics instats: Statistics) {
@@ -122,8 +122,8 @@ class City {
 			print(String(format: "%.6f City.determineBounds():\t", events.now.milli).cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
 
 		// Now determine the size of the map in cells
-		cells.x = UInt( ceil(bounds.x.max*3600) - floor(bounds.x.min*3600) )
-		cells.y = UInt( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) )
+		cells.x = Int( ceil(bounds.x.max*3600) - floor(bounds.x.min*3600) )
+		cells.y = Int( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) )
 
 		if debug.contains("City.determineBounds()"){
 			print(String(format: "%.6f City.determineBounds():\t", events.now.milli).cyan(), "City cell size is", cells.x, "x", cells.y) }
@@ -146,6 +146,33 @@ class City {
 	}
 
 
+	/*** GLOBAL CELL MAPS ***/
+	// Get the global map of best signal strength (Global Map of Coverage)
+	var globalMapOfCoverage: CellMap<Int> {
+		var GMC = CellMap<Int>(ofSize: (x: cells.x, y: cells.y), withValue: 0, geographicTopLeft: (x: bounds.x.min, y: bounds.y.max))
+		for rsu in roadsideUnits {
+			GMC.keepBestSignal(fromSignalMap: rsu.selfCoverageMap)
+		}
+		return GMC
+	}
+
+	// Get the global map of RSU saturation (Global Map of Saturation)
+	var globalMapOfSaturation: CellMap<Int> {
+		var GMS = CellMap<Int>(ofSize: (x: cells.x, y: cells.y), withValue: 0, geographicTopLeft: (x: bounds.x.min, y: bounds.y.max))
+		for rsu in roadsideUnits {
+			GMS.incrementSaturation(fromSignalMap: rsu.selfCoverageMap)
+		}
+		return GMS
+	}
+
+	// Get a global map with the location of all entities marked on it
+	var globalMapOfEntities: CellMap<Character> {
+		var GME = CellMap<Character>(ofSize: (x: cells.x, y: cells.y), withValue: "·", geographicTopLeft: (x: bounds.x.min, y: bounds.y.max))
+		for vehicle in vehicles { GME[vehicle.geo] = "V" }
+		for parkedCar in parkedCars { GME[parkedCar.geo] = "P" }
+		for roadsideUnit in roadsideUnits { GME[roadsideUnit.geo] = "R" }
+		return GME
+	}
 
 	/*** ROAD ENTITY ACTIONS ***/
 

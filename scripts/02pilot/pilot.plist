@@ -41,9 +41,13 @@
 			<true/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
-			<key>finalCityCoverageMap</key>
-			<false/>
 			<key>finalRoadsideUnitCoverageMaps</key>
+			<true/>
+			<key>finalCityCoverageMap</key>
+			<true/>
+			<key>finalCitySaturationMap</key>
+			<true/>
+			<key>finalCityEntitiesMap</key>
 			<true/>
 		</dict>
 	</dict>
@@ -71,7 +75,7 @@
 		<key>EventList.scheduleMobilityEvents()</key>
 		<false/>
 		<key>City.determineBounds()</key>
-		<true/>
+		<false/>
 		<key>City.addNewVehicle()</key>
 		<false/>
 		<key>City.addNewRSU()</key>

@@ -112,7 +112,8 @@ class Statistics {
 	}
 
 
-	// Periodic (intervalled) statistics collection routine
+
+	/// Periodic (intervalled) statistics collection routine
 	func collectStatistics(fromCity city: City) {
 		// activeVehicleCount
 		if hooks["activeVehicleCount"] != nil {
@@ -136,18 +137,32 @@ class Statistics {
 		}
 	}
 
-	// Final statistics collection routine
+
+
+	/// Final statistics collection routine
 	func finalCollection(onCity city: City) {
 		if hooks["finalRoadsideUnitCoverageMaps"] != nil {
 			for rsu in city.roadsideUnits {
 				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!.milli)\n")
-				writeToHook("finalRoadsideUnitCoverageMaps", data: rsu.localCoverageMap.description)
+				writeToHook("finalRoadsideUnitCoverageMaps", data: rsu.selfCoverageMap.description)
 			}
+		}
+
+		if hooks["finalCityCoverageMap"] != nil {
+			writeToHook("finalCityCoverageMap", data: city.globalMapOfCoverage.description)
+		}
+
+		if hooks["finalCitySaturationMap"] != nil {
+			writeToHook("finalCitySaturationMap", data: city.globalMapOfSaturation.description)
+		}
+
+		if hooks["finalCityEntitiesMap"] != nil {
+			writeToHook("finalCityEntitiesMap", data: city.globalMapOfEntities.description)
 		}
 	}
 
 
-	// Hook header lines
+	/// Add header lines to all registered hooks
 	func addHookHeaders() {
 		// activeVehicleCount
 		if hooks["activeVehicleCount"] != nil {
@@ -164,7 +179,9 @@ class Statistics {
 		}
 	}
 
-	// Metrics
+
+
+	/// Initialize the array of statistical metrics
 	func initMetrics() {
 		metrics["beaconsSent"] = UInt(0)
 		metrics["beaconsReceived"] = UInt(0)

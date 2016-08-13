@@ -155,6 +155,7 @@ print(" okay")
 
 
 /*** EVENT LOOP ***/
+print("Running simulation events...", terminator: "")
 repeat {
 	guard let nextEvent = simCity.events.list.first else {
 		print("Exhausted event list at time", simCity.events.now.milli)
@@ -172,14 +173,19 @@ repeat {
 	simCity.events.list.removeFirst()
 
 } while simCity.events.now < simCity.events.stopTime
+print(" okay")
+
 
 // Cleanup stage events
+print("Running cleanup events...", terminator: "")
 for event in simCity.events.cleanup {
 	event.action()
 	if debug.contains("main().events"){
 		print("[cleanup] main():\t".cyan(), "Executing", event.type, "event\t", event.description.darkGray())
 	}
 }
+print(" okay")
+
 
 // Successful exit
 print("Simulation complete.")
