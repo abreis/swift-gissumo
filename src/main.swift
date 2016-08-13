@@ -95,6 +95,23 @@ print(" okay")
 print("\tLoaded", fcdTrips.count, "timesteps from data file")
 
 
+/* To build an obstruction cell mask, jump here.
+ */
+if	let toolsConfig = config["tools"] as? NSDictionary,
+	let buildMask = toolsConfig["buildObstructionMask"] as? Bool
+	where buildMask == true
+{
+	print("Building obstruction mask...", terminator: "")
+	do {
+			try buildObstructionMask(fromTrips: fcdTrips)
+	} catch {
+		print(" failed", "\nError:", error)
+		exit(EXIT_FAILURE)
+	}
+	print(" okay")
+	print("\tBuilt a map of obstructions from \(fcdTrips.count) steps.")
+	exit(EXIT_SUCCESS)
+}
 
 /* Initialize PostgreSQL connection
  */

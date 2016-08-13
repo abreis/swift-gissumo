@@ -5,7 +5,7 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
-	<integer>120</integer>
+	<integer>600</integer>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
@@ -89,6 +89,11 @@
 		<key>RoadsideUnit.receive()</key>
 		<false/>
 		<key>RoadsideUnit.trackSignalStrength()</key>
+		<false/>
+	</dict>
+	<key>tools</key>
+	<dict>
+		<key>buildObstructionMask</key>
 		<false/>
 	</dict>
 </dict>
