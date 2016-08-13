@@ -26,7 +26,7 @@ extension Int: InitializableWithString {  init?(string: String) { self.init(stri
 extension Double: InitializableWithString {  init?(string: String) { self.init(string) } }
 extension Character: InitializableWithString {  init?(string: String) { self.init(string) } }
 
-struct CellMap<T: InitializableWithString>: CustomStringConvertible, PayloadConvertible {
+struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: CustomStringConvertible, PayloadConvertible {
 	var cells: [[T]]
 	let size: (x: Int, y: Int)
 
@@ -106,6 +106,15 @@ struct CellMap<T: InitializableWithString>: CustomStringConvertible, PayloadConv
 		}
 	}
 
+	// Allow access to a cell with a cell coordinate pair
+	subscript(cellIndex: (x: Int, y: Int)) -> T  {
+		get {
+			return cells[topLeftCellCoordinate.y - cellIndex.y][cellIndex.x - topLeftCellCoordinate.x]
+		}
+		set {
+			cells[topLeftCellCoordinate.y - cellIndex.y][cellIndex.x - topLeftCellCoordinate.x] = newValue
+		}
+	}
 
 	/*** PAYLOAD CONVERSION ***/
 
@@ -162,5 +171,71 @@ struct CellMap<T: InitializableWithString>: CustomStringConvertible, PayloadConv
 
 		// Get the x-size from the number of elements read
 		size.x = cells.first!.count
+	}
+}
+
+
+
+/*** MAP ON MAP ROUTINES ***/
+
+// Extend maps with the ability to compute the bounds of their intersection
+extension CellMap {
+	func getOverlapBounds(withMap inMap: CellMap) -> (x: (start: Int, end: Int), y: (start: Int, end: Int))? {
+		// Determine the overlap bounds between the two maps
+		let bounds = (x: (start: max(inMap.topLeftCellCoordinate.x, self.topLeftCellCoordinate.x),
+						end: min(inMap.topLeftCellCoordinate.x+inMap.size.x-1, self.topLeftCellCoordinate.x+self.size.x-1)),
+		             y:	(start: max(inMap.topLeftCellCoordinate.y-inMap.size.y+1, self.topLeftCellCoordinate.y-self.size.y+1),
+						end: min(inMap.topLeftCellCoordinate.y, self.topLeftCellCoordinate.y)))
+
+		// Guard against no overlap between the two maps
+		guard bounds.x.end >= bounds.x.start && bounds.y.end >= bounds.y.start
+			else { return nil }
+		return bounds
+	}
+}
+
+/* Extend maps of signal coverage (T:Int) with the ability to overlap other maps on them
+ * and keep the max(lhs(i,j), rhs(i,j)), i.e., the best signal strength available.
+ */
+extension CellMap where T:IntegerArithmeticType, T:SignedIntegerType {
+	mutating func keepBestSignal(fromSignalMap inMap: CellMap<T>) {
+		// Get the intersection range between the two maps
+		guard let bounds = self.getOverlapBounds(withMap: inMap) else {
+			print("Warning: Attempted to calculate saturation with maps that do not overlap.")
+			return
+		}
+
+		// Keep the best signal from either map
+		for xx in bounds.x.start ... bounds.x.end {
+			for yy in bounds.y.start ... bounds.y.end {
+				let coords: (x:Int, y:Int) = (xx, yy)
+				if inMap[coords] > self[coords] {
+					self[coords] = inMap[coords]
+				}
+			}
+		}
+	}
+}
+
+/* Extend maps of RSU saturation (Int) with the ability to add a signal coverage map
+ * and increment the cells that are covered by that map ( rhs(i,j)>0 ? lhs(i,j)+=1 ) .
+ */
+extension CellMap where T:IntegerArithmeticType, T:SignedIntegerType {
+	mutating func incrementSaturation(fromSignalMap inMap: CellMap<T>) {
+		// Get the intersection range between the two maps
+		guard let bounds = self.getOverlapBounds(withMap: inMap) else {
+			print("Warning: Attempted to calculate saturation with maps that do not overlap.")
+			return
+		}
+
+		// Increment saturation on the computed bounds
+		for xx in bounds.x.start ... bounds.x.end {
+			for yy in bounds.y.start ... bounds.y.end {
+				let coords: (x:Int, y:Int) = (xx, yy)
+				if inMap[coords] > 0 {
+					self[coords] = self[coords] + 1
+				}
+			}
+		}
 	}
 }
