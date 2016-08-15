@@ -103,7 +103,7 @@ if	let toolsConfig = config["tools"] as? NSDictionary,
 {
 	print("Building obstruction mask...", terminator: "")
 	do {
-			try buildObstructionMask(fromTrips: fcdTrips)
+		try buildObstructionMask(fromTrips: fcdTrips)
 	} catch {
 		print(" failed", "\nError:", error)
 		exit(EXIT_FAILURE)

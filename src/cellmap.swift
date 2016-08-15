@@ -28,7 +28,7 @@ extension Character: InitializableWithString {  init?(string: String) { self.ini
 
 struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: CustomStringConvertible, PayloadConvertible {
 	var cells: [[T]]
-	let size: (x: Int, y: Int)
+	var size: (x: Int, y: Int)
 
 	// The cellular coordinates of the top-left cell (lowest latitude, highest longitude)
 	var topLeftCellCoordinate: (x: Int, y: Int)
@@ -171,6 +171,38 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 
 		// Get the x-size from the number of elements read
 		size.x = cells.first!.count
+	}
+
+	// Crop the map to a smaller dimension
+	mutating func crop(newTopLeftCell newTopLeft: (x: Int, y: Int), newSize: (x: Int, y: Int)) {
+		guard	newTopLeft.x >= topLeftCellCoordinate.x &&
+				newTopLeft.y <= topLeftCellCoordinate.y &&
+				newTopLeft.x + newSize.x <= topLeftCellCoordinate.x + size.x &&
+				newTopLeft.y - newSize.y >= topLeftCellCoordinate.y - size.y &&
+				newSize.x > 0 && newSize.y > 0
+			else {
+				print("Error: Attempted to crop a map to an invalid size.")
+				exit(EXIT_FAILURE)
+		}
+
+		// Create a new map
+		var newCells = [[T]]()
+		var copyRange: (x: (start: Int, end: Int), y: (start: Int, end: Int))
+		copyRange = (x: (start: newTopLeft.x - topLeftCellCoordinate.x,	end: newTopLeft.x - topLeftCellCoordinate.x + newSize.x-1),
+		             y: (start: topLeftCellCoordinate.y - newTopLeft.y, end: topLeftCellCoordinate.y - newTopLeft.y + newSize.y-1))
+
+		// Copy the selected cell range to the new map
+		for yy in copyRange.y.start ... copyRange.y.end {
+			newCells.append([])
+			for xx in copyRange.x.start ... copyRange.x.end {
+				newCells[newCells.count-1].append(cells[yy][xx])
+			}
+		}
+
+		// Mutate our cellmap
+		topLeftCellCoordinate = newTopLeft
+		size = newSize
+		cells = newCells
 	}
 }
 
