@@ -17,9 +17,9 @@ class RoadEntity {
 	var geo: (x: Double, y: Double)
 
 	var gid: UInt?
-	var creationTime: Double?
+	var creationTime: SimulationTime?
 
-	init(id v_id: UInt, geo v_geo:(x:Double, y:Double), city v_city: City, creationTime ctime: Double?) {
+	init(id v_id: UInt, geo v_geo:(x:Double, y:Double), city v_city: City, creationTime ctime: SimulationTime?) {
 		id = v_id
 		geo.x = v_geo.x
 		geo.y = v_geo.y
@@ -123,14 +123,14 @@ class City {
 		}
 
 		if debug.contains("City.determineBounds()"){
-			print("\(events.now.milli) City.determineBounds():\t".cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
+			print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
 
 		// Now determine the size of the map in cells
 		cellSize.x = Int( ceil(bounds.x.max*3600) - floor(bounds.x.min*3600) )
 		cellSize.y = Int( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) )
 
 		if debug.contains("City.determineBounds()"){
-			print("\(events.now.milli) City.determineBounds():\t".cyan(), "City cell size is", cellSize.x, "x", cellSize.y) }
+			print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City cell size is", cellSize.x, "x", cellSize.y) }
 	}
 
 
@@ -196,7 +196,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.addNewVehicle()") {
-			print("\(events.now.milli) City.addNewVehicle():\t".cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
+			print("\(events.now.asSeconds) City.addNewVehicle():\t".cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
 		}
 
 		return newVehicle.gid!
@@ -216,7 +216,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.addNewRSU()") {
-			print("\(events.now.milli) City.addNewRSU():\t".cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
+			print("\(events.now.asSeconds) City.addNewRSU():\t".cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
 		}
 
 		return newRSU.gid!
@@ -240,7 +240,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.updateVehicleLocation()") {
-			print("\(events.now.milli) City.updateVehicleLocation():\t".cyan(), "Update vehicle id", vehicles[vIndex].id, "gid", vGID, "to coordinates", vehicles[vIndex].geo)
+			print("\(events.now.asSeconds) City.updateVehicleLocation():\t".cyan(), "Update vehicle id", vehicles[vIndex].id, "gid", vGID, "to coordinates", vehicles[vIndex].geo)
 		}
 	}
 
@@ -265,7 +265,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.removeVehicle()") {
-			print("\(events.now.milli) City.removeVehicle():\t".cyan(), "Removed vehicle id", v_id, "gid", vGID)
+			print("\(events.now.asSeconds) City.removeVehicle():\t".cyan(), "Removed vehicle id", v_id, "gid", vGID)
 		}
 	}
 
@@ -315,7 +315,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.convertEntity()") {
-			print("\(events.now.milli) City.convertEntity():\t".cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", vGID, "to a", targetType, "gid", newEntityGID!)
+			print("\(events.now.asSeconds) City.convertEntity():\t".cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", vGID, "to a", targetType, "gid", newEntityGID!)
 		}
 	}
 

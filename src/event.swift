@@ -11,25 +11,52 @@ struct SimulationEvent {
 		case Statistics
 	}
 
-	var time: Double
+	var time: SimulationTime
 	let type: EventType
 	let action: ()->()
 	var description: String = ""
 }
 
-// Extend Double with a convenience for printing with millisecond precision
-extension Double {
-	var milli: String { return String(format: "%6f", self) }
+
+struct SimulationTime: Equatable, Comparable, Hashable, FloatLiteralConvertible, CustomStringConvertible {
+	var nanoseconds: Int
+	// Standard init
+	init() { nanoseconds = 0 }
+	// FloatLiteralConvertible: initialize with a Float (assumes Seconds are provided)
+	init(floatLiteral value: Double) { self.init(seconds: Double(value))}
+	// Various specific initializers
+	init(seconds       sec: Int) { nanoseconds =  sec * 1000000000 }
+	init(milliseconds msec: Int) { nanoseconds = msec * 1000000 }
+	init(microseconds µsec: Int) { nanoseconds = µsec * 1000 }
+	init(nanoseconds  nsec: Int) { nanoseconds = nsec }
+	init(seconds       sec: Double) { nanoseconds = Int( sec * 1000000000) }
+	init(milliseconds msec: Double) { nanoseconds = Int(msec * 1000000) }
+	init(microseconds µsec: Double) { nanoseconds = Int(µsec * 1000) }
+	init(nanoseconds  nsec: Double) { nanoseconds = Int(nsec) }
+	// Conform to Hashable
+	var hashValue: Int { return nanoseconds.hashValue }
+	// Conform to CustomStringConvertible
+	var description: String { return String(nanoseconds) }
+	// Print as floating point Seconds with precision=6 (microsecond)
+	var asSeconds: String { return String(format: "%6f", Double(nanoseconds)/1000000000.0) }
 }
 
+// Conform SimulationTime to Equatable, Comparable
+func ==(lhs: SimulationTime, rhs: SimulationTime) -> Bool { return lhs.nanoseconds == rhs.nanoseconds }
+func <(lhs: SimulationTime, rhs: SimulationTime) -> Bool { return lhs.nanoseconds < rhs.nanoseconds }
+// Overload operatos +, -, +=
+func +(left: SimulationTime, right: SimulationTime) -> SimulationTime { return SimulationTime(nanoseconds: left.nanoseconds+right.nanoseconds) }
+func -(left: SimulationTime, right: SimulationTime) -> SimulationTime { return SimulationTime(nanoseconds: left.nanoseconds-right.nanoseconds) }
+func +=(inout left: SimulationTime, right: SimulationTime) { left = left + right }
+
 class EventList {
-	let minTimestep = 0.000001 // microsecond
+	let minTimestep = SimulationTime(microseconds: 1)
 
 	// Current simulation time
-	var now: Double = -1.0
+	var now = SimulationTime(seconds: -1)
 
 	// Simulation stop time, from config
-	var stopTime: Double
+	var stopTime: SimulationTime
 
 	// Array of simulation events
 	var list = [SimulationEvent]()
@@ -42,7 +69,7 @@ class EventList {
 
 	// Init with the simulation stop time
 	init(stopTime stime: Double) {
-		stopTime = stime
+		stopTime = SimulationTime(seconds: stime)
 	}
 
 	// Add a new event, keeping the event list sorted
@@ -98,7 +125,7 @@ class EventList {
 
 		// Debug
 		if debug.contains("EventList.add()") {
-			print("\(now.milli) EventList.add():\t".cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+			print("\(now.asSeconds) EventList.add():\t".cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time.asSeconds)
 		}
 	}
 
@@ -138,7 +165,7 @@ class EventList {
 
 		// Debug
 		if debug.contains("EventList.add()") {
-			print("\(now.milli) EventList.add():\t".cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+			print("\(now.asSeconds) EventList.add():\t".cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
 		}
 	}
 
@@ -172,7 +199,7 @@ class EventList {
 
 			// Debug
 			if debug.contains("EventList.scheduleMobilityEvents()"){
-				print("\(now.milli) EventList.scheduleMobilityEvents():\t".cyan(), "Timestep", timestep.time, "sees:" )
+				print("\(now.asSeconds) EventList.scheduleMobilityEvents():\t".cyan(), "Timestep", timestep.time, "sees:" )
 				print("\t\tFCD vehicles:", fcdVehicleIDs)
 				print("\t\tCity vehicles:", cityVehicleIDs)
 				print("\t\tNew vehicles:", newVehicleIDs)
@@ -189,7 +216,7 @@ class EventList {
 				let newFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == newFCDvehicleID} )! ]
 				// (note: the IDs came from timestep.vehicles, so an .indexOf on the array can be force-unwrapped safely)
 
-				let newVehicleEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.addNewVehicle(id: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
+				let newVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.addNewVehicle(id: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
 
 				add(newEvent: newVehicleEvent)
 			}
@@ -198,14 +225,14 @@ class EventList {
 			for existingFDCvehicleID in existingVehicleIDs {
 				let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == existingFDCvehicleID} )! ]
 
-				let updateVehicleEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.updateVehicleLocation(id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
+				let updateVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.updateVehicleLocation(id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
 
 				add(newEvent: updateVehicleEvent)
 			}
 
 			// Schedule events to act on vehicles ending their trips
 			for missingFDCvehicleID in missingVehicleIDs {
-				let endTripEvent = SimulationEvent(time: timestep.time, type: .Mobility, action: {city.endTripHook(vehicleID: missingFDCvehicleID)}, description: "endTripHook vehicle \(missingFDCvehicleID)")
+				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.endTripHook(vehicleID: missingFDCvehicleID)}, description: "endTripHook vehicle \(missingFDCvehicleID)")
 
 				add(newEvent: endTripEvent)
 			}

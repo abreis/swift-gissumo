@@ -6,10 +6,10 @@ import Foundation
 
 class Network {
 	// A standard message delay for all transmissions, 10ms
-	let messageDelay: Double = 0.010
+	let messageDelay = SimulationTime(milliseconds: 10)
 
 	// Delay between beacon broadcasts (1 sec)
-	let beaconingInterval: Double = 1.0
+	let beaconingInterval = SimulationTime(seconds: 1)
 
 	// Maximum radio range (for GIS queries)
 	// Match with the chosen propagation algorithm
@@ -85,7 +85,7 @@ struct Packet {
 	var src: UInt
 	var dst: Destination
 
-	var created: Double
+	var created: SimulationTime
 
 	var payload: Payload
 	var payloadType: PayloadType
@@ -308,7 +308,7 @@ extension RoadsideUnit: PacketReceiver {
 		assert(packet.src != id)
 
 		if debug.contains("RoadsideUnit.receive()"){
-			print("\(city.events.now.milli) RoadsideUnit.receive():\t".cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
+			print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
 
 		// Process destination field
 		switch packet.dst {
@@ -365,6 +365,6 @@ extension RoadsideUnit {
 
 		// Debug
 		if debug.contains("RoadsideUnit.trackSignalStrength()"){
-			print("\(city.events.now.milli) RoadsideUnit.trackSignalStrength():\t".cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
+			print("\(city.events.now.asSeconds) RoadsideUnit.trackSignalStrength():\t".cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
 	}
 }

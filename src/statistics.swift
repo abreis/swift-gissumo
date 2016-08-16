@@ -7,8 +7,8 @@ import Foundation
 class Statistics {
 	// Configuration entries
 	var folder: String = "stats/"
-	var interval: Double = 1.0
-	var startTime: Double = 1.0
+	var interval = SimulationTime(seconds: 1)
+	var startTime = SimulationTime(seconds: 1)
 
 	// A dictionary containing (statisticName,statisticData) pairs
 	var hooks = [String:String]()
@@ -31,11 +31,11 @@ class Statistics {
 		}
 
 		if let configInterval = config["collectionInterval"] as? Double {
-			interval = configInterval
+			interval = SimulationTime(seconds: configInterval)
 		}
 
 		if let configStartTime = config["collectionStartTime"] as? Double {
-			startTime = configStartTime
+			startTime = SimulationTime(seconds: configStartTime)
 		}
 
 		// Load hook list and ready statistics collection point
@@ -119,15 +119,15 @@ class Statistics {
 		} while scheduledCollectionTime < city.events.stopTime
 
 		// Schedule an init-stage event to set up the statistics module
-		let statisticsSetupEvent = SimulationEvent(time: 0, type: .Statistics, action: {city.stats.initialSetup(onCity: city)}, description: "initialStatsSetup")
+		let statisticsSetupEvent = SimulationEvent(time: SimulationTime(), type: .Statistics, action: {city.stats.initialSetup(onCity: city)}, description: "initialStatsSetup")
 		city.events.add(initialEvent: statisticsSetupEvent)
 
 		// Schedule a cleanup-stage event to collect final statistics
-		let finalCollectionEvent = SimulationEvent(time: 0, type: .Statistics, action: {city.stats.finalCollection(onCity: city)}, description: "finalCollectStats")
+		let finalCollectionEvent = SimulationEvent(time: SimulationTime(), type: .Statistics, action: {city.stats.finalCollection(onCity: city)}, description: "finalCollectStats")
 		city.events.add(cleanupEvent: finalCollectionEvent)
 
 		// Schedule a cleanup-stage event to write all statistical data to files
-		let statWriteEvent = SimulationEvent(time: 0, type: .Statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
+		let statWriteEvent = SimulationEvent(time: SimulationTime(), type: .Statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
 		city.events.add(cleanupEvent: statWriteEvent)
 	}
 
@@ -137,12 +137,12 @@ class Statistics {
 	func collectStatistics(fromCity city: City) {
 		// activeVehicleCount
 		if hooks["activeVehicleCount"] != nil {
-			writeToHook("activeVehicleCount", data: "\(city.events.now.milli)\(separator)\(city.vehicles.count)\n")
+			writeToHook("activeVehicleCount", data: "\(city.events.now.asSeconds)\(separator)\(city.vehicles.count)\n")
 		}
 
 		// activeRoadsideUnitCount
 		if hooks["activeRoadsideUnitCount"] != nil {
-			writeToHook("activeRoadsideUnitCount", data: "\(city.events.now.milli)\(separator)\(city.roadsideUnits.count)\n")
+			writeToHook("activeRoadsideUnitCount", data: "\(city.events.now.asSeconds)\(separator)\(city.roadsideUnits.count)\n")
 		}
 
 		// beaconCounts
@@ -153,7 +153,7 @@ class Statistics {
 						print("Error: Metrics unavailable for beaconCounts hook.")
 						exit(EXIT_FAILURE)
 			}
-			writeToHook("beaconCounts", data: "\(city.events.now.milli)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\n")
+			writeToHook("beaconCounts", data: "\(city.events.now.asSeconds)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\n")
 		}
 	}
 
@@ -170,7 +170,7 @@ class Statistics {
 	func finalCollection(onCity city: City) {
 		if hooks["finalRoadsideUnitCoverageMaps"] != nil {
 			for rsu in city.roadsideUnits {
-				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!.milli)\n")
+				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!.asSeconds)\n")
 				writeToHook("finalRoadsideUnitCoverageMaps", data: rsu.selfCoverageMap.description)
 			}
 		}
