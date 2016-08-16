@@ -212,7 +212,8 @@ class Statistics {
 						}
 					}
 				}
-				// Print the desired metrics
+
+				// Record the desired metrics
 				statData += "\(sigMeasure.count)\(separator)"
 				statData += "\(sigMeasure.mean)\(separator)"
 				statData += "\(sigMeasure.variance)\(separator)"
@@ -223,6 +224,45 @@ class Statistics {
 			}
 			// Write data
 			writeToHook("finalCityCoverageStats", data: statData)
+		}
+
+		if hooks["finalCitySaturationStats"] != nil {
+			// Create a measurement
+			var satMeasure = Measurement()
+			// Make City compute its coverage map
+			let rsuSaturationMap = city.globalMapOfSaturation
+			// Data to write to the hook
+			var statData = String()
+			
+			// Get the obstruction mask map
+			if let maskMap = obstructionMask {
+				guard	rsuSaturationMap.size == maskMap.size &&
+						rsuSaturationMap.topLeftCellCoordinate == maskMap.topLeftCellCoordinate
+						else {
+							print("Error: City map and obstruction map coordinates do not match.")
+							exit(EXIT_FAILURE)
+				}
+				
+				// Push every measurement if the matching obstruction map cell is marked [O]pen
+				for i in 0..<rsuSaturationMap.size.y {
+					for j in 0..<rsuSaturationMap.size.x {
+						if maskMap.cells[i][j] == Character("O") {
+							satMeasure.add(Double(rsuSaturationMap.cells[i][j]))
+						}
+					}
+				}
+
+				// Record the desired metrics
+				statData += "\(satMeasure.count)\(separator)"
+				statData += "\(satMeasure.mean)\(separator)"
+				statData += "\(satMeasure.variance)\(separator)"
+				statData += "\(satMeasure.stdev)"
+			} else {
+				// Print an error message if a mask was not provided
+				statData = "Please generate and provide an obstruction mask first."
+			}
+			// Write data
+			writeToHook("finalCitySaturationStats", data: statData)
 		}
 	}
 
