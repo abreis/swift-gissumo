@@ -23,6 +23,7 @@ func inverseNormalCDF(value: Double) -> Double {
 // A measurement object: load data into 'samples' and all metrics are obtained as computed properties
 struct Measurement {
 	var samples = [Double]()
+	mutating func add(point: Double) { samples.append(point) }
 
 	var count: Double { return Double(samples.count) }
 	var sum: Double { return samples.reduce(0, combine:+) }

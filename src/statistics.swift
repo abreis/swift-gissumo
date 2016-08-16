@@ -162,7 +162,6 @@ class Statistics {
 	func initialSetup(onCity city: City) {
 		// Crop our obstruction mask to the same size of the city's measured size
 		// This must be done after the City and Statistics classes are initialized
-
 		obstructionMask?.crop(newTopLeftCell: city.topLeftCell, newSize: city.cellSize)
 	}
 
@@ -189,8 +188,40 @@ class Statistics {
 		}
 
 		if hooks["finalCityCoverageStats"] != nil {
+			// Create a measurement
+			var sigMeasure = Measurement()
+			// Make City compute its coverage map
+			let signalCoverageMap = city.globalMapOfCoverage
+			// Data to write to the hook
 			var statData = String()
-			// TODO
+
+			// Get the obstruction mask map
+			if let maskMap = obstructionMask {
+				guard	signalCoverageMap.size == maskMap.size &&
+						signalCoverageMap.topLeftCellCoordinate == maskMap.topLeftCellCoordinate
+					else {
+						print("Error: City map and obstruction map coordinates do not match.")
+						exit(EXIT_FAILURE)
+				}
+
+				// Push every measurement if the matching obstruction map cell is marked [O]pen
+				for i in 0..<signalCoverageMap.size.y {
+					for j in 0..<signalCoverageMap.size.x {
+						if maskMap.cells[i][j] == Character("O") {
+							sigMeasure.add(Double(signalCoverageMap.cells[i][j]))
+						}
+					}
+				}
+				// Print the desired metrics
+				statData += "\(sigMeasure.count)\(separator)"
+				statData += "\(sigMeasure.mean)\(separator)"
+				statData += "\(sigMeasure.variance)\(separator)"
+				statData += "\(sigMeasure.stdev)"
+			} else {
+				// Print an error message if a mask was not provided
+				statData = "Please generate and provide an obstruction mask first."
+			}
+			// Write data
 			writeToHook("finalCityCoverageStats", data: statData)
 		}
 	}
@@ -210,6 +241,10 @@ class Statistics {
 
 		if hooks["beaconCounts"] != nil {
 			writeToHook("beaconCounts", data: "time\(separator)sent\(separator)recv\n")
+		}
+
+		if hooks["finalCityCoverageStats"] != nil {
+			writeToHook("finalCityCoverageStats", data: "count\(separator)mean\(separator)var\(separator)stdev\n")
 		}
 	}
 
