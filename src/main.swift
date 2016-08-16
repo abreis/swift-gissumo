@@ -10,7 +10,6 @@ import Foundation
 /**********************/
 
 
-
 /* Process command line options
  */
 guard Process.arguments.count == 2 && Process.arguments[1].hasSuffix(".plist") else {
@@ -22,24 +21,24 @@ guard Process.arguments.count == 2 && Process.arguments[1].hasSuffix(".plist") e
 
 /* Load and validate configuration file
  */
-print("Reading configuration file...", terminator: "")
+print("Reading configuration file... ", terminator: ""); fflush(stdout)
 
 let configFileURL = NSURL.fileURLWithPath(Process.arguments[1])
 var configFileError : NSError?
 guard configFileURL.checkResourceIsReachableAndReturnError(&configFileError) else {
-	print(" failed\n", configFileError)
+	print("failed\n", configFileError)
 	exit(EXIT_FAILURE)
 }
 
 // Load plist into a configuration dictionary array
 guard let config = NSDictionary(contentsOfURL: configFileURL) else {
-	print(" failed", "\nError: Invalid configuration file format.")
+	print("failed", "\nError: Invalid configuration file format.")
 	exit(EXIT_FAILURE)
 }
 
 // Load stop time
 guard let configStopTime = config["stopTime"] as? Double else {
-	print("Error: Please provide a valid simulation stop time in the configuration.")
+	print("failed", "\nError: Please provide a valid simulation stop time in the configuration.")
 	exit(EXIT_FAILURE)
 }
 
@@ -66,20 +65,20 @@ if	let innerBoundsConfig = config["innerBounds"] as? NSDictionary,
 }
 
 guard let statisticsConfig = config["stats"] as? NSDictionary else {
-	print("Error: Please provide a statistics entry in the configuration.")
+	print("failed", "\nError: Please provide a statistics entry in the configuration.")
 	exit(EXIT_FAILURE)
 }
 
-print(" okay")
+print("okay")
 
 
 
 /* Load floating car data from an XML file
  */
-print("Loading floating car data...", terminator: "")
+print("Loading floating car data... ", terminator: ""); fflush(stdout)
 
 guard let fcdFile = config["floatingCarDataFile"] as? String else {
-	print(" failed", "\nError: Please specify a valid SUMO FCD file with 'floatingCarDataFile'.")
+	print("failed", "\nError: Please specify a valid SUMO FCD file with 'floatingCarDataFile'.")
 	exit(EXIT_FAILURE)
 }
 
@@ -87,11 +86,11 @@ var fcdTrips: [FCDTimestep]
 do {
 	try fcdTrips = loadFloatingCarData(fromFile: fcdFile, stopTime: configStopTime)
 } catch let error as FloatingCarDataError {
-	print(" failed", "\nError:", error.description)
+	print("failed", "\nError:", error.description)
 	exit(EXIT_FAILURE)
 }
 
-print(" okay")
+print("okay")
 print("\tLoaded", fcdTrips.count, "timesteps from data file")
 
 
@@ -101,21 +100,21 @@ if	let toolsConfig = config["tools"] as? NSDictionary,
 	let buildMask = toolsConfig["buildObstructionMask"] as? Bool
 	where buildMask == true
 {
-	print("Building obstruction mask...", terminator: "")
+	print("Building obstruction mask... ", terminator: ""); fflush(stdout)
 	do {
 		try buildObstructionMask(fromTrips: fcdTrips)
 	} catch {
-		print(" failed", "\nError:", error)
+		print("failed", "\nError:", error)
 		exit(EXIT_FAILURE)
 	}
-	print(" okay")
+	print("okay")
 	print("\tBuilt a map of obstructions from \(fcdTrips.count) steps.")
 	exit(EXIT_SUCCESS)
 }
 
 /* Initialize PostgreSQL connection
  */
-print("Initializing GIS connection...", terminator: "")
+print("Initializing GIS connection... ", terminator: ""); fflush(stdout)
 
 guard	let gisConfig = config["gis"],
 		let gisHost = gisConfig["host"] as? String,
@@ -124,14 +123,14 @@ guard	let gisConfig = config["gis"],
 		let gisUser = gisConfig["user"] as? String,
 		let gisPass = gisConfig["password"] as? String
 		else {
-			print(" failed", "\nError: Invalid database configuration.")
+			print("failed", "\nError: Invalid database configuration.")
 			exit(EXIT_FAILURE)
 }
 
 let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
 let gisdb = GIS(parameters: databaseParams)
 let buildingCount = gisdb.countFeatures(withType: .Building)
-print(" okay")
+print("okay")
 print("\tSaw", buildingCount, "buildings in the database")
 
 
@@ -153,37 +152,37 @@ simCity.determineBounds(fromFCD: fcdTrips)
 simCity.innerBounds = cityInnerBounds
 
 // Clear all points from the database
-print("Clearing old features from GIS...", terminator: "")
+print("Clearing old features from GIS... ", terminator: ""); fflush(stdout)
 simCity.gis.clearFeatures(withType: .Vehicle)
 simCity.gis.clearFeatures(withType: .RoadsideUnit)
 simCity.gis.clearFeatures(withType: .ParkedCar)
-print(" okay")
+print("okay")
 
 // Add statistics collection events to the eventlist
-print("Scheduling collection events...", terminator: "")
+print("Scheduling collection events... ", terminator: ""); fflush(stdout)
 simCity.stats.scheduleCollectionEvents(onCity: simCity)
-print(" okay")
+print("okay")
 
 // Add mobility timestep events to the eventlist
-print("Scheduling mobility events...", terminator: "")
+print("Scheduling mobility events... ", terminator: ""); fflush(stdout)
 simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
-print(" okay")
+print("okay")
 
 
 /*** EVENT LOOP ***/
 
 // Initial stage events
-print("Running initial events...", terminator: "")
+print("Running initial events... ", terminator: ""); fflush(stdout)
 for event in simCity.events.initial {
 	event.action()
 	if debug.contains("main().events"){
 		print("[initial] main():\t".cyan(), "Executing", event.type, "event\t", event.description.darkGray())
 	}
 }
-print(" okay")
+print("okay")
 
 // Main simulation events
-print("Running simulation events...", terminator: "")
+print("Running simulation events... ", terminator: ""); fflush(stdout)
 repeat {
 	guard let nextEvent = simCity.events.list.first else {
 		print("Exhausted event list at time", simCity.events.now.milli)
@@ -201,18 +200,18 @@ repeat {
 	simCity.events.list.removeFirst()
 
 } while simCity.events.now < simCity.events.stopTime
-print(" okay")
+print("okay")
 
 
 // Cleanup stage events
-print("Running cleanup events...", terminator: "")
+print("Running cleanup events... ", terminator: ""); fflush(stdout)
 for event in simCity.events.cleanup {
 	event.action()
 	if debug.contains("main().events"){
 		print("[cleanup] main():\t".cyan(), "Executing", event.type, "event\t", event.description.darkGray())
 	}
 }
-print(" okay")
+print("okay")
 
 
 // Successful exit
