@@ -98,7 +98,7 @@ class EventList {
 
 		// Debug
 		if debug.contains("EventList.add()") {
-			print(String(format: "%.6f EventList.add():\t", now.milli).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+			print("\(now.milli) EventList.add():\t".cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
 		}
 	}
 
@@ -138,7 +138,7 @@ class EventList {
 
 		// Debug
 		if debug.contains("EventList.add()") {
-			print(String(format: "%.6f EventList.add():\t", now.milli).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+			print("\(now.milli) EventList.add():\t".cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
 		}
 	}
 
@@ -172,7 +172,7 @@ class EventList {
 
 			// Debug
 			if debug.contains("EventList.scheduleMobilityEvents()"){
-				print(String(format: "%.6f EventList.scheduleMobilityEvents():\t", now.milli).cyan(), "Timestep", timestep.time, "sees:" )
+				print("\(now.milli) EventList.scheduleMobilityEvents():\t".cyan(), "Timestep", timestep.time, "sees:" )
 				print("\t\tFCD vehicles:", fcdVehicleIDs)
 				print("\t\tCity vehicles:", cityVehicleIDs)
 				print("\t\tNew vehicles:", newVehicleIDs)

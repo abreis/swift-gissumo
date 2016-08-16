@@ -194,7 +194,7 @@ repeat {
 	simCity.events.now = nextEvent.time
 
 	if debug.contains("main().events"){
-		print(String(format: "%.6f main():\t", simCity.events.now.milli).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
+		print("\(simCity.events.now.milli) main():\t".cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
 	}
 	nextEvent.action()
 	simCity.events.list.removeFirst()
