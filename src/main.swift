@@ -170,8 +170,19 @@ simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
 print(" okay")
 
 
-
 /*** EVENT LOOP ***/
+
+// Initial stage events
+print("Running initial events...", terminator: "")
+for event in simCity.events.initial {
+	event.action()
+	if debug.contains("main().events"){
+		print("[initial] main():\t".cyan(), "Executing", event.type, "event\t", event.description.darkGray())
+	}
+}
+print(" okay")
+
+// Main simulation events
 print("Running simulation events...", terminator: "")
 repeat {
 	guard let nextEvent = simCity.events.list.first else {

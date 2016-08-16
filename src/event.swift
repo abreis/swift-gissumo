@@ -34,6 +34,9 @@ class EventList {
 	// Array of simulation events
 	var list = [SimulationEvent]()
 
+	// Events to be executed pre-simulation
+	var initial = [SimulationEvent]()
+
 	// Events to be executed post-simulation
 	var cleanup = [SimulationEvent]()
 
@@ -139,6 +142,10 @@ class EventList {
 		}
 	}
 
+	// Add events to the pre-simulation (initial) stage
+	func add(initialEvent event: SimulationEvent) {
+		initial.append(event)
+	}
 
 	// Add events to the post-simulation (cleanup) stage
 	func add(cleanupEvent event: SimulationEvent) {
