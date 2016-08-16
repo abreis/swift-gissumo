@@ -19,6 +19,8 @@ class Statistics {
 	// Data separator (e.g. ',' or ';' for CSV (comma not recommended in Europe, prefer semicolon), '\t' for TSV
 	let separator = "\t"
 
+	// A map showing open and blocked cells
+	// Can be generated with config->tools->buildObstructionMask=true
 	var obstructionMask: CellMap<Character>?
 
 	init(config: NSDictionary) {
@@ -116,6 +118,10 @@ class Statistics {
 			scheduledCollectionTime += interval
 		} while scheduledCollectionTime < city.events.stopTime
 
+		// Schedule an init-stage event to set up the statistics module
+		let statisticsSetupEvent = SimulationEvent(time: 0, type: .Statistics, action: {city.stats.initialSetup(onCity: city)}, description: "initialStatsSetup")
+		city.events.add(initialEvent: statisticsSetupEvent)
+
 		// Schedule a cleanup-stage event to collect final statistics
 		let finalCollectionEvent = SimulationEvent(time: 0, type: .Statistics, action: {city.stats.finalCollection(onCity: city)}, description: "finalCollectStats")
 		city.events.add(cleanupEvent: finalCollectionEvent)
@@ -152,6 +158,14 @@ class Statistics {
 	}
 
 
+	/// Initial statistics module setup
+	func initialSetup(onCity city: City) {
+		// Crop our obstruction mask to the same size of the city's measured size
+		// This must be done after the City and Statistics classes are initialized
+
+		obstructionMask?.crop(newTopLeftCell: city.topLeftCell, newSize: city.cellSize)
+	}
+
 
 	/// Final statistics collection routine
 	func finalCollection(onCity city: City) {
@@ -172,6 +186,12 @@ class Statistics {
 
 		if hooks["finalCityEntitiesMap"] != nil {
 			writeToHook("finalCityEntitiesMap", data: city.globalMapOfEntities.description)
+		}
+
+		if hooks["finalCityCoverageStats"] != nil {
+			var statData = String()
+			// TODO
+			writeToHook("finalCityCoverageStats", data: statData)
 		}
 	}
 
