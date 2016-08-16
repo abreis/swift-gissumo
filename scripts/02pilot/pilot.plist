@@ -5,7 +5,7 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
-	<integer>600</integer>
+	<integer>30</integer>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
@@ -31,6 +31,8 @@
 		<real>1</real>
 		<key>collectionStartTime</key>
 		<integer>5</integer>
+		<key>obstructionMaskFile</key>
+		<string>obstructionMask600.payload</string>
 		<key>hooks</key>
 		<dict>
 			<key>activeVehicleCount</key>
@@ -49,6 +51,10 @@
 			<true/>
 			<key>finalCityEntitiesMap</key>
 			<true/>
+			<key>finalCityCoverageStats</key>
+			<false/>
+			<key>finalCitySaturationStats</key>
+			<false/>
 		</dict>
 	</dict>
 	<key>gis</key>

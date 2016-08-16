@@ -33,6 +33,7 @@ struct Measurement {
 	var stdev: Double { return sqrt(variance) }
 
 	// Specify the desired confidence level (1-significance) before requesting the intervals
-	//	var confidence: Double = 0.90
-	//	var confidenceInterval: Double { return 0.0 }
+//	func confidenceIntervals(confidence: Double) -> Double {}
+	//var confidence: Double = 0.90
+	//var confidenceInterval: Double { return 0.0 }
 }

@@ -30,15 +30,25 @@ This is a list of availabe statistics hooks and what enabling each does.
 
 * finalCityCoverageMap (end)
 
-  Prints a map of signal coverage on the city.
+  Prints a map of signal coverage in the city.
 
 
 * finalCitySaturationMap (end)
 
-  Prints a map of RSU saturation on the city.
+  Prints a map of RSU saturation in the city.
 
 
 * finalCityEntitiesMap (end)
 
-  Prints a map with the entities on the city.
+  Prints a map with the entities in the city.
+
+
+* finalCityCoverageStats (end)
+
+  Prints statistics of cell signal coverage in the city.
+
+
+* finalCitySaturationStats (end)
+
+  Prints statistics of cell saturation in the city.
 
