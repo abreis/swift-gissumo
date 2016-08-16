@@ -26,7 +26,7 @@ extension Int: InitializableWithString {  init?(string: String) { self.init(stri
 extension Double: InitializableWithString {  init?(string: String) { self.init(string) } }
 extension Character: InitializableWithString {  init?(string: String) { self.init(string) } }
 
-struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: CustomStringConvertible, PayloadConvertible {
+struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: CustomStringConvertible {
 	var cells: [[T]]
 	var size: (x: Int, y: Int)
 
@@ -114,63 +114,6 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 		set {
 			cells[topLeftCellCoordinate.y - cellIndex.y][cellIndex.x - topLeftCellCoordinate.x] = newValue
 		}
-	}
-
-	/*** PAYLOAD CONVERSION ***/
-
-	// Write the map to a payload
-	func toPayload() -> Payload {
-		var description = String()
-
-		// Print top-left coordinate on the first line
-		// 'tlc': top-left-cell
-		description += "tlc" + String(topLeftCellCoordinate.x) + ";" + String(topLeftCellCoordinate.y) + "\n"
-
-		for (cellIndex, row) in cells.enumerate() {
-			for (rowIndex, element) in row.enumerate() {
-				let stringElement = String(element)
-				description += stringElement
-				if rowIndex != row.count-1 { description += ";" }
-			}
-			if cellIndex != cells.count-1 { description += "\n" }
-		}
-		return Payload(content: description)
-	}
-
-	// Initialize the map from a payload
-	init?(fromPayload payload: Payload) {
-		// Break payload into lines
-		var lines: [String] = []
-		payload.content.enumerateLines{ lines.append($0.line) }
-
-		// Extract the coordinates of the top-left cell from the payload header
-		guard let firstLine = lines.first where firstLine.hasPrefix("tlc") else { return nil }
-		let headerCellCoordinates = firstLine.stringByReplacingOccurrencesOfString("tlc", withString: "").componentsSeparatedByString(";")
-		guard	let xTopLeft = Int(headerCellCoordinates[0]),
-			let yTopLeft = Int(headerCellCoordinates[1])
-			else { return nil }
-		topLeftCellCoordinate = (x: xTopLeft, y: yTopLeft)
-
-		// Remove the header and load the map
-		lines.removeFirst()
-
-		// Get the y-size from the number of lines read
-		size.y = lines.count
-
-		// Load cell contents
-		cells = Array(count: size.y, repeatedValue: [])
-		var nrow = 0
-		for row in lines {
-			let rowItems = row.componentsSeparatedByString(";")
-			for rowItem in rowItems {
-				guard let item = T(string: rowItem) else {return nil}
-				cells[nrow].append(item)
-			}
-			nrow += 1
-		}
-
-		// Get the x-size from the number of elements read
-		size.x = cells.first!.count
 	}
 
 	// Crop the map to a smaller dimension
