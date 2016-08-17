@@ -116,8 +116,12 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 		}
 	}
 
-	// Crop the map to a smaller dimension
-	mutating func crop(newTopLeftCell newTopLeft: (x: Int, y: Int), newSize: (x: Int, y: Int)) {
+	// Crop the map to a smaller dimension, in place
+	mutating func cropInPlace(newTopLeftCell newTopLeft: (x: Int, y: Int), newSize: (x: Int, y: Int)) {
+		// 0. If we're asked to crop to the same size we already are, do nothing
+		guard newSize != size && newTopLeft != topLeftCellCoordinate else { return }
+
+		// 1. Ensure the requested crop area is valid
 		guard	newTopLeft.x >= topLeftCellCoordinate.x &&
 				newTopLeft.y <= topLeftCellCoordinate.y &&
 				newTopLeft.x + newSize.x <= topLeftCellCoordinate.x + size.x &&
@@ -128,13 +132,13 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 				exit(EXIT_FAILURE)
 		}
 
-		// Create a new map
+		// 2. Create a new map
 		var newCells = [[T]]()
 		var copyRange: (x: (start: Int, end: Int), y: (start: Int, end: Int))
 		copyRange = (x: (start: newTopLeft.x - topLeftCellCoordinate.x,	end: newTopLeft.x - topLeftCellCoordinate.x + newSize.x-1),
 		             y: (start: topLeftCellCoordinate.y - newTopLeft.y, end: topLeftCellCoordinate.y - newTopLeft.y + newSize.y-1))
 
-		// Copy the selected cell range to the new map
+		// 3. Copy the selected cell range to the new map
 		for yy in copyRange.y.start ... copyRange.y.end {
 			newCells.append([])
 			for xx in copyRange.x.start ... copyRange.x.end {
@@ -142,10 +146,25 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 			}
 		}
 
-		// Mutate our cellmap
+		// 4. Mutate our cellmap in place
 		topLeftCellCoordinate = newTopLeft
 		size = newSize
 		cells = newCells
+	}
+
+	// Return a new cropped map
+	func crop(newTopLeftCell newTopLeft: (x: Int, y: Int), newSize: (x: Int, y: Int)) -> CellMap<T> {
+		// 0. If we're asked to crop to the same size we already are, return a clean copy of ourselves
+		guard newSize != size && newTopLeft != topLeftCellCoordinate else {
+			let newCroppedMap: CellMap<T> = self
+			return newCroppedMap
+		}
+		// 1. Clone our map
+		var newCroppedMap: CellMap<T> = self
+		// 2. Crop the clone in place
+		newCroppedMap.cropInPlace(newTopLeftCell: newTopLeft, newSize: newSize)
+		// 3. Return the clone
+		return newCroppedMap
 	}
 }
 
