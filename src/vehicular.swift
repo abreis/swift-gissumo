@@ -95,7 +95,12 @@ class City {
 	}
 
 	// Inner bounds for data analysis (supplied in configuration file)
-	var innerBounds: Square?
+	var innerBounds: Square? {
+		didSet {
+			if debug.contains("City.determineBounds()"){
+				print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City inner bounds", innerBounds!, "cell size", innerCellSize!, "top left cell", innerTopLeftCell!) }
+		}
+	}
 	var innerTopLeftCell: (x: Int, y: Int)? {
 		if let iBounds = innerBounds {
 			return (x: Int(floor(iBounds.x.min*3600)), y: Int(floor(iBounds.y.max*3600)) )
@@ -134,11 +139,7 @@ class City {
 		}
 
 		if debug.contains("City.determineBounds()"){
-			print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
-
-
-		if debug.contains("City.determineBounds()"){
-			print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City cell size is", cellSize.x, "x", cellSize.y) }
+			print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell) }
 	}
 
 

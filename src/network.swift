@@ -36,7 +36,7 @@ protocol AreaType {
 	func isPointInside(point: (x: Double, y: Double)) -> Bool
 }
 
-struct Square: AreaType {
+struct Square: AreaType, CustomStringConvertible {
 	var x: (min: Double, max: Double)
 	var y: (min: Double, max: Double)
 
@@ -60,6 +60,8 @@ struct Square: AreaType {
 			return true
 		} else { return false }
 	}
+
+	var description: String { return "(\(x.min),\(y.min))(\(x.max),\(y.max))" }
 }
 
 
