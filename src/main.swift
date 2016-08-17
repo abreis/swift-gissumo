@@ -181,8 +181,16 @@ for event in simCity.events.initial {
 }
 print("okay")
 
+
 // Main simulation events
 print("Running simulation events... ", terminator: ""); fflush(stdout)
+
+// Implement a simple progress bar
+let maxRunTime = simCity.events.list.last!.time.nanoseconds
+let progressIncrement: Int = 10
+var nextTargetPercent: Int = 0 + progressIncrement
+var nextTarget: Int { return nextTargetPercent*maxRunTime/100 }
+
 repeat {
 	guard let nextEvent = simCity.events.list.first else {
 		print("Exhausted event list at time", simCity.events.now.asSeconds)
@@ -192,6 +200,12 @@ repeat {
 	// Update current time
 	assert(nextEvent.time > simCity.events.now)
 	simCity.events.now = nextEvent.time
+
+	// Print progress bar
+	if simCity.events.now.nanoseconds > nextTarget {
+		print(nextTargetPercent, terminator: "% "); fflush(stdout)
+		nextTargetPercent += progressIncrement
+	}
 
 	if debug.contains("main().events"){
 		print("\(simCity.events.now.asSeconds) main():\t".cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
