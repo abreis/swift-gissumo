@@ -86,16 +86,27 @@ class City {
 
 	// City bounds
 	var bounds = Square(x: (min: 0, max: 0), y: (min: 0, max: 0))
-
 	var topLeftCell: (x: Int, y: Int) {
 		return (x: Int(floor(bounds.x.min*3600)), y: Int(floor(bounds.y.max*3600)) )
+	}
+	var cellSize: (x: Int, y: Int) {
+		return (x: Int( ceil(bounds.x.max*3600) - floor(bounds.x.min*3600) ),
+		        y: Int( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) ))
 	}
 
 	// Inner bounds for data analysis (supplied in configuration file)
 	var innerBounds: Square?
-
-	// City size in cells
-	var cellSize: (x: Int, y: Int) = (0,0)
+	var innerTopLeftCell: (x: Int, y: Int)? {
+		if let iBounds = innerBounds {
+			return (x: Int(floor(iBounds.x.min*3600)), y: Int(floor(iBounds.y.max*3600)) )
+		} else { return nil }
+	}
+	var innerCellSize: (x: Int, y: Int)? {
+		if let iBounds = innerBounds {
+			return (x: Int( ceil(iBounds.x.max*3600) - floor(iBounds.x.min*3600) ),
+			        y: Int( ceil(iBounds.y.max*3600) - floor(iBounds.y.min*3600) ))
+		} else { return nil }
+	}
 
 	/// Standard init, provide a database, network and eventlist
 	init(gis ingis: GIS, network innet: Network, eventList inevents: EventList, statistics instats: Statistics) {
@@ -125,9 +136,6 @@ class City {
 		if debug.contains("City.determineBounds()"){
 			print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City bounds are (", bounds.x.min, bounds.y.min, ") (", bounds.x.max, bounds.y.max, ")") }
 
-		// Now determine the size of the map in cells
-		cellSize.x = Int( ceil(bounds.x.max*3600) - floor(bounds.x.min*3600) )
-		cellSize.y = Int( ceil(bounds.y.max*3600) - floor(bounds.y.min*3600) )
 
 		if debug.contains("City.determineBounds()"){
 			print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City cell size is", cellSize.x, "x", cellSize.y) }
