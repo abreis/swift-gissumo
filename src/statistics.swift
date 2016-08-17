@@ -160,9 +160,14 @@ class Statistics {
 
 	/// Initial statistics module setup
 	func initialSetup(onCity city: City) {
-		// Crop our obstruction mask to the same size of the city's measured size
-		// This must be done after the City and Statistics classes are initialized
-		obstructionMask?.crop(newTopLeftCell: city.topLeftCell, newSize: city.cellSize)
+		// If inner collection bounds were specified, crop the obstruction mask to them
+		if let innerCellSize = city.innerCellSize, let innerTopLeftCell = city.innerTopLeftCell {
+			obstructionMask?.cropInPlace(newTopLeftCell: innerTopLeftCell, newSize: innerCellSize)
+		}
+		else {
+			// If not, crop the mask to the city size
+			obstructionMask?.cropInPlace(newTopLeftCell: city.topLeftCell, newSize: city.cellSize)
+		}
 	}
 
 
@@ -176,35 +181,38 @@ class Statistics {
 		}
 
 		if hooks["finalCityCoverageMap"] != nil {
-			writeToHook("finalCityCoverageMap", data: city.globalMapOfCoverage.description)
+			if let maskMap = obstructionMask {
+				let croppedMap = city.globalMapOfCoverage.crop(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
+				writeToHook("finalCityCoverageMap", data: croppedMap.description) }
+			else { writeToHook("finalCityCoverageMap", data: city.globalMapOfCoverage.description) }
 		}
 
 		if hooks["finalCitySaturationMap"] != nil {
-			writeToHook("finalCitySaturationMap", data: city.globalMapOfSaturation.description)
+			if let maskMap = obstructionMask {
+				let croppedMap = city.globalMapOfSaturation.crop(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
+				writeToHook("finalCitySaturationMap", data: croppedMap.description) }
+			else { writeToHook("finalCitySaturationMap", data: city.globalMapOfSaturation.description) }
 		}
 
 		if hooks["finalCityEntitiesMap"] != nil {
-			writeToHook("finalCityEntitiesMap", data: city.globalMapOfEntities.description)
+			if let maskMap = obstructionMask {
+				let croppedMap = city.globalMapOfEntities.crop(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
+				writeToHook("finalCityEntitiesMap", data: croppedMap.description) }
+			else { writeToHook("finalCityEntitiesMap", data: city.globalMapOfEntities.description) }
 		}
 
 		if hooks["finalCityCoverageStats"] != nil {
-			// Create a measurement
-			var sigMeasure = Measurement()
-			// Make City compute its coverage map
-			let signalCoverageMap = city.globalMapOfCoverage
 			// Data to write to the hook
 			var statData = String()
 
-			// Get the obstruction mask map
+			// 1. Get the obstruction mask map
 			if let maskMap = obstructionMask {
-				guard	signalCoverageMap.size == maskMap.size &&
-						signalCoverageMap.topLeftCellCoordinate == maskMap.topLeftCellCoordinate
-					else {
-						print("Error: City map and obstruction map coordinates do not match.")
-						exit(EXIT_FAILURE)
-				}
+				// Create a measurement
+				var sigMeasure = Measurement()
+				// Get the city coverage map and crop it to the obstruction mask
+				var signalCoverageMap = city.globalMapOfCoverage.crop(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
 
-				// Push every measurement if the matching obstruction map cell is marked [O]pen
+				// 1.1. Push every measurement if the matching obstruction map cell is marked [O]pen
 				for i in 0..<signalCoverageMap.size.y {
 					for j in 0..<signalCoverageMap.size.x {
 						if maskMap.cells[i][j] == Character("O") {
@@ -213,7 +221,7 @@ class Statistics {
 					}
 				}
 
-				// Record the desired metrics
+				// 1.2. Record the desired metrics
 				statData += "\(sigMeasure.count)\(separator)"
 				statData += "\(sigMeasure.mean)\(separator)"
 				statData += "\(sigMeasure.variance)\(separator)"
@@ -222,28 +230,23 @@ class Statistics {
 				// Print an error message if a mask was not provided
 				statData = "Please generate and provide an obstruction mask first."
 			}
-			// Write data
+
+			// 2. Write data
 			writeToHook("finalCityCoverageStats", data: statData)
 		}
 
 		if hooks["finalCitySaturationStats"] != nil {
-			// Create a measurement
-			var satMeasure = Measurement()
-			// Make City compute its coverage map
-			let rsuSaturationMap = city.globalMapOfSaturation
 			// Data to write to the hook
 			var statData = String()
 			
-			// Get the obstruction mask map
+			// 1. Get the obstruction mask map
 			if let maskMap = obstructionMask {
-				guard	rsuSaturationMap.size == maskMap.size &&
-						rsuSaturationMap.topLeftCellCoordinate == maskMap.topLeftCellCoordinate
-						else {
-							print("Error: City map and obstruction map coordinates do not match.")
-							exit(EXIT_FAILURE)
-				}
-				
-				// Push every measurement if the matching obstruction map cell is marked [O]pen
+				// Create a measurement
+				var satMeasure = Measurement()
+				// Get the city coverage map and crop it to the obstruction mask
+				var rsuSaturationMap = city.globalMapOfSaturation.crop(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
+
+				// 1.1. Push every measurement if the matching obstruction map cell is marked [O]pen
 				for i in 0..<rsuSaturationMap.size.y {
 					for j in 0..<rsuSaturationMap.size.x {
 						if maskMap.cells[i][j] == Character("O") {
@@ -252,7 +255,7 @@ class Statistics {
 					}
 				}
 
-				// Record the desired metrics
+				// 1.2. Record the desired metrics
 				statData += "\(satMeasure.count)\(separator)"
 				statData += "\(satMeasure.mean)\(separator)"
 				statData += "\(satMeasure.variance)\(separator)"
@@ -261,8 +264,17 @@ class Statistics {
 				// Print an error message if a mask was not provided
 				statData = "Please generate and provide an obstruction mask first."
 			}
-			// Write data
+
+			// 2. Write data
 			writeToHook("finalCitySaturationStats", data: statData)
+		}
+
+		if hooks["obstructionMask"] != nil {
+			if let maskMap = city.stats.obstructionMask {
+				writeToHook("obstructionMask", data: maskMap.description)
+			} else {
+				writeToHook("obstructionMask", data: "Please generate and provide an obstruction mask first.")
+			}
 		}
 	}
 

@@ -52,3 +52,8 @@ This is a list of availabe statistics hooks and what enabling each does.
 
   Prints statistics of cell saturation in the city.
 
+
+* obstructionMask
+
+  Prints the map of obstructions being used for statistics, after cropping.
+

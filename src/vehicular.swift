@@ -97,8 +97,19 @@ class City {
 	// Inner bounds for data analysis (supplied in configuration file)
 	var innerBounds: Square? {
 		didSet {
+			guard let inBounds = innerBounds, let inCellSize = innerCellSize, let inTopLeft = innerTopLeftCell else { return }
+			// When inner bounds are set, ensure the city (outer) bounds are larger than what's requested
+			guard	inBounds.x.min >= bounds.x.min &&
+					inBounds.x.max <= bounds.x.max &&
+					inBounds.y.min >= bounds.y.min &&
+					inBounds.y.max <= bounds.y.max
+			else {
+				print("Error: The specified inner city bounds are larger than the outer bounds.")
+				exit(EXIT_FAILURE)
+			}
+			// Debug
 			if debug.contains("City.determineBounds()"){
-				print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City inner bounds", innerBounds!, "cell size", innerCellSize!, "top left cell", innerTopLeftCell!) }
+				print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City inner bounds", inBounds, "cell size", inCellSize, "top left cell", inTopLeft) }
 		}
 	}
 	var innerTopLeftCell: (x: Int, y: Int)? {
