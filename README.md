@@ -1,5 +1,10 @@
 # Swift-GISSUMO
 
+Swift-GISSUMO is an event-driven vehicular simulator, coded in [Swift](https://swift.org/), that uses mobility data generated with [SUMO](http://sumo.dlr.de/) to simulate a vehicular network in a city. It loads vectorial representations of buildings from a [Shapefile](https://en.wikipedia.org/wiki/Shapefile) into [PostgreSQL](https://www.postgresql.org/)/[PostGIS](http://postgis.net/) (a [Geographic Information System](https://en.wikipedia.org/wiki/Geographic_information_system)) which it then uses to determine the line-of-sight status between each communication attempt.
+
+This specific code base is geared towards testing concepts of Cars as Roadside Units, but it can be easily adaptable to other purposes.
+An [NS-3](https://www.nsnam.org/) integration is forthcoming, for finer simulation of an 802.11p network and its associated protocols.
+
 ## Getting Started
 Edit [`module.map`](https://github.com/abreis/swift-gissumo/blob/master/src/lib/libpq/module.map) and point it to the location of `libpq-fe.h` in your system.
 
