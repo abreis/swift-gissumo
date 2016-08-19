@@ -49,6 +49,7 @@ enum RoadsideUnitType {
 
 class RoadsideUnit: RoadEntity {
 	var type: RoadsideUnitType = .ParkedCar
+	var receivedPacketIDs = [UInt]()
 
 	// Initialize the local coverage map
 	lazy var selfCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.selfCoverageMapSize, y: self.city.network.selfCoverageMapSize), withValue: 0, geographicCenter: self.geo)
@@ -201,7 +202,7 @@ class City {
 	/*** ROAD ENTITY ACTIONS ***/
 
 	/// Add a new vehicle to the City and to GIS
-	func addNewVehicle(id v_id: UInt, geo v_geo: (x: Double, y: Double)) -> UInt {
+	func addNew(vehicleWithID v_id: UInt, geo v_geo: (x: Double, y: Double)) -> UInt {
 		let newVehicle = Vehicle(id: v_id, geo: v_geo, city: self, creationTime: events.now)
 
 		// Add the new vehicle to GIS and record its GIS ID
@@ -215,8 +216,8 @@ class City {
 		events.add(newEvent: newBeaconEvent)
 
 		// Debug
-		if debug.contains("City.addNewVehicle()") {
-			print("\(events.now.asSeconds) City.addNewVehicle():\t".cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
+		if debug.contains("City.addNew(vehicle)") {
+			print("\(events.now.asSeconds) City.addNew(vehicle):\t".cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
 		}
 
 		return newVehicle.gid!
@@ -224,7 +225,7 @@ class City {
 
 
 	/// Add a new RoadsideUnit to the City and to GIS, returning its GID
-	func addNewRSU(id r_id: UInt, geo r_geo: (x: Double, y: Double), type r_type: RoadsideUnitType) -> UInt {
+	func addNew(roadsideUnitWithID r_id: UInt, geo r_geo: (x: Double, y: Double), type r_type: RoadsideUnitType) -> UInt {
 		let newRSU = RoadsideUnit(id: r_id, geo: r_geo, city: self, creationTime: events.now)
 		newRSU.type = r_type
 
@@ -235,57 +236,121 @@ class City {
 		roadsideUnits.append(newRSU)
 
 		// Debug
-		if debug.contains("City.addNewRSU()") {
-			print("\(events.now.asSeconds) City.addNewRSU():\t".cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
+		if debug.contains("City.addNew(roadsideUnit)") {
+			print("\(events.now.asSeconds) City.addNew(roadsideUnit):\t".cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
 		}
 
 		return newRSU.gid!
 	}
 
 
-	/// Update the location of a vehicle in this City and on GIS
-	func updateVehicleLocation(id v_id: UInt, geo new_geo: (x: Double, y: Double)) {
-		guard	let vIndex = vehicles.indexOf( {$0.id == v_id} ),
-				let vGID = vehicles[vIndex].gid
-				else {
-					print("Error: Trying to update a non-existent vehicle.")
-					exit(EXIT_FAILURE)
-		}
+	/// Add a new RoadsideUnit to the City and to GIS, returning its GID
+	func addNew(parkedCarWithID p_id: UInt, geo p_geo: (x: Double, y: Double)) -> UInt {
+		let newParkedCar = ParkedCar(id: p_id, geo: p_geo, city: self, creationTime: events.now)
 
-		// Update the vehicle coordinates
-		vehicles[vIndex].geo = new_geo
+		// Add the new Parked Car to GIS and record its GIS ID
+		newParkedCar.gid = gis.addPoint(ofType: .ParkedCar, geo: newParkedCar.geo, id: newParkedCar.id)
 
-		// Move the corresponding point in GIS
-		gis.updatePoint(withGID: vGID, geo: new_geo)
+		// Append the new vehicle to the city's vehicle list
+		parkedCars.append(newParkedCar)
 
 		// Debug
-		if debug.contains("City.updateVehicleLocation()") {
-			print("\(events.now.asSeconds) City.updateVehicleLocation():\t".cyan(), "Update vehicle id", vehicles[vIndex].id, "gid", vGID, "to coordinates", vehicles[vIndex].geo)
+		if debug.contains("City.addNew(parkedCar)") {
+			print("\(events.now.asSeconds) City.addNew(parkedCar):\t".cyan(), "Create ParkedCar id", newParkedCar.id, "gid", newParkedCar.gid!, "at", newParkedCar.geo)
+		}
+
+		return newParkedCar.gid!
+	}
+
+
+	/// Update the location of a vehicle in this City and on GIS
+	func updateLocation(entityType type: RoadEntityType, id e_id: UInt, geo new_geo: (x: Double, y: Double)) {
+		// Entity GID
+		var eGID: UInt
+
+		switch type {
+		case .Vehicle:
+			guard	let vIndex = vehicles.indexOf( {$0.id == e_id} ),
+					let vGID = vehicles[vIndex].gid else {
+						print("Error: Trying to update a non-existent vehicle.")
+						exit(EXIT_FAILURE)
+			}
+			eGID = vGID
+			// Update the vehicle coordinates
+			vehicles[vIndex].geo = new_geo
+		case .RoadsideUnit:
+			guard	let rIndex = roadsideUnits.indexOf( {$0.id == e_id} ),
+					let rGID = roadsideUnits[rIndex].gid else {
+						print("Error: Trying to update a non-existent roadside unit.")
+						exit(EXIT_FAILURE)
+			}
+			eGID = rGID
+			// Update the vehicle coordinates
+			roadsideUnits[rIndex].geo = new_geo
+		case .ParkedCar:
+			guard	let pIndex = parkedCars.indexOf( {$0.id == e_id} ),
+					let pGID = parkedCars[pIndex].gid else {
+						print("Error: Trying to update a non-existent parked car.")
+						exit(EXIT_FAILURE)
+			}
+			eGID = pGID
+			// Update the vehicle coordinates
+			parkedCars[pIndex].geo = new_geo
+		}
+
+		// Move the corresponding point in GIS
+		gis.updatePoint(withGID: eGID, geo: new_geo)
+
+		// Debug
+		if debug.contains("City.updateLocation()") {
+			print("\(events.now.asSeconds) City.updateVehicleLocation():\t".cyan(), "Update", type, "id", e_id, "gid", eGID, "to coordinates", new_geo)
 		}
 	}
 
 
 	/// Remove a vehicle from the City and from GIS
-	func removeVehicle(id v_id: UInt) {
-		guard	let vIndex = vehicles.indexOf( {$0.id == v_id} ),
-				let vGID = vehicles[vIndex].gid
-				else {
+	func remove(entityType type: RoadEntityType, id e_id: UInt) {
+		// Entity GID
+		var eGID: UInt
+
+		switch type {
+		case .Vehicle:
+			guard	let vIndex = vehicles.indexOf( {$0.id == e_id} ),
+					let vGID = vehicles[vIndex].gid else {
+						print("Error: Trying to remove a non-existent vehicle.")
+						exit(EXIT_FAILURE)
+			}
+			eGID = vGID
+			// Mark the vehicle as inactive
+			vehicles[vIndex].active = false
+			// Remove the vehicle from the City
+			vehicles.removeAtIndex(vIndex)
+		case .RoadsideUnit:
+			guard	let rIndex = roadsideUnits.indexOf( {$0.id == e_id} ),
+				let rGID = roadsideUnits[rIndex].gid else {
 					print("Error: Trying to remove a non-existent vehicle.")
 					exit(EXIT_FAILURE)
+			}
+			eGID = rGID
+			// Remove the roadside unit from the City
+			roadsideUnits.removeAtIndex(rIndex)
+		case .ParkedCar:
+			guard	let pIndex = parkedCars.indexOf( {$0.id == e_id} ),
+					let pGID = parkedCars[pIndex].gid else {
+						print("Error: Trying to remove a non-existent vehicle.")
+						exit(EXIT_FAILURE)
+			}
+			eGID = pGID
+			// Remove the parked car from the City
+			parkedCars.removeAtIndex(pIndex)
 		}
 
-		// Mark the vehicle as inactive
-		vehicles[vIndex].active = false
-
-		// Remove the vehicle from the City
-		vehicles.removeAtIndex(vIndex)
-
 		// Clear the corresponding point from GIS
-		gis.deletePoint(withGID: vGID)
+		gis.deletePoint(withGID: eGID)
 
 		// Debug
-		if debug.contains("City.removeVehicle()") {
-			print("\(events.now.asSeconds) City.removeVehicle():\t".cyan(), "Removed vehicle id", v_id, "gid", vGID)
+		if debug.contains("City.remove()") {
+			print("\(events.now.asSeconds) City.remove():\t".cyan(), "Remove", type, "id", e_id, "gid", eGID)
 		}
 	}
 
@@ -315,12 +380,18 @@ class City {
 				// Remove the vehicle from GIS to avoid potential ID collisions
 				gis.deletePoint(withGID: vGID)
 				// Create a new parked car RoadsideUnit from the Vehicle
-				newEntityGID = addNewRSU(id: entity.id, geo: entity.geo, type: .ParkedCar)
+				newEntityGID = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .ParkedCar)
 				// Remove the vehicle from the City
 				vehicles.removeAtIndex(vIndex)
 			case .ParkedCar:
-				// TODO
-				break
+				// Mark the vehicle as inactive
+				vehicle.active = false
+				// Remove the vehicle from GIS to avoid potential ID collisions
+				gis.deletePoint(withGID: vGID)
+				// Create a new parked car RoadsideUnit from the Vehicle
+				newEntityGID = addNew(parkedCarWithID: entity.id, geo: entity.geo)
+				// Remove the vehicle from the City
+				vehicles.removeAtIndex(vIndex)
 			case .Vehicle:
 				print("Error: Attempted to convert a Vehicle to a Vehicle again.")
 				exit(EXIT_FAILURE)
@@ -328,10 +399,10 @@ class City {
 		}
 
 		// From parked car to...
-		// TODO
+		// if let parkedCar = entity as? ParkedCar {}
 
 		// From RSU to...
-		// TODO
+		// if let roadsideUnit = entity as? RoadsideUnit {}
 
 		// Debug
 		if debug.contains("City.convertEntity()") {
@@ -386,7 +457,7 @@ class City {
 	*/
 	// Remove vehicles that end their trips
 	func endTripRemoveVehicle(vehicleID v_id: UInt) {
-		removeVehicle(id: v_id)
+		remove(entityType: .Vehicle, id: v_id)
 	}
 
 	// Convert all vehicles that end their trips to RoadsideUnits

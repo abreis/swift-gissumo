@@ -5,7 +5,7 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
-	<integer>30</integer>
+	<integer>600</integer>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
@@ -52,15 +52,17 @@
 			<key>finalCityEntitiesMap</key>
 			<true/>
 			<key>finalCityCoverageStats</key>
-			<false/>
+			<true/>
 			<key>finalCitySaturationStats</key>
-			<false/>
+			<true/>
+			<key>obstructionMask</key>
+			<true/>
 		</dict>
 	</dict>
 	<key>gis</key>
 	<dict>
 		<key>host</key>
-		<string>10.0.0.10</string>
+		<string>192.168.99.100</string>
 		<key>port</key>
 		<integer>5432</integer>
 		<key>database</key>
@@ -81,12 +83,14 @@
 		<key>EventList.scheduleMobilityEvents()</key>
 		<false/>
 		<key>City.determineBounds()</key>
+		<true/>
+		<key>City.addNew(vehicle)</key>
 		<false/>
-		<key>City.addNewVehicle()</key>
+		<key>City.addNew(roadsideUnit)</key>
 		<false/>
-		<key>City.addNewRSU()</key>
-		<false/>
-		<key>City.updateVehicleLocation()</key>
+		<key>City.addNew(parkedCar)</key>
+		<string></string>
+		<key>City.updateLocation()</key>
 		<false/>
 		<key>City.removeVehicle()</key>
 		<false/>

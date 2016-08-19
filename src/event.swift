@@ -216,7 +216,7 @@ class EventList {
 				let newFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == newFCDvehicleID} )! ]
 				// (note: the IDs came from timestep.vehicles, so an .indexOf on the array can be force-unwrapped safely)
 
-				let newVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.addNewVehicle(id: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
+				let newVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.addNew(vehicleWithID: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
 
 				add(newEvent: newVehicleEvent)
 			}
@@ -225,7 +225,7 @@ class EventList {
 			for existingFDCvehicleID in existingVehicleIDs {
 				let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == existingFDCvehicleID} )! ]
 
-				let updateVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.updateVehicleLocation(id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
+				let updateVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.updateLocation(entityType: .Vehicle, id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
 
 				add(newEvent: updateVehicleEvent)
 			}

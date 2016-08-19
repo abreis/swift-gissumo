@@ -16,8 +16,8 @@ class Network {
 	let maxRange: Double = 155
 
 	// The size, in cells, of a local coverage map
-	// Our coverage maps are 11x11, or ~330m wide (for an assumed radio range of 155m and average cell size of 30m)
-	lazy var selfCoverageMapSize: Int = Int(ceil(self.maxRange*2/30))
+	// Our coverage maps are 13x13, or ~390m wide (enough for a 155m radio range + margin of error)
+	lazy var selfCoverageMapSize: Int = 13
 
 	// Propagation algorithm
 	let getSignalStrength: (distance: Double, lineOfSight: Bool) -> Double = portoEmpiricalDataModel
@@ -105,8 +105,10 @@ protocol PayloadConvertible {
 	init? (fromPayload: Payload)
 }
 
-// Entitites that implement the PacketReceiver protocol are able to receive packets
+// Entitites that implement the PacketReceiver protocol are able to receive packets and
+// keep track of the IDs of packets seen
 protocol PacketReceiver {
+	var receivedPacketIDs: [UInt] { get set }
 	func receive(packet: Packet)
 }
 
@@ -237,13 +239,8 @@ extension RoadEntity {
 		let neighborGIDarray = city.gis.getFeatureGIDs(inCircleWithRadius: city.network.maxRange, center: geo, featureTypes: .Vehicle, .RoadsideUnit)
 
 		if let neighborGIDs = neighborGIDarray {
-			// Fetch vehicles and
-
-			// Send the packet to all neighboring vehicles
-			// TODO after Vehicle.receive(packet)
-//			let matchingVehicles = city.vehicles.filter( {neighborGIDs.contains($0.gid!)} )
-//			for neighborVehicle in matchingVehicles {
-//			}
+			// TODO: Broadcast packets to other vehicles
+			// Necessary for >1 hop transmissions, forwarding geocasts
 
 			// Send the packet to all neighboring RSUs
 			let matchingRSUs = city.roadsideUnits.filter( {neighborGIDs.contains($0.gid!)} )
@@ -286,7 +283,8 @@ extension Vehicle {
 // This must be initiated when the vehicle is created
 extension Vehicle {
 	func recurrentBeaconing() {
-		// Ensure this vehicle is still active -- a beaconing event can be scheduled for after the vehicle is removed
+		// Ensure this vehicle is still active -- a beaconing event may be scheduled for after the vehicle is removed
+		// This requires tagging vehicles with active=false when they are removed
 		guard self.active else { return }
 
 		// A safer, but slower way to do this, is to check whether the vehicle in question is still in the City
@@ -309,6 +307,14 @@ extension RoadsideUnit: PacketReceiver {
 		// We should never receive packets sent by ourselves
 		assert(packet.src != id)
 
+		// Ignore packets we've already seen
+		// Note: Packet IDs must not change during retransmissions
+		guard !receivedPacketIDs.contains(packet.id) else { return }
+
+		// Store the packet ID
+		receivedPacketIDs.append(packet.id)
+
+		// Debug
 		if debug.contains("RoadsideUnit.receive()"){
 			print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
 
@@ -344,7 +350,8 @@ extension RoadsideUnit: PacketReceiver {
 			// TODO: send over the coverage map
 			break
 		case .CoverageMap:
-			// TODO
+			// TODO process this coverage map
+			// Store the map in a temporary buffer
 			break
 		}
 	}
