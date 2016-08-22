@@ -133,6 +133,19 @@ class Statistics {
 
 
 
+	/// Initial statistics module setup
+	func initialSetup(onCity city: City) {
+		// If inner collection bounds were specified, crop the obstruction mask to them
+		if let innerCellSize = city.innerCellSize, let innerTopLeftCell = city.innerTopLeftCell {
+			obstructionMask?.cropInPlace(newTopLeftCell: innerTopLeftCell, newSize: innerCellSize)
+		}
+		else {
+			// If not, crop the mask to the city size
+			obstructionMask?.cropInPlace(newTopLeftCell: city.topLeftCell, newSize: city.cellSize)
+		}
+	}
+
+
 	/// Periodic (intervalled) statistics collection routine
 	func collectStatistics(fromCity city: City) {
 		// activeVehicleCount
@@ -155,18 +168,26 @@ class Statistics {
 			}
 			writeToHook("beaconCounts", data: "\(city.events.now.asSeconds)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\n")
 		}
-	}
 
+		// cityCoverageEvolution
+		if hooks["cityCoverageEvolution"] != nil {
+			// Count covered cells
+			var coveredCells = Measurement()
+			let coverageMap = city.globalMapOfCoverage
+			for row in coverageMap.cells {
+				for cell in row {
+					if cell != 0 { coveredCells.add(Double(cell)) }
+				}
+			}
 
-	/// Initial statistics module setup
-	func initialSetup(onCity city: City) {
-		// If inner collection bounds were specified, crop the obstruction mask to them
-		if let innerCellSize = city.innerCellSize, let innerTopLeftCell = city.innerTopLeftCell {
-			obstructionMask?.cropInPlace(newTopLeftCell: innerTopLeftCell, newSize: innerCellSize)
-		}
-		else {
-			// If not, crop the mask to the city size
-			obstructionMask?.cropInPlace(newTopLeftCell: city.topLeftCell, newSize: city.cellSize)
+			let cellCount = coveredCells.count
+			var percentCovered: Double = 0.0
+			if let totalCells = obstructionMask?.flatCells.filter( {$0 == "O"} ).count {
+				percentCovered = Double(cellCount)/Double(totalCells)
+			}
+			let signalMean = coveredCells.mean.isNaN ? 0.0 : coveredCells.mean
+			let signalStdev = coveredCells.stdev.isNaN ? 0.0 : coveredCells.stdev
+			writeToHook("cityCoverageEvolution", data: "\(city.events.now.asSeconds)\(separator)\(cellCount)\(separator)\(percentCovered)\(separator)\(signalMean)\(separator)\(signalStdev)\n")
 		}
 	}
 
@@ -297,6 +318,10 @@ class Statistics {
 
 		if hooks["finalCityCoverageStats"] != nil {
 			writeToHook("finalCityCoverageStats", data: "count\(separator)mean\(separator)var\(separator)stdev\n")
+		}
+
+		if hooks["cityCoverageEvolution"] != nil {
+			writeToHook("cityCoverageEvolution", data: "time\(separator)#covered\(separator)%covered\(separator)meanSig\(separator)stdevSig\n")
 		}
 	}
 

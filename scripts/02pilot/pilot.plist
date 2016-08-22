@@ -5,7 +5,7 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
-	<integer>600</integer>
+	<integer>150</integer>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
@@ -43,8 +43,10 @@
 			<true/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
-			<key>finalRoadsideUnitCoverageMaps</key>
+			<key>cityCoverageEvolution</key>
 			<true/>
+			<key>finalRoadsideUnitCoverageMaps</key>
+			<false/>
 			<key>finalCityCoverageMap</key>
 			<true/>
 			<key>finalCitySaturationMap</key>

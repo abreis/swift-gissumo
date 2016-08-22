@@ -214,7 +214,7 @@ repeat {
 	simCity.events.list.removeFirst()
 
 } while simCity.events.now < simCity.events.stopTime
-print("okay")
+print("done")
 
 
 // Cleanup stage events

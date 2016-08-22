@@ -13,9 +13,14 @@ This is a list of availabe statistics hooks and what enabling each does.
   Prints how many roadside units are active.
 
 
-* cityCoverageMapEvolution (interval)
+* cityCoverageMapEvolution (interval) [not implemented]
 
-  Prints the current coverage map of the complete city.
+  Prints the coverage map of the complete city.
+
+
+* cityCoverageEvolution (interval)
+
+  Prints the number of cells covered, and signal level statistics.
 
 
 * beaconCounts (interval)
@@ -25,7 +30,7 @@ This is a list of availabe statistics hooks and what enabling each does.
 
 * finalRoadsideUnitCoverageMaps (end)
 
-  Prints the coverage map of every roadside unit active at the end of the simulation.
+  Prints the coverage map of every active roadside unit.
 
 
 * finalCityCoverageMap (end)
@@ -53,7 +58,8 @@ This is a list of availabe statistics hooks and what enabling each does.
   Prints statistics of cell saturation in the city.
 
 
-* obstructionMask
+* obstructionMask (end)
 
   Prints the map of obstructions being used for statistics, after cropping.
+
 

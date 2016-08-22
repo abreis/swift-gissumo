@@ -28,6 +28,7 @@ extension Character: InitializableWithString {  init?(string: String) { self.ini
 
 struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: CustomStringConvertible {
 	var cells: [[T]]
+	var flatCells: [T] { return cells.flatMap{ $0 } }
 	var size: (x: Int, y: Int)
 
 	// The cellular coordinates of the top-left cell (lowest latitude, highest longitude)
