@@ -4,7 +4,8 @@
 
 import Foundation
 
-enum RoadEntityType {
+enum RoadEntityType: UInt {
+	case Unspecific = 0
 	case Vehicle
 	case RoadsideUnit
 	case ParkedCar
@@ -15,15 +16,15 @@ class RoadEntity {
 	var id: UInt
 	var city: City
 	var geo: (x: Double, y: Double)
+	var type: RoadEntityType { return .Unspecific }
 
 	var gid: UInt?
 	var creationTime: SimulationTime?
 
-	init(id v_id: UInt, geo v_geo:(x:Double, y:Double), city v_city: City, creationTime ctime: SimulationTime?) {
-		id = v_id
-		geo.x = v_geo.x
-		geo.y = v_geo.y
-		city = v_city
+	var receivedPacketIDs = [UInt]()
+
+	init(id v_id: UInt, geo v_geo: (x:Double, y:Double), city v_city: City, creationTime ctime: SimulationTime?) {
+		id = v_id; geo = v_geo; city = v_city;
 		if let time = ctime { creationTime = time }
 	}
 }
@@ -33,11 +34,12 @@ class RoadEntity {
 class Vehicle: RoadEntity {
 	var speed: Double?
 	var active: Bool = true
+	override var type: RoadEntityType { return .Vehicle }
 }
 
 // A parked car
 class ParkedCar: Vehicle {
-
+	override var type: RoadEntityType { return .ParkedCar }
 }
 
 // A roadside unit entity
@@ -48,8 +50,8 @@ enum RoadsideUnitType {
 }
 
 class RoadsideUnit: RoadEntity {
-	var type: RoadsideUnitType = .ParkedCar
-	var receivedPacketIDs = [UInt]()
+	override var type: RoadEntityType { return .RoadsideUnit }
+	var rsuType: RoadsideUnitType = .ParkedCar
 
 	// Initialize the local coverage map
 	lazy var selfCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.selfCoverageMapSize, y: self.city.network.selfCoverageMapSize), withValue: 0, geographicCenter: self.geo)
@@ -227,7 +229,7 @@ class City {
 	/// Add a new RoadsideUnit to the City and to GIS, returning its GID
 	func addNew(roadsideUnitWithID r_id: UInt, geo r_geo: (x: Double, y: Double), type r_type: RoadsideUnitType) -> UInt {
 		let newRSU = RoadsideUnit(id: r_id, geo: r_geo, city: self, creationTime: events.now)
-		newRSU.type = r_type
+		newRSU.rsuType = r_type
 
 		// Add the new RSU to GIS and record its GIS ID
 		newRSU.gid = gis.addPoint(ofType: .RoadsideUnit, geo: newRSU.geo, id: newRSU.id)
@@ -296,6 +298,9 @@ class City {
 			eGID = pGID
 			// Update the vehicle coordinates
 			parkedCars[pIndex].geo = new_geo
+		default:
+			print("Error: Attempted to update the location of an unknown type of RoadEntity.")
+			exit(EXIT_FAILURE)
 		}
 
 		// Move the corresponding point in GIS
@@ -343,6 +348,9 @@ class City {
 			eGID = pGID
 			// Remove the parked car from the City
 			parkedCars.removeAtIndex(pIndex)
+		default:
+			print("Error: Attempted to remove an unknown type of RoadEntity.")
+			exit(EXIT_FAILURE)
 		}
 
 		// Clear the corresponding point from GIS
@@ -394,6 +402,9 @@ class City {
 				vehicles.removeAtIndex(vIndex)
 			case .Vehicle:
 				print("Error: Attempted to convert a Vehicle to a Vehicle again.")
+				exit(EXIT_FAILURE)
+			default:
+				print("Error: Attempted to convert an unknown type of RoadEntity.")
 				exit(EXIT_FAILURE)
 			}
 		}

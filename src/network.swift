@@ -30,6 +30,7 @@ class Network {
 	}
 }
 
+
 /*** GEOCAST AREAS ***/
 
 protocol AreaType {
@@ -65,15 +66,7 @@ struct Square: AreaType, CustomStringConvertible {
 }
 
 
-
 /*** PACKETS ***/
-
-// List of payload types so a payload can be correctly cast to a message
-enum PayloadType {
-	case Beacon
-	case CoverageMapRequest
-	case CoverageMap
-}
 
 // A message packet
 struct Packet {
@@ -101,6 +94,16 @@ struct Packet {
 	var payload: Payload
 }
 
+
+/*** PAYLOAD TYPE ***/
+
+// List of payload types so a payload can be correctly cast to a message
+enum PayloadType {
+	case Beacon
+	case CoverageMapRequest
+	case CoverageMap
+}
+
 // A payload is a simple text field
 struct Payload {
 	var content: String
@@ -113,25 +116,36 @@ protocol PayloadConvertible {
 	init? (fromPayload: Payload)
 }
 
-// Entitites that implement the PacketReceiver protocol are able to receive packets and
-// keep track of the IDs of packets seen
+// Entitites that implement the PacketReceiver protocol are able to receive packets,
+// keep track of seen packets, and process payloads
 protocol PacketReceiver {
 	var receivedPacketIDs: [UInt] { get set }
 	func receive(packet: Packet)
 }
 
+// Entities that implement PayloadReceiver are able to process payloads
+protocol PayloadReceiver {
+	func processPayload(ofType payloadType: PayloadType, payload: Payload)
+}
+
+
+/*** PAYLOADS ***/
 
 // A network beacon
 struct Beacon: PayloadConvertible {
 	// Our beacons are similar to Cooperative Awareness Messages (CAMs)
 	// The payload is simply the sending vehicle's geographic coordinates
 	let geo: (x: Double, y: Double)
+	let src: UInt
+	let entityType: RoadEntityType
 
-	init(geo ingeo: (x: Double, y: Double)) { geo = ingeo }
+	init(geo ingeo: (x: Double, y: Double), src insrc: UInt, type intype: RoadEntityType) {
+		geo = ingeo; src = insrc; entityType = intype;
+	}
 
 	// Convert coordinates to a Payload string
 	func toPayload() -> Payload {
-		let payloadContent = String(geo.x) + ";" + String(geo.y)
+		let payloadContent = "\(geo.x);\(geo.y);\(src);\(entityType.rawValue)"
 		return Payload(content: payloadContent)
 	}
 
@@ -139,12 +153,17 @@ struct Beacon: PayloadConvertible {
 	init(fromPayload payload: Payload) {
 		let payloadCoords = payload.content.componentsSeparatedByString(";")
 		guard	let xgeo = Double(payloadCoords[0]),
-				let ygeo = Double(payloadCoords[1])
+				let ygeo = Double(payloadCoords[1]),
+				let psrc = UInt(payloadCoords[2]),
+				let ptyperaw = UInt(payloadCoords[3]),
+				let ptype = RoadEntityType(rawValue: ptyperaw)
 				else {
 					print("Error: Coordinate conversion from Beacon payload failed.")
 					exit(EXIT_FAILURE)
 		}
 		geo = (x: xgeo, y: ygeo)
+		src = psrc
+		entityType = ptype
 	}
 }
 
@@ -214,6 +233,7 @@ extension CellMap: PayloadConvertible {
 	}
 }
 
+
 /*** SIGNAL STRENGTH ALGORITHMS ***/
 
 // A discrete propagation model built with empirical data from the city of Porto
@@ -262,12 +282,94 @@ extension RoadEntity {
 }
 
 
+// Extend Roadside Units with the ability to receive packets
+extension RoadEntity: PacketReceiver {
+	func receive(packet: Packet) {
+		// We should never receive packets sent by ourselves on layer2
+		assert(packet.l2src != id)
+
+		// Ignore retransmissions of packets originally sent by ourselves
+		guard packet.l3src != id else { return }
+
+		// Ignore packets we've already seen
+		// Note: Packet IDs must not change during retransmissions
+		guard !receivedPacketIDs.contains(packet.id) else { return }
+
+		// Store the packet ID
+		receivedPacketIDs.append(packet.id)
+
+		// Debug
+		if debug.contains("RoadEntity.receive()"){
+			print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "received packet", packet.id, "l2src", packet.l2src, "l3src", packet.l3src,  "l3dst", packet.l3dst, "payload", packet.payloadType) }
+
+		// Process destination field
+		switch packet.l3dst {
+		case .Unicast(let destinationID):
+			// Disregard if we're not the message target
+			if destinationID != id { return }
+
+		case .Broadcast(let hopsRemaining):
+			// Disregard if the hop limit is reached
+			if hopsRemaining <= 1 { break }
+
+			// 1. Clone the packet
+			var rebroadcastPacket = packet
+			// 2. Reduce TTL
+			rebroadcastPacket.l3dst = .Broadcast(hopLimit: hopsRemaining - 1)
+			// 3. Refresh l2src
+			rebroadcastPacket.l2src = self.id
+			// 4. Rebroadcast
+			self.broadcastPacket(rebroadcastPacket)
+
+			// Debug
+			if debug.contains("RoadEntity.receive()"){
+				print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payloadType) }
+
+		case .Geocast(let targetArea):
+			// Disregard if we're not in the destination area
+			if targetArea.isPointInside(geo) == false { return }
+
+			// 1. Clone the packet
+			var rebroadcastPacket = packet
+			// 2. Refresh l2src
+			rebroadcastPacket.l2src = self.id
+			// 2. Rebroadcast
+			self.broadcastPacket(rebroadcastPacket)
+
+			// Debug
+			if debug.contains("RoadEntity.receive()"){
+				print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payloadType) }
+		}
+
+		// Entity-independent payload processing
+		// Code that all RoadEntities should run on payloads goes here
+		// Process payload
+		switch packet.payloadType {
+		case .Beacon:
+			// Track number of beacons received
+			if city.stats.hooks["beaconCounts"] != nil {
+				if var recvBeacons = city.stats.metrics["beaconsReceived"] as? UInt {
+					recvBeacons += 1
+					city.stats.metrics["beaconsReceived"] = recvBeacons
+				}
+			}
+		default: break
+		}
+
+		// Entity-specific payload processing
+		// Call the entity's specific payload processing routine
+		if self is PayloadReceiver {
+			(self as! PayloadReceiver).processPayload(ofType: packet.payloadType, payload: packet.payload)
+		}
+	}
+}
+
 
 // Extend Vehicles with the ability to send beacons
 extension Vehicle {
 	func broadcastBeacon() {
 		// Construct the beacon payload with the sender's coordinates (Cooperative Awareness Message)
-		let beaconPayload: Payload = Beacon(geo: self.geo).toPayload()
+		let beaconPayload: Payload = Beacon(geo: self.geo, src: self.id, type: self.type).toPayload()
 
 		// Construct the beacon packet, a broadcast with hoplimit = 1
 		let beaconPacket = Packet(id: city.network.getNextPacketID(), created: city.events.now, l2src: self.id, l3src: self.id, l3dst: .Broadcast(hopLimit: 1), payloadType: .Beacon, payload: beaconPayload)
@@ -284,7 +386,6 @@ extension Vehicle {
 		}
 	}
 }
-
 
 
 // Extend Vehicles with a recurrent beaconing routine
@@ -308,80 +409,14 @@ extension Vehicle {
 }
 
 
-
-// Extend Roadside Units with the ability to receive packets
-extension RoadsideUnit: PacketReceiver {
-	func receive(packet: Packet) {
-		// We should never receive packets sent by ourselves on layer2
-		assert(packet.l2src != id)
-
-		// Ignore retransmissions of packets originally sent by ourselves
-		guard packet.l3src != id else { return }
-
-		// Ignore packets we've already seen
-		// Note: Packet IDs must not change during retransmissions
-		guard !receivedPacketIDs.contains(packet.id) else { return }
-
-		// Store the packet ID
-		receivedPacketIDs.append(packet.id)
-
-		// Debug
-		if debug.contains("RoadsideUnit.receive()"){
-			print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "received packet", packet.id, "l2src", packet.l2src, "l3src", packet.l3src,  "l3dst", packet.l3dst, "payload", packet.payloadType) }
-
-		// Process destination field
-		switch packet.l3dst {
-		case .Unicast(let destinationID):
-			// Disregard if we're not the message target
-			if destinationID != id { return }
-
-		case .Broadcast(let hopsRemaining):
-			// Disregard if the hop limit is reached
-			if hopsRemaining <= 1 { return }
-
-			// 1. Clone the packet
-			var rebroadcastPacket = packet
-			// 2. Reduce TTL
-			rebroadcastPacket.l3dst = .Broadcast(hopLimit: hopsRemaining - 1)
-			// 3. Refresh l2src
-			rebroadcastPacket.l2src = self.id
-			// 4. Rebroadcast
-			self.broadcastPacket(rebroadcastPacket)
-
-			// Debug
-			if debug.contains("RoadsideUnit.receive()"){
-				print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payloadType) }
-
-		case .Geocast(let targetArea):
-			// Disregard if we're not in the destination area
-			if targetArea.isPointInside(geo) == false { return }
-
-			// 1. Clone the packet
-			var rebroadcastPacket = packet
-			// 2. Refresh l2src
-			rebroadcastPacket.l2src = self.id
-			// 2. Rebroadcast
-			self.broadcastPacket(rebroadcastPacket)
-
-			// Debug
-			if debug.contains("RoadsideUnit.receive()"){
-				print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payloadType) }
-		}
-
-		// Process payload
-		switch packet.payloadType {
+// Extend Roadside Units with the ability to process payloads
+extension RoadsideUnit: PayloadReceiver {
+	func processPayload(ofType payloadType: PayloadType, payload: Payload) {
+		switch payloadType {
 		case .Beacon:
 			// RSUs use beacons to construct their coverage maps
-			let receivedBeacon = Beacon(fromPayload: packet.payload)
+			let receivedBeacon = Beacon(fromPayload: payload)
 			trackSignalStrength(fromBeacon: receivedBeacon)
-
-			// Track number of beacons received
-			if city.stats.hooks["beaconCounts"] != nil {
-				if var recvBeacons = city.stats.metrics["beaconsReceived"] as? UInt {
-					recvBeacons += 1
-					city.stats.metrics["beaconsReceived"] = recvBeacons
-				}
-			}
 
 		case .CoverageMapRequest:
 			// TODO: send over the coverage map
@@ -394,7 +429,6 @@ extension RoadsideUnit: PacketReceiver {
 		}
 	}
 }
-
 
 
 /*** SIGNAL STRENGTH MAPS ***/

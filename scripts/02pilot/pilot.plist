@@ -76,8 +76,6 @@
 	</dict>
 	<key>debug</key>
 	<dict>
-		<key>main()</key>
-		<true/>
 		<key>main().events</key>
 		<false/>
 		<key>EventList.add()</key>
@@ -85,20 +83,20 @@
 		<key>EventList.scheduleMobilityEvents()</key>
 		<false/>
 		<key>City.determineBounds()</key>
-		<true/>
+		<false/>
 		<key>City.addNew(vehicle)</key>
 		<false/>
 		<key>City.addNew(roadsideUnit)</key>
 		<false/>
 		<key>City.addNew(parkedCar)</key>
-		<string></string>
+		<false/>
 		<key>City.updateLocation()</key>
 		<false/>
 		<key>City.removeVehicle()</key>
 		<false/>
 		<key>City.convertEntity()</key>
 		<false/>
-		<key>RoadsideUnit.receive()</key>
+		<key>RoadEntity.receive()</key>
 		<false/>
 		<key>RoadsideUnit.trackSignalStrength()</key>
 		<false/>
