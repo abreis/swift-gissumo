@@ -22,7 +22,7 @@ class Network {
 	// Propagation algorithm
 	let getSignalStrength: (distance: Double, lineOfSight: Bool) -> Double = portoEmpiricalDataModel
 
-	// Packet ID generator - can be made to create random IDs
+	// Packet ID generator (can also be made to create random IDs)
 	var nextPacketID: UInt = 0
 	func getNextPacketID() -> UInt {
 		defer { nextPacketID += 1 }
@@ -77,20 +77,28 @@ enum PayloadType {
 
 // A message packet
 struct Packet {
+	// A unique packet identifier in the simulation
+	var id: UInt
+
+	// Time the packet was created in the simulation
+	var created: SimulationTime
+
+	// Layer 2 Network
+	var l2src: UInt
+//	var l2dst	// Unimplemented, all packets are broadcast at the MAC level
+
+	// Layer 3 Network */
 	enum Destination {
 		case Unicast(destinationID: UInt)
 		case Broadcast(hopLimit: UInt)
 		case Geocast(targetArea: AreaType)
 	}
+	var l3src: UInt
+	var l3dst: Destination
 
-	var id: UInt
-	var src: UInt
-	var dst: Destination
-
-	var created: SimulationTime
-
-	var payload: Payload
+	// The packet's payload type and payload
 	var payloadType: PayloadType
+	var payload: Payload
 }
 
 // A payload is a simple text field
@@ -262,7 +270,7 @@ extension Vehicle {
 		let beaconPayload: Payload = Beacon(geo: self.geo).toPayload()
 
 		// Construct the beacon packet, a broadcast with hoplimit = 1
-		let beaconPacket = Packet(id: city.network.getNextPacketID(), src: self.id, dst: .Broadcast(hopLimit: 1), created: city.events.now, payload: beaconPayload, payloadType: .Beacon)
+		let beaconPacket = Packet(id: city.network.getNextPacketID(), created: city.events.now, l2src: self.id, l3src: self.id, l3dst: .Broadcast(hopLimit: 1), payloadType: .Beacon, payload: beaconPayload)
 
 		// Send the beacon to our neighbors
 		self.broadcastPacket(beaconPacket)
@@ -304,8 +312,11 @@ extension Vehicle {
 // Extend Roadside Units with the ability to receive packets
 extension RoadsideUnit: PacketReceiver {
 	func receive(packet: Packet) {
-		// We should never receive packets sent by ourselves
-		assert(packet.src != id)
+		// We should never receive packets sent by ourselves on layer2
+		assert(packet.l2src != id)
+
+		// Ignore retransmissions of packets originally sent by ourselves
+		guard packet.l3src != id else { return }
 
 		// Ignore packets we've already seen
 		// Note: Packet IDs must not change during retransmissions
@@ -316,20 +327,37 @@ extension RoadsideUnit: PacketReceiver {
 
 		// Debug
 		if debug.contains("RoadsideUnit.receive()"){
-			print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "received packet", packet.id, "src", packet.src, "dst", packet.dst, "payload", packet.payloadType) }
+			print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "received packet", packet.id, "l2src", packet.l2src, "l3src", packet.l3src,  "l3dst", packet.l3dst, "payload", packet.payloadType) }
 
 		// Process destination field
-		switch packet.dst {
+		switch packet.l3dst {
 		case .Unicast(let destinationID):
 			// Disregard if we're not the message target
 			if destinationID != id { return }
-		case .Broadcast:
-			// TODO: reduce TTL and rebroadcast
-			break
+
+		case .Broadcast(let nHops):
+			// Disregard if the hop limit is reached
+			if nHops <= 1 { return }
+
+			// 1. Clone the packet
+			var rebroadcastPacket = packet
+			// 2. Reduce TTL
+			rebroadcastPacket.l3dst = .Broadcast(hopLimit: nHops-1)
+			// 3. Refresh l2src
+			rebroadcastPacket.l2src = self.id
+			// 4. Rebroadcast
+			self.broadcastPacket(rebroadcastPacket)
+
 		case .Geocast(let targetArea):
 			// Disregard if we're not in the destination area
 			if targetArea.isPointInside(geo) == false { return }
-			// TODO: rebroadcast
+
+			// 1. Clone the packet
+			var rebroadcastPacket = packet
+			// 2. Refresh l2src
+			rebroadcastPacket.l2src = self.id
+			// 2. Rebroadcast
+			self.broadcastPacket(rebroadcastPacket)
 		}
 
 		// Process payload
@@ -346,9 +374,11 @@ extension RoadsideUnit: PacketReceiver {
 					city.stats.metrics["beaconsReceived"] = recvBeacons
 				}
 			}
+
 		case .CoverageMapRequest:
 			// TODO: send over the coverage map
 			break
+
 		case .CoverageMap:
 			// TODO process this coverage map
 			// Store the map in a temporary buffer
