@@ -335,18 +335,22 @@ extension RoadsideUnit: PacketReceiver {
 			// Disregard if we're not the message target
 			if destinationID != id { return }
 
-		case .Broadcast(let nHops):
+		case .Broadcast(let hopsRemaining):
 			// Disregard if the hop limit is reached
-			if nHops <= 1 { return }
+			if hopsRemaining <= 1 { return }
 
 			// 1. Clone the packet
 			var rebroadcastPacket = packet
 			// 2. Reduce TTL
-			rebroadcastPacket.l3dst = .Broadcast(hopLimit: nHops-1)
+			rebroadcastPacket.l3dst = .Broadcast(hopLimit: hopsRemaining - 1)
 			// 3. Refresh l2src
 			rebroadcastPacket.l2src = self.id
 			// 4. Rebroadcast
 			self.broadcastPacket(rebroadcastPacket)
+
+			// Debug
+			if debug.contains("RoadsideUnit.receive()"){
+				print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payloadType) }
 
 		case .Geocast(let targetArea):
 			// Disregard if we're not in the destination area
@@ -358,6 +362,10 @@ extension RoadsideUnit: PacketReceiver {
 			rebroadcastPacket.l2src = self.id
 			// 2. Rebroadcast
 			self.broadcastPacket(rebroadcastPacket)
+
+			// Debug
+			if debug.contains("RoadsideUnit.receive()"){
+				print("\(city.events.now.asSeconds) RoadsideUnit.receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payloadType) }
 		}
 
 		// Process payload
