@@ -411,8 +411,8 @@ extension Vehicle {
 }
 
 
-// Extend Roadside Units with the ability to process payloads
-extension RoadsideUnit: PayloadReceiver {
+// Extend Fixed Road Entities (e.g. roadside units) with the ability to process payloads
+extension FixedRoadEntity: PayloadReceiver {
 	func processPayload(payload: Payload) {
 		switch payload.type {
 		case .Beacon:
@@ -425,6 +425,7 @@ extension RoadsideUnit: PayloadReceiver {
 			break
 
 		case .CoverageMap:
+			if isRequestingMaps { payloadBuffer.append(payload) }
 			// TODO process this coverage map
 			// Store the map in a temporary buffer
 			break
@@ -433,10 +434,12 @@ extension RoadsideUnit: PayloadReceiver {
 }
 
 
+
+
 /*** SIGNAL STRENGTH MAPS ***/
 
-// Extend RoadsideUnits with the ability to receive a Beacon payload and register a signal coverage metric
-extension RoadsideUnit {
+// Extend Fixed Road Entities with the ability to receive a Beacon payload and register a signal coverage metric
+extension FixedRoadEntity {
 	func trackSignalStrength(fromBeacon beacon: Beacon) {
 		// Get the signal strength we see to the beacon's geographic coordinates
 		let beaconDistance = city.gis.getDistance(fromPoint: self.geo, toPoint: beacon.geo)
@@ -447,7 +450,7 @@ extension RoadsideUnit {
 		selfCoverageMap[(beacon.geo)] = Int(beaconSignalStrength)
 
 		// Debug
-		if debug.contains("RoadsideUnit.trackSignalStrength()"){
-			print("\(city.events.now.asSeconds) RoadsideUnit.trackSignalStrength():\t".cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
+		if debug.contains("FixedRoadEntity.trackSignalStrength()"){
+			print("\(city.events.now.asSeconds) FixedRoadEntity.trackSignalStrength():\t".cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
 	}
 }

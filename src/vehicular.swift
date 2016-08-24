@@ -11,6 +11,9 @@ enum RoadEntityType: UInt {
 	case ParkedCar
 }
 
+
+/*** SUPERCLASS ***/
+
 // A basic road entity, with an ID, GIS ID, geographic location, time of creation, and the city it belongs to
 class RoadEntity {
 	var id: UInt
@@ -29,16 +32,39 @@ class RoadEntity {
 	}
 }
 
-// A vehicle entity
-// Has a speed entry and an active tag
-class Vehicle: RoadEntity {
+
+/*** L1 SUBCLASSES ***/
+
+// Moving entities, e.g. vehicles, motorcycles, pedestrians
+// May have a 'speed' entry
+class MovingRoadEntity: RoadEntity {
 	var speed: Double?
-	var active: Bool = true
+}
+
+// Fixed entities, e.g. parked cars, roadside units, sensors
+// Can request coverage maps and build their own from beacons
+class FixedRoadEntity: RoadEntity {
+	// Payload buffer to store coverage map request replies
+	var payloadBuffer = [Payload]()
+
+	// Flag to mark whether we are requesting coverage maps
+	var isRequestingMaps: Bool = false
+
+	// Initialize the local coverage map
+	lazy var selfCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.selfCoverageMapSize, y: self.city.network.selfCoverageMapSize), withValue: 0, geographicCenter: self.geo)
+}
+
+
+/*** L2 SUBCLASSES ***/
+
+// A vehicle entity
+class Vehicle: MovingRoadEntity {
 	override var type: RoadEntityType { return .Vehicle }
+	var active: Bool = true
 }
 
 // A parked car
-class ParkedCar: Vehicle {
+class ParkedCar: FixedRoadEntity {
 	override var type: RoadEntityType { return .ParkedCar }
 }
 
@@ -49,15 +75,9 @@ enum RoadsideUnitType {
 	case ParkedCar
 }
 
-class RoadsideUnit: RoadEntity {
+class RoadsideUnit: FixedRoadEntity {
 	override var type: RoadEntityType { return .RoadsideUnit }
 	var rsuType: RoadsideUnitType = .ParkedCar
-
-	// Initialize the local coverage map
-	lazy var selfCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.selfCoverageMapSize, y: self.city.network.selfCoverageMapSize), withValue: 0, geographicCenter: self.geo)
-
-	// Payload buffer to store coverage map request replies
-	var payloadBuffer = [(payload: Payload, type: PayloadType)]()
 }
 
 
@@ -206,8 +226,8 @@ class City {
 
 	/*** ROAD ENTITY ACTIONS ***/
 
-	/// Add a new vehicle to the City and to GIS
-	func addNew(vehicleWithID v_id: UInt, geo v_geo: (x: Double, y: Double)) -> UInt {
+	/// Add a new Vehicle to the City and to GIS,  returning its GID
+	func addNew(vehicleWithID v_id: UInt, geo v_geo: (x: Double, y: Double)) -> Vehicle {
 		let newVehicle = Vehicle(id: v_id, geo: v_geo, city: self, creationTime: events.now)
 
 		// Add the new vehicle to GIS and record its GIS ID
@@ -225,12 +245,12 @@ class City {
 			print("\(events.now.asSeconds) City.addNew(vehicle):\t".cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
 		}
 
-		return newVehicle.gid!
+		return newVehicle
 	}
 
 
 	/// Add a new RoadsideUnit to the City and to GIS, returning its GID
-	func addNew(roadsideUnitWithID r_id: UInt, geo r_geo: (x: Double, y: Double), type r_type: RoadsideUnitType) -> UInt {
+	func addNew(roadsideUnitWithID r_id: UInt, geo r_geo: (x: Double, y: Double), type r_type: RoadsideUnitType) -> RoadsideUnit {
 		let newRSU = RoadsideUnit(id: r_id, geo: r_geo, city: self, creationTime: events.now)
 		newRSU.rsuType = r_type
 
@@ -245,12 +265,12 @@ class City {
 			print("\(events.now.asSeconds) City.addNew(roadsideUnit):\t".cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
 		}
 
-		return newRSU.gid!
+		return newRSU
 	}
 
 
-	/// Add a new RoadsideUnit to the City and to GIS, returning its GID
-	func addNew(parkedCarWithID p_id: UInt, geo p_geo: (x: Double, y: Double)) -> UInt {
+	/// Add a new ParkedCar to the City and to GIS, returning its GID
+	func addNew(parkedCarWithID p_id: UInt, geo p_geo: (x: Double, y: Double)) -> ParkedCar {
 		let newParkedCar = ParkedCar(id: p_id, geo: p_geo, city: self, creationTime: events.now)
 
 		// Add the new Parked Car to GIS and record its GIS ID
@@ -264,7 +284,7 @@ class City {
 			print("\(events.now.asSeconds) City.addNew(parkedCar):\t".cyan(), "Create ParkedCar id", newParkedCar.id, "gid", newParkedCar.gid!, "at", newParkedCar.geo)
 		}
 
-		return newParkedCar.gid!
+		return newParkedCar
 	}
 
 
@@ -317,7 +337,7 @@ class City {
 
 
 	/// Remove a vehicle from the City and from GIS
-	func remove(entityType type: RoadEntityType, id e_id: UInt) {
+	func removeEntity(entityType type: RoadEntityType, id e_id: UInt) {
 		// Entity GID
 		var eGID: UInt
 
@@ -360,10 +380,16 @@ class City {
 		gis.deletePoint(withGID: eGID)
 
 		// Debug
-		if debug.contains("City.remove()") {
-			print("\(events.now.asSeconds) City.remove():\t".cyan(), "Remove", type, "id", e_id, "gid", eGID)
+		if debug.contains("City.removeEntity()") {
+			print("\(events.now.asSeconds) City.removeEntity():\t".cyan(), "Remove", type, "id", e_id, "gid", eGID)
 		}
 	}
+
+	// Convenience remove() pulls the type and ID from the entity itself
+	func removeEntity(entity: RoadEntity) {
+		removeEntity(entityType: entity.type, id: entity.id)
+	}
+
 
 	/// Generic conversion routine to create parked cars from vehicles, RSUs from parked cars, etcetera
 	func convertEntity(entity: RoadEntity, to targetType: RoadEntityType) {
@@ -373,61 +399,29 @@ class City {
 		}
 
 		// GID of the new entity
-		var newEntityGID: UInt?
+		var newEntity: RoadEntity? = nil
 
 		// From vehicle to...
 		if entity is Vehicle {
-			// Ensure we're converting a vehicle that's part of the city
-			guard let vIndex = vehicles.indexOf( {$0 === entity} ) else {
-						print("Error: Trying to convert a vehicle not in the city.")
-						exit(EXIT_FAILURE)
-			}
-
-			// Perform the requested conversion
 			switch targetType {
 			case .RoadsideUnit:
-				// Mark the vehicle as inactive
-				(entity as! Vehicle).active = false
-				// Remove the vehicle from GIS to avoid potential ID collisions
-				gis.deletePoint(withGID: eGID)
-				// Create a new parked car RoadsideUnit from the Vehicle
-				newEntityGID = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .ParkedCar)
-				// Remove the vehicle from the City
-				vehicles.removeAtIndex(vIndex)
+				removeEntity(entity)
+				newEntity = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .ParkedCar)
 			case .ParkedCar:
-				// Mark the vehicle as inactive
-				(entity as! Vehicle).active = false
-				// Remove the vehicle from GIS to avoid potential ID collisions
-				gis.deletePoint(withGID: eGID)
-				// Create a new parked car RoadsideUnit from the Vehicle
-				newEntityGID = addNew(parkedCarWithID: entity.id, geo: entity.geo)
-				// Remove the vehicle from the City
-				vehicles.removeAtIndex(vIndex)
+				removeEntity(entity)
+				newEntity = addNew(parkedCarWithID: entity.id, geo: entity.geo)
 			default:
 				print("Error: Invalid entity conversion.")
 				exit(EXIT_FAILURE)
 			}
 		}
-
 		// From parked car to...
-		if entity is ParkedCar {
-			// Ensure we're converting a parked car that's part of the city
-			guard let pIndex = parkedCars.indexOf( {$0 === entity} ) else {
-				print("Error: Trying to convert a parked car not in the city.")
-				exit(EXIT_FAILURE)
-			}
-
-			// Perform the requested conversion
+		else if entity is ParkedCar {
 			switch targetType {
 			case .RoadsideUnit:
-				// Mark the parkedCar as inactive
-				(entity as! ParkedCar).active = false
-				// Remove the parkedCar from GIS to avoid potential ID collisions
-				gis.deletePoint(withGID: eGID)
-				// Create a new parked car RoadsideUnit from the parkedCar
-				newEntityGID = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .ParkedCar)
-				// Remove the parkedCar from the City
-				parkedCars.removeAtIndex(pIndex)
+				newEntity = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .ParkedCar)
+				// Copy the coverage map over to the new RSU
+				(newEntity as! RoadsideUnit).selfCoverageMap = (entity as! ParkedCar).selfCoverageMap
 			default:
 				print("Error: Invalid entity conversion.")
 				exit(EXIT_FAILURE)
@@ -435,13 +429,14 @@ class City {
 		}
 
 		// From RSU to...
-		// if let roadsideUnit = entity as? RoadsideUnit {}
+		// else if entity is RoadsideUnit {}
 
 		// Debug
 		if debug.contains("City.convertEntity()") {
-			print("\(events.now.asSeconds) City.convertEntity():\t".cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", eGID, "to a", targetType, "gid", newEntityGID!)
+			print("\(events.now.asSeconds) City.convertEntity():\t".cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", eGID, "to a", targetType, "gid", newEntity!.gid!)
 		}
 	}
+
 
 	// Convenience function that first tries to locate the entity in the city's entity lists
 	func convertEntity(entityID: UInt, to targetType: RoadEntityType) {
@@ -490,7 +485,7 @@ class City {
 	*/
 	// Remove vehicles that end their trips
 	func endTripRemoveVehicle(vehicleID v_id: UInt) {
-		remove(entityType: .Vehicle, id: v_id)
+		removeEntity(entityType: .Vehicle, id: v_id)
 	}
 
 	// Convert all vehicles that end their trips to RoadsideUnits

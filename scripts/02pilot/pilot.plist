@@ -92,13 +92,13 @@
 		<false/>
 		<key>City.updateLocation()</key>
 		<false/>
-		<key>City.removeVehicle()</key>
-		<false/>
+		<key>City.removeEntity()</key>
+		<true/>
 		<key>City.convertEntity()</key>
-		<false/>
+		<true/>
 		<key>RoadEntity.receive()</key>
 		<false/>
-		<key>RoadsideUnit.trackSignalStrength()</key>
+		<key>FixedRoadEntity.trackSignalStrength()</key>
 		<false/>
 	</dict>
 	<key>tools</key>
