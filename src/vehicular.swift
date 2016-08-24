@@ -55,6 +55,9 @@ class RoadsideUnit: RoadEntity {
 
 	// Initialize the local coverage map
 	lazy var selfCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.selfCoverageMapSize, y: self.city.network.selfCoverageMapSize), withValue: 0, geographicCenter: self.geo)
+
+	// Payload buffer to store coverage map request replies
+	var payloadBuffer = [(payload: Payload, type: PayloadType)]()
 }
 
 

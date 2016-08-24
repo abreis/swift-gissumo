@@ -89,8 +89,7 @@ struct Packet {
 	var l3src: UInt
 	var l3dst: Destination
 
-	// The packet's payload type and payload
-	var payloadType: PayloadType
+	// The packet's payload
 	var payload: Payload
 }
 
@@ -98,14 +97,15 @@ struct Packet {
 /*** PAYLOAD TYPE ***/
 
 // List of payload types so a payload can be correctly cast to a message
-enum PayloadType {
-	case Beacon
+enum PayloadType: UInt {
+	case Beacon = 0
 	case CoverageMapRequest
 	case CoverageMap
 }
 
-// A payload is a simple text field
+// A payload is a simple text field and a header with its type
 struct Payload {
+	var type: PayloadType
 	var content: String
 }
 
@@ -125,7 +125,7 @@ protocol PacketReceiver {
 
 // Entities that implement PayloadReceiver are able to process payloads
 protocol PayloadReceiver {
-	func processPayload(ofType payloadType: PayloadType, payload: Payload)
+	func processPayload(payload: Payload)
 }
 
 
@@ -139,14 +139,14 @@ struct Beacon: PayloadConvertible {
 	let src: UInt
 	let entityType: RoadEntityType
 
-	init(geo ingeo: (x: Double, y: Double), src insrc: UInt, type intype: RoadEntityType) {
+	init(geo ingeo: (x: Double, y: Double), src insrc: UInt, entityType intype: RoadEntityType) {
 		geo = ingeo; src = insrc; entityType = intype;
 	}
 
 	// Convert coordinates to a Payload string
 	func toPayload() -> Payload {
 		let payloadContent = "\(geo.x);\(geo.y);\(src);\(entityType.rawValue)"
-		return Payload(content: payloadContent)
+		return Payload(type: .Beacon, content: payloadContent)
 	}
 
 	// Split a payload's data
@@ -170,7 +170,7 @@ struct Beacon: PayloadConvertible {
 
 // A request for coverage maps
 struct CoverageMapRequest: PayloadConvertible {
-	func toPayload() -> Payload { return Payload(content: "")}
+	func toPayload() -> Payload { return Payload(type: .CoverageMapRequest, content: "")}
 	init? (fromPayload: Payload) { }
 }
 
@@ -193,7 +193,9 @@ extension CellMap: PayloadConvertible {
 			}
 			if cellIndex != cells.count-1 { description += "\n" }
 		}
-		return Payload(content: description)
+
+		// Note: Cell maps are not necessarily CoverageMaps, this can be generified
+		return Payload(type: .CoverageMap, content: description)
 	}
 
 	// Initialize the map from a payload
@@ -300,7 +302,7 @@ extension RoadEntity: PacketReceiver {
 
 		// Debug
 		if debug.contains("RoadEntity.receive()"){
-			print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "received packet", packet.id, "l2src", packet.l2src, "l3src", packet.l3src,  "l3dst", packet.l3dst, "payload", packet.payloadType) }
+			print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "received packet", packet.id, "l2src", packet.l2src, "l3src", packet.l3src,  "l3dst", packet.l3dst, "payload", packet.payload.type) }
 
 		// Process destination field
 		switch packet.l3dst {
@@ -323,7 +325,7 @@ extension RoadEntity: PacketReceiver {
 
 			// Debug
 			if debug.contains("RoadEntity.receive()"){
-				print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payloadType) }
+				print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payload.type) }
 
 		case .Geocast(let targetArea):
 			// Disregard if we're not in the destination area
@@ -338,13 +340,13 @@ extension RoadEntity: PacketReceiver {
 
 			// Debug
 			if debug.contains("RoadEntity.receive()"){
-				print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payloadType) }
+				print("\(city.events.now.asSeconds) \(self.dynamicType).receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payload.type) }
 		}
 
 		// Entity-independent payload processing
 		// Code that all RoadEntities should run on payloads goes here
 		// Process payload
-		switch packet.payloadType {
+		switch packet.payload.type {
 		case .Beacon:
 			// Track number of beacons received
 			if city.stats.hooks["beaconCounts"] != nil {
@@ -359,7 +361,7 @@ extension RoadEntity: PacketReceiver {
 		// Entity-specific payload processing
 		// Call the entity's specific payload processing routine
 		if self is PayloadReceiver {
-			(self as! PayloadReceiver).processPayload(ofType: packet.payloadType, payload: packet.payload)
+			(self as! PayloadReceiver).processPayload(packet.payload)
 		}
 	}
 }
@@ -369,10 +371,10 @@ extension RoadEntity: PacketReceiver {
 extension Vehicle {
 	func broadcastBeacon() {
 		// Construct the beacon payload with the sender's coordinates (Cooperative Awareness Message)
-		let beaconPayload: Payload = Beacon(geo: self.geo, src: self.id, type: self.type).toPayload()
+		let beaconPayload: Payload = Beacon(geo: self.geo, src: self.id, entityType: self.type).toPayload()
 
 		// Construct the beacon packet, a broadcast with hoplimit = 1
-		let beaconPacket = Packet(id: city.network.getNextPacketID(), created: city.events.now, l2src: self.id, l3src: self.id, l3dst: .Broadcast(hopLimit: 1), payloadType: .Beacon, payload: beaconPayload)
+		let beaconPacket = Packet(id: city.network.getNextPacketID(), created: city.events.now, l2src: self.id, l3src: self.id, l3dst: .Broadcast(hopLimit: 1), payload: beaconPayload)
 
 		// Send the beacon to our neighbors
 		self.broadcastPacket(beaconPacket)
@@ -411,8 +413,8 @@ extension Vehicle {
 
 // Extend Roadside Units with the ability to process payloads
 extension RoadsideUnit: PayloadReceiver {
-	func processPayload(ofType payloadType: PayloadType, payload: Payload) {
-		switch payloadType {
+	func processPayload(payload: Payload) {
+		switch payload.type {
 		case .Beacon:
 			// RSUs use beacons to construct their coverage maps
 			let receivedBeacon = Beacon(fromPayload: payload)
