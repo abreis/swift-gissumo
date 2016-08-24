@@ -373,7 +373,7 @@ class City {
 		var newEntityGID: UInt?
 
 		// From vehicle to...
-		if let vehicle = entity as? Vehicle {
+		if entity is Vehicle {
 			// Ensure we're converting a vehicle that's part of the city
 			guard let vIndex = vehicles.indexOf( {$0 === entity} ) else {
 						print("Error: Trying to convert a vehicle not in the city.")
@@ -384,7 +384,7 @@ class City {
 			switch targetType {
 			case .RoadsideUnit:
 				// Mark the vehicle as inactive
-				vehicle.active = false
+				(entity as! Vehicle).active = false
 				// Remove the vehicle from GIS to avoid potential ID collisions
 				gis.deletePoint(withGID: eGID)
 				// Create a new parked car RoadsideUnit from the Vehicle
@@ -393,7 +393,7 @@ class City {
 				vehicles.removeAtIndex(vIndex)
 			case .ParkedCar:
 				// Mark the vehicle as inactive
-				vehicle.active = false
+				(entity as! Vehicle).active = false
 				// Remove the vehicle from GIS to avoid potential ID collisions
 				gis.deletePoint(withGID: eGID)
 				// Create a new parked car RoadsideUnit from the Vehicle
@@ -407,7 +407,7 @@ class City {
 		}
 
 		// From parked car to...
-		if let parkedCar = entity as? ParkedCar {
+		if entity is ParkedCar {
 			// Ensure we're converting a parked car that's part of the city
 			guard let pIndex = parkedCars.indexOf( {$0 === entity} ) else {
 				print("Error: Trying to convert a parked car not in the city.")
@@ -418,7 +418,7 @@ class City {
 			switch targetType {
 			case .RoadsideUnit:
 				// Mark the parkedCar as inactive
-				parkedCar.active = false
+				(entity as! ParkedCar).active = false
 				// Remove the parkedCar from GIS to avoid potential ID collisions
 				gis.deletePoint(withGID: eGID)
 				// Create a new parked car RoadsideUnit from the parkedCar
