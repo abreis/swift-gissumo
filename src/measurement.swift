@@ -7,8 +7,8 @@ import Foundation
 // Auxiliary mathematical functions
 func normalCDF(value: Double) -> Double { return 0.5 * erfc(-value * M_SQRT1_2) }
 func inverseNormalCDF(value: Double) -> Double {
-	// Abramowitz and Stegun formula 26.2.23.
-	// The absolute value of the error should be less than 4.5 e-4.
+	// Abramowitz and Stegun formula 26.2.23
+	// The absolute value of the error should be less than 4.5 e-4
 	func RationalApproximation(t: Double) -> Double {
 		let c = [2.515517, 0.802853, 0.010328]
 		let d = [1.432788, 0.189269, 0.001308]

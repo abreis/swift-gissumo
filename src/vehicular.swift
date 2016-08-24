@@ -364,7 +364,7 @@ class City {
 
 	/// Generic conversion routine to create parked cars from vehicles, RSUs from parked cars, etcetera
 	func convertEntity(entity: RoadEntity, to targetType: RoadEntityType) {
-		guard let vGID = entity.gid else {
+		guard let eGID = entity.gid else {
 			print("Error: Tried to convert a RoadEntity with no GID.")
 			exit(EXIT_FAILURE)
 		}
@@ -375,7 +375,7 @@ class City {
 		// From vehicle to...
 		if let vehicle = entity as? Vehicle {
 			// Ensure we're converting a vehicle that's part of the city
-			guard let vIndex = vehicles.indexOf( {$0 === entity} )	else {
+			guard let vIndex = vehicles.indexOf( {$0 === entity} ) else {
 						print("Error: Trying to convert a vehicle not in the city.")
 						exit(EXIT_FAILURE)
 			}
@@ -386,7 +386,7 @@ class City {
 				// Mark the vehicle as inactive
 				vehicle.active = false
 				// Remove the vehicle from GIS to avoid potential ID collisions
-				gis.deletePoint(withGID: vGID)
+				gis.deletePoint(withGID: eGID)
 				// Create a new parked car RoadsideUnit from the Vehicle
 				newEntityGID = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .ParkedCar)
 				// Remove the vehicle from the City
@@ -395,29 +395,48 @@ class City {
 				// Mark the vehicle as inactive
 				vehicle.active = false
 				// Remove the vehicle from GIS to avoid potential ID collisions
-				gis.deletePoint(withGID: vGID)
+				gis.deletePoint(withGID: eGID)
 				// Create a new parked car RoadsideUnit from the Vehicle
 				newEntityGID = addNew(parkedCarWithID: entity.id, geo: entity.geo)
 				// Remove the vehicle from the City
 				vehicles.removeAtIndex(vIndex)
-			case .Vehicle:
-				print("Error: Attempted to convert a Vehicle to a Vehicle again.")
-				exit(EXIT_FAILURE)
 			default:
-				print("Error: Attempted to convert an unknown type of RoadEntity.")
+				print("Error: Invalid entity conversion.")
 				exit(EXIT_FAILURE)
 			}
 		}
 
 		// From parked car to...
-		// if let parkedCar = entity as? ParkedCar {}
+		if let parkedCar = entity as? ParkedCar {
+			// Ensure we're converting a parked car that's part of the city
+			guard let pIndex = parkedCars.indexOf( {$0 === entity} ) else {
+				print("Error: Trying to convert a parked car not in the city.")
+				exit(EXIT_FAILURE)
+			}
+
+			// Perform the requested conversion
+			switch targetType {
+			case .RoadsideUnit:
+				// Mark the parkedCar as inactive
+				parkedCar.active = false
+				// Remove the parkedCar from GIS to avoid potential ID collisions
+				gis.deletePoint(withGID: eGID)
+				// Create a new parked car RoadsideUnit from the parkedCar
+				newEntityGID = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .ParkedCar)
+				// Remove the parkedCar from the City
+				parkedCars.removeAtIndex(pIndex)
+			default:
+				print("Error: Invalid entity conversion.")
+				exit(EXIT_FAILURE)
+			}
+		}
 
 		// From RSU to...
 		// if let roadsideUnit = entity as? RoadsideUnit {}
 
 		// Debug
 		if debug.contains("City.convertEntity()") {
-			print("\(events.now.asSeconds) City.convertEntity():\t".cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", vGID, "to a", targetType, "gid", newEntityGID!)
+			print("\(events.now.asSeconds) City.convertEntity():\t".cyan(), "Converted a", entity.dynamicType , "id", entity.id, "gid", eGID, "to a", targetType, "gid", newEntityGID!)
 		}
 	}
 
