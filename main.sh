@@ -6,7 +6,7 @@ SCRIPTDIR='scripts'
 
 unset REPLY
 echo ''
-for SCRIPTGROUP in $( find ${SCRIPTDIR} -maxdepth 1 -type d ! -path ${SCRIPTDIR} | sed 's!.*/!!' | sort ); do
+for SCRIPTGROUP in $( find ${SCRIPTDIR} -maxdepth 1 -type d ! -path ${SCRIPTDIR} | sed 's!.*/!!' | grep '^[0-9][0-9]' | sort ); do
 
 	while [ -z $REPLY ]; do
 		read -p "Run ${SCRIPTGROUP}? [y/N] " 
