@@ -61,6 +61,25 @@
 			<true/>
 		</dict>
 	</dict>
+	<key>decision</key>
+	<dict>
+		<key>triggerDelay</key>
+		<integer>500</integer>
+		<key>algorithm</key>
+		<dict>
+			<key>inUse</key>
+			<string>CellCoverageEffects</string>
+			<key>CellCoverageEffects</key>
+			<dict>
+				<key>kappa</key>
+				<real>1</real>
+				<key>lambda</key>
+				<real>1</real>
+				<key>mu</key>
+				<real>1</real>
+			</dict>
+		</dict>
+	</dict>
 	<key>gis</key>
 	<dict>
 		<key>host</key>

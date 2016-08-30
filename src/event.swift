@@ -9,6 +9,7 @@ struct SimulationEvent {
 		case Mobility
 		case Network
 		case Statistics
+		case Decision
 	}
 
 	var time: SimulationTime

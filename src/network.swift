@@ -172,6 +172,7 @@ struct Beacon: PayloadConvertible {
 struct CoverageMapRequest: PayloadConvertible {
 	func toPayload() -> Payload { return Payload(type: .CoverageMapRequest, content: "")}
 	init? (fromPayload: Payload) { }
+	init () {}
 }
 
 

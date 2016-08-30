@@ -110,6 +110,9 @@ class City {
 	// Our statistics module
 	let stats: Statistics
 
+	// Our decision module
+	let decision: Decision
+
 	// City bounds
 	var bounds = Square(x: (min: 0, max: 0), y: (min: 0, max: 0))
 	var topLeftCell: (x: Int, y: Int) {
@@ -151,11 +154,12 @@ class City {
 	}
 
 	/// Standard init, provide a database, network and eventlist
-	init(gis ingis: GIS, network innet: Network, eventList inevents: EventList, statistics instats: Statistics) {
+	init(gis ingis: GIS, network innet: Network, eventList inevents: EventList, statistics instats: Statistics, decision indecision: Decision) {
 		network = innet
 		gis = ingis
 		events = inevents
 		stats = instats
+		decision = indecision
 	}
 
 	/// Automatically determine bounds and cell map sizes from FCD data
@@ -278,6 +282,10 @@ class City {
 
 		// Append the new vehicle to the city's vehicle list
 		parkedCars.append(newParkedCar)
+
+		// Schedule a decision trigger event
+		let decisionTriggerEvent = SimulationEvent(time: events.now + decision.triggerDelay, type: .Decision, action: { self.decision.algorithm.trigger(newParkedCar) }, description: "decisionTrigger id\(newParkedCar.id)")
+		events.add(newEvent: decisionTriggerEvent)
 
 		// Debug
 		if debug.contains("City.addNew(parkedCar)") {

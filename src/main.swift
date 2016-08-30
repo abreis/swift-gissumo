@@ -64,10 +64,18 @@ if	let innerBoundsConfig = config["innerBounds"] as? NSDictionary,
 		cityInnerBounds = Square(x: (min: innerXmin, max: innerXmax), y: (min: innerYmin, max: innerYmax))
 }
 
+// Load statistics configuration point
 guard let statisticsConfig = config["stats"] as? NSDictionary else {
 	print("failed", "\nError: Please provide a statistics entry in the configuration.")
 	exit(EXIT_FAILURE)
 }
+
+// Load decision configuration point
+guard let decisionConfig = config["decision"] as? NSDictionary else {
+	print("failed", "\nError: Please provide a decision entry in the configuration.")
+	exit(EXIT_FAILURE)
+}
+
 
 print("okay")
 
@@ -141,9 +149,9 @@ print("\tSaw", buildingCount, "buildings in the database")
 /********************/
 
 
-/* Initialize a new City, plus a new network, a new eventlist, and a new statistics module
+/* Initialize a new City, plus a new network, a new eventlist, a new statistics module, and a new decision module
  */
-var simCity = City(gis: gisdb, network: Network(), eventList: EventList(stopTime: configStopTime), statistics: Statistics(config: statisticsConfig))
+var simCity = City(gis: gisdb, network: Network(), eventList: EventList(stopTime: configStopTime), statistics: Statistics(config: statisticsConfig), decision: Decision(config: decisionConfig))
 
 // Load city characteristics, bounds, cell size from the FCD trips
 simCity.determineBounds(fromFCD: fcdTrips)
