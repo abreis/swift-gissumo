@@ -63,6 +63,23 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 		topLeftCellCoordinate = (x: centerCellCoordinate.x - (size.x-1)/2, y: centerCellCoordinate.y + (size.y-1)/2)
 	}
 
+	/// Initialize with a set of other maps, creating an empty map with appropriate dimensions to contain them
+	init(toContainMaps mapList: CellMap<T>..., withValue val: T) {
+		// Get the topleft cell (lowest xx, highest yy) and bottomright cell
+		guard let firstMap = mapList.first else { print("Error: Empty list of maps provided."); exit(EXIT_FAILURE); }
+		var topLeft = firstMap.topLeftCellCoordinate
+		var bottomRight = (x: topLeft.x + firstMap.size.x, y: topLeft.y - firstMap.size.y)
+		for map in mapList {
+			if map.topLeftCellCoordinate.x < topLeft.x { topLeft.x = map.topLeftCellCoordinate.x }
+			if map.topLeftCellCoordinate.y > topLeft.y { topLeft.y = map.topLeftCellCoordinate.y }
+			if map.topLeftCellCoordinate.x + map.size.x > bottomRight.x { bottomRight.x = map.topLeftCellCoordinate.x + map.size.x }
+			if map.topLeftCellCoordinate.y - map.size.y < bottomRight.y { bottomRight.y = map.topLeftCellCoordinate.y - map.size.y }
+		}
+
+		topLeftCellCoordinate = topLeft
+		size = (bottomRight.x-topLeft.x, topLeft.y-bottomRight.y)
+		cells = Array(count: size.y, repeatedValue: Array(count: size.x, repeatedValue: val))
+	}
 
 	// Computed property implementing CustomStringConvertible
 	var description: String {
