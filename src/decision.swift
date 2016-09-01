@@ -30,13 +30,13 @@ class Decision {
 		case "CellCoverageEffects":
 			guard let cellCoverageEffectsConfig = algoConfig["CellCoverageEffects"] as? NSDictionary,
 					let kappa = cellCoverageEffectsConfig["kappa"] as? Double,
-					let gamma = cellCoverageEffectsConfig["gamma"] as? Double,
+					let lamda = cellCoverageEffectsConfig["lamda"] as? Double,
 					let mu = cellCoverageEffectsConfig["mu"] as? Double
 			else {
 				print("Error: Invalid parameters for CellCoverageEffects algorithm.")
 				exit(EXIT_FAILURE)
 			}
-			algorithm = CellCoverageEffects(κ: kappa, ɣ: gamma, μ: mu)
+			algorithm = CellCoverageEffects(κ: kappa, λ: lamda, μ: mu)
 		default:
 			print("Error: Invalid decision algorithm chosen.")
 			exit(EXIT_FAILURE)
@@ -50,12 +50,12 @@ protocol DecisionAlgorithm {
 }
 
 class CellCoverageEffects: DecisionAlgorithm {
-	let kappa, gamma, mu: Double
+	let kappa, lamda, mu: Double
 	let mapRequestWaitingTime = SimulationTime(seconds: 1)
 
-	init(κ: Double, ɣ: Double, μ: Double) {
+	init(κ: Double, λ: Double, μ: Double) {
 		kappa = κ
-		gamma = ɣ
+		lamda = λ
 		mu = μ
 	}
 
@@ -75,12 +75,65 @@ class CellCoverageEffects: DecisionAlgorithm {
 		pcar.isRequestingMaps = false
 
 		// 2. Run algorithm if at least 1 coverage map was received
-		if pcar.payloadBuffer.filter( {$0.type == .CoverageMap} ).count > 0 {
-//			let localMapOfCoverage = 
-//			let localMapOfSaturation = 
+		let mapPayloadList = pcar.payloadBuffer.filter( {$0.type == .CoverageMap} )
+		if mapPayloadList.count > 0 {
+			// 1. Convert the payloads to actual maps
+			var mapList = [CellMap<Int>]()
+			for mapPayload in mapPayloadList {
+				guard let newMap = CellMap<Int>(fromPayload: mapPayload) else {
+					print("Error: Failed to convert coverage map payload to an actual map.")
+					exit(EXIT_FAILURE)
+				}
+				mapList.append(newMap)
+			}
+
+			// 2. Set up empty maps for neighborhood coverage and saturation
+			// Consider the vehicle's map as well, so these maps can encompass it
+			var extendedMapList = mapList
+			extendedMapList.append(pcar.selfCoverageMap)
+			var localMapOfCoverage = CellMap<Int>(toContainMaps: extendedMapList, withValue: 0)
+			var localMapOfSaturation = CellMap<Int>(toContainMaps: extendedMapList, withValue: 0)
+
+			// 3. Populate maps
+			for map in mapList {
+				localMapOfCoverage.keepBestSignal(fromSignalMap: map)
+				localMapOfSaturation.incrementSaturation(fromSignalMap: map)
+			}
+
+			// 4. Run the algorithm
+			var dNew:	Int = 0
+			var dBoost: Int = 0
+			var dSat:	Int = 0
+
+			// actionRange goes through each cell in the car's self coverage map
+			// These are the only cells where overlap occurs with the neighbors' maps
+			let actionRange = (x: (start: pcar.selfCoverageMap.topLeftCellCoordinate.x,
+									end: pcar.selfCoverageMap.topLeftCellCoordinate.x + pcar.selfCoverageMap.size.x - 1),
+			               y: (start: pcar.selfCoverageMap.topLeftCellCoordinate.y,
+									end: pcar.selfCoverageMap.topLeftCellCoordinate.x + pcar.selfCoverageMap.size.x - 1))
+
+			// Run through actionRange on the SCM, LMC, LMS and update the stats
+			for yy in actionRange.y.start ... actionRange.y.end {
+				for xx in actionRange.x.start ... actionRange.x.end {
+					if pcar.selfCoverageMap[xx,yy] > 0 {
+						if localMapOfCoverage[xx,yy] == 0 {
+							dNew += pcar.selfCoverageMap[xx,yy]
+						} else if localMapOfCoverage[xx,yy] < pcar.selfCoverageMap[xx,yy] {
+							dBoost += (pcar.selfCoverageMap[xx,yy]-localMapOfCoverage[xx,yy])
+						}
+						dSat += localMapOfSaturation[xx,yy]
+					}
+				}
+			}
+
+			// 5. Compute dScore
+			let dScore = kappa*Double(dNew) + lamda*Double(dBoost) - mu*Double(dSat)
+			if dScore <= 0 { return }
+		} else {
+			return
 		}
 
-		// Parked car becomes an RSU
+		// Parked car becomes an RSU (unless we returned earlier)
 		pcar.city.convertEntity(pcar, to: .RoadsideUnit)
 	}
 }

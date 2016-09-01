@@ -64,7 +64,7 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 	}
 
 	/// Initialize with a set of other maps, creating an empty map with appropriate dimensions to contain them
-	init(toContainMaps mapList: CellMap<T>..., withValue val: T) {
+	init(toContainMaps mapList: [CellMap<T>], withValue val: T) {
 		// Get the topleft cell (lowest xx, highest yy) and bottomright cell
 		guard let firstMap = mapList.first else { print("Error: Empty list of maps provided."); exit(EXIT_FAILURE); }
 		var topLeft = firstMap.topLeftCellCoordinate
