@@ -76,8 +76,30 @@ guard let decisionConfig = config["decision"] as? NSDictionary else {
 	exit(EXIT_FAILURE)
 }
 
-
 print("okay")
+
+
+
+/* Initialize PostgreSQL connection
+*/
+print("Initializing GIS connection... ", terminator: ""); fflush(stdout)
+
+guard	let gisConfig = config["gis"],
+	let gisHost = gisConfig["host"] as? String,
+	let gisPort = gisConfig["port"] as? Int,
+	let gisDB = gisConfig["database"] as? String,
+	let gisUser = gisConfig["user"] as? String,
+	let gisPass = gisConfig["password"] as? String
+	else {
+		print("failed", "\nError: Invalid database configuration.")
+		exit(EXIT_FAILURE)
+}
+
+let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
+let gisdb = GIS(parameters: databaseParams)
+let buildingCount = gisdb.countFeatures(withType: .Building)
+print("okay")
+print("\tSaw", buildingCount, "buildings in the database")
 
 
 
@@ -119,28 +141,6 @@ if	let toolsConfig = config["tools"] as? NSDictionary,
 	print("\tBuilt a map of obstructions from \(fcdTrips.count) steps.")
 	exit(EXIT_SUCCESS)
 }
-
-/* Initialize PostgreSQL connection
- */
-print("Initializing GIS connection... ", terminator: ""); fflush(stdout)
-
-guard	let gisConfig = config["gis"],
-		let gisHost = gisConfig["host"] as? String,
-		let gisPort = gisConfig["port"] as? Int,
-		let gisDB = gisConfig["database"] as? String,
-		let gisUser = gisConfig["user"] as? String,
-		let gisPass = gisConfig["password"] as? String
-		else {
-			print("failed", "\nError: Invalid database configuration.")
-			exit(EXIT_FAILURE)
-}
-
-let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
-let gisdb = GIS(parameters: databaseParams)
-let buildingCount = gisdb.countFeatures(withType: .Building)
-print("okay")
-print("\tSaw", buildingCount, "buildings in the database")
-
 
 
 

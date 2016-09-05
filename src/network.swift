@@ -125,7 +125,7 @@ protocol PacketReceiver {
 
 // Entities that implement PayloadReceiver are able to process payloads
 protocol PayloadReceiver {
-	func processPayload(payload: Payload)
+	func processPayload(withinPacket packet: Packet)
 }
 
 
@@ -266,10 +266,23 @@ func portoEmpiricalDataModel(distance: Double, lineOfSight: Bool) -> Double {
 
 // Extend RoadEntity types with the ability to broadcast messages
 extension RoadEntity {
-	func broadcastPacket(packet: Packet) {
-		let neighborGIDarray = city.gis.getFeatureGIDs(inCircleWithRadius: city.network.maxRange, center: geo, featureTypes: .Vehicle, .RoadsideUnit)
+	func broadcastPacket(packet: Packet, toFeatureTypes features: GIS.FeatureType...) {
+		// If no destination is specified, assume ALL
+		var features = features
+		if features.count == 0 {
+			features = [.Vehicle, .RoadsideUnit, .ParkedCar]
+		}
 
-		if let neighborGIDs = neighborGIDarray {
+		// Locate matching neighbor GIDs
+		let neighborGIDarray = city.gis.getFeatureGIDs(inCircleWithRadius: city.network.maxRange, center: geo, featureTypes: features)
+
+		if var neighborGIDs = neighborGIDarray {
+			// Remove ourselves from the list
+			if let selfGID = self.gid,
+				let selfIndex = neighborGIDs.indexOf(selfGID) {
+					neighborGIDs.removeAtIndex(selfIndex)
+			}
+
 			// TODO: Broadcast packets to other vehicles
 			// Necessary for >1 hop transmissions, forwarding geocasts
 
@@ -278,6 +291,14 @@ extension RoadEntity {
 			for neighborRSU in matchingRSUs {
 				// Schedule a receive(packet) event for time=now+transmissionDelay
 				let newReceivePacketEvent = SimulationEvent(time: city.events.now + city.network.messageDelay, type: .Network, action: { neighborRSU.receive(packet) }, description: "RSU \(neighborRSU.id) receive packet \(packet.id) from \(self.id)")
+				city.events.add(newEvent: newReceivePacketEvent)
+			}
+
+			// Send the packet to all neighboring parked cars
+			let matchingParkedCars = city.parkedCars.filter( {neighborGIDs.contains($0.gid!)} )
+			for neighborParkedCar in matchingParkedCars {
+				// Schedule a receive(packet) event for time=now+transmissionDelay
+				let newReceivePacketEvent = SimulationEvent(time: city.events.now + city.network.messageDelay, type: .Network, action: { neighborParkedCar.receive(packet) }, description: "ParkedCar \(neighborParkedCar.id) receive packet \(packet.id) from \(self.id)")
 				city.events.add(newEvent: newReceivePacketEvent)
 			}
 		}
@@ -362,7 +383,7 @@ extension RoadEntity: PacketReceiver {
 		// Entity-specific payload processing
 		// Call the entity's specific payload processing routine
 		if self is PayloadReceiver {
-			(self as! PayloadReceiver).processPayload(packet.payload)
+			(self as! PayloadReceiver).processPayload(withinPacket: packet)
 		}
 	}
 }
@@ -414,22 +435,25 @@ extension Vehicle {
 
 // Extend Fixed Road Entities (e.g. roadside units) with the ability to process payloads
 extension FixedRoadEntity: PayloadReceiver {
-	func processPayload(payload: Payload) {
-		switch payload.type {
+	func processPayload(withinPacket packet: Packet) {
+		switch packet.payload.type {
 		case .Beacon:
 			// RSUs use beacons to construct their coverage maps
-			let receivedBeacon = Beacon(fromPayload: payload)
+			let receivedBeacon = Beacon(fromPayload: packet.payload)
 			trackSignalStrength(fromBeacon: receivedBeacon)
 
 		case .CoverageMapRequest:
-			// TODO: send over the coverage map
-			break
+			// Only RSUs reply to requests for coverage maps
+			if self is RoadsideUnit {
+				let coverageMapPayload = self.selfCoverageMap.toPayload()
+				let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .Unicast(destinationID: packet.l3src), payload: coverageMapPayload)
+				// TODO: we're only sending coverage map replies to parked cars, this might not always be true
+				self.broadcastPacket(coverageMapReplyPacket, toFeatureTypes: .ParkedCar)
+			}
 
 		case .CoverageMap:
-			if isRequestingMaps { payloadBuffer.append(payload) }
-			// TODO process this coverage map
 			// Store the map in a temporary buffer
-			break
+			if isRequestingMaps { payloadBuffer.append(packet.payload) }
 		}
 	}
 }

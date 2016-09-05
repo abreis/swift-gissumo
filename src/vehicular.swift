@@ -427,6 +427,7 @@ class City {
 		else if entity is ParkedCar {
 			switch targetType {
 			case .RoadsideUnit:
+				removeEntity(entity)
 				newEntity = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .ParkedCar)
 				// Copy the coverage map over to the new RSU
 				(newEntity as! RoadsideUnit).selfCoverageMap = (entity as! ParkedCar).selfCoverageMap
@@ -478,8 +479,8 @@ class City {
 	/// Action to perform on vehicles that end their FCD trips
 	func endTripHook(vehicleID v_id: UInt) {
 		// Pick the routine to be ran whenever a vehicle ends its trip here
-		let endTripRoutine = endTripConvertToRSU
-		let routineName = "endTripConvertToRSU" // For debugging, match the name in the previous line
+		let endTripRoutine = endTripConvertToParkedCar
+		let routineName = "endTripConvertToParkedCar" // For debugging, match the name in the previous line
 
 		// Schedule an event right away for the end trip action
 		let endTripEvent = SimulationEvent(time: events.now + events.minTimestep, type: .Mobility, action: { endTripRoutine(vehicleID: v_id) }, description: "\(routineName) id \(v_id)")

@@ -99,7 +99,7 @@ class GIS {
 
 
 	/// Returns the GIDs of features in a specified circle (center+radius)
-	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: FeatureType...) -> [UInt]? {
+	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: [FeatureType]) -> [UInt]? {
 		let wgs84range = range*degreesPerMeter
 		var query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(center.x) + " " + String(center.y) + ")',4326)," + String(wgs84range) + ")"
 
@@ -137,6 +137,11 @@ class GIS {
 		}
 	}
 
+	// Temporary convenience counterpart until splattering is implemented in Swift
+	// Tracked as SR-128 (https://bugs.swift.org/browse/SR-128)
+	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: FeatureType...) -> [UInt]? {
+		return getFeatureGIDs(inCircleWithRadius: range, center: center, featureTypes: featureTypes)
+	}
 
 	/// Returns the distance from a specified GID to a geographic location
 	func getDistance(fromGID gid: UInt, toPoint geo: (x: Double, y: Double)) -> Double {

@@ -1,7 +1,13 @@
 Statistics Hooks
 ================
-This is a list of availabe statistics hooks and what enabling each does.
+This is a list of available statistics hooks and what enabling each does. Three types of hooks are possible, based on their collection times:
 
+- Interval: data is collected periodically as defined by `collectionInterval`.
+- End: data is collected when the simulation ends.
+- Trigger: data is collected when a specific event occurs (e.g.: a car parks).
+
+
+Available hooks:
 
 * activeVehicleCount (interval)
 
@@ -56,6 +62,11 @@ This is a list of availabe statistics hooks and what enabling each does.
 * finalCitySaturationStats (end)
 
   Prints statistics of cell saturation in the city.
+
+
+* detailedDecisions (trigger)
+
+  Prints a detailed log of all RSU election decisions, complete with all coverage maps received, resulting local maps, etcetera.
 
 
 * obstructionMask (end)

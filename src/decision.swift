@@ -36,7 +36,9 @@ class Decision {
 				print("Error: Invalid parameters for CellCoverageEffects algorithm.")
 				exit(EXIT_FAILURE)
 			}
-			algorithm = CellCoverageEffects(κ: kappa, λ: lamda, μ: mu)
+
+			let satThresh = cellCoverageEffectsConfig["saturationThreshold"] as? Int
+			algorithm = CellCoverageEffects(κ: kappa, λ: lamda, μ: mu, saturationThreshold: satThresh)
 		default:
 			print("Error: Invalid decision algorithm chosen.")
 			exit(EXIT_FAILURE)
@@ -51,12 +53,14 @@ protocol DecisionAlgorithm {
 
 class CellCoverageEffects: DecisionAlgorithm {
 	let kappa, lamda, mu: Double
+	var saturationThreshold: Int = -1
 	let mapRequestWaitingTime = SimulationTime(seconds: 1)
 
-	init(κ: Double, λ: Double, μ: Double) {
+	init(κ: Double, λ: Double, μ: Double, saturationThreshold: Int? = nil) {
 		kappa = κ
 		lamda = λ
 		mu = μ
+		if let satThresh = saturationThreshold { self.saturationThreshold = satThresh }
 	}
 
 	func trigger(pcar: ParkedCar) {
@@ -76,6 +80,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 
 		// 2. Run algorithm if at least 1 coverage map was received
 		let mapPayloadList = pcar.payloadBuffer.filter( {$0.type == .CoverageMap} )
+
 		if mapPayloadList.count > 0 {
 			// 1. Convert the payloads to actual maps
 			var mapList = [CellMap<Int>]()
@@ -109,28 +114,65 @@ class CellCoverageEffects: DecisionAlgorithm {
 			// These are the only cells where overlap occurs with the neighbors' maps
 			let actionRange = (x: (start: pcar.selfCoverageMap.topLeftCellCoordinate.x,
 									end: pcar.selfCoverageMap.topLeftCellCoordinate.x + pcar.selfCoverageMap.size.x - 1),
-			               y: (start: pcar.selfCoverageMap.topLeftCellCoordinate.y,
-									end: pcar.selfCoverageMap.topLeftCellCoordinate.x + pcar.selfCoverageMap.size.x - 1))
+			               y: (start: pcar.selfCoverageMap.topLeftCellCoordinate.y - pcar.selfCoverageMap.size.y + 1,
+									end: pcar.selfCoverageMap.topLeftCellCoordinate.y))
 
-			// Run through actionRange on the SCM, LMC, LMS and update the stats
+			// Run through actionRange on the SCM, LMC, LMS and compute the stats
 			for yy in actionRange.y.start ... actionRange.y.end {
 				for xx in actionRange.x.start ... actionRange.x.end {
-					if pcar.selfCoverageMap[xx,yy] > 0 {
-						if localMapOfCoverage[xx,yy] == 0 {
-							dNew += pcar.selfCoverageMap[xx,yy]
-						} else if localMapOfCoverage[xx,yy] < pcar.selfCoverageMap[xx,yy] {
-							dBoost += (pcar.selfCoverageMap[xx,yy]-localMapOfCoverage[xx,yy])
+					let cellLocation = (x: xx, y: yy)
+
+					// If we cover this cell
+					if pcar.selfCoverageMap[cellLocation] > 0 {
+						if localMapOfCoverage[cellLocation] == 0 {
+							// If no-one else covers the cell, add to dNew
+							dNew += pcar.selfCoverageMap[cellLocation]
+						} else if localMapOfCoverage[cellLocation] < pcar.selfCoverageMap[cellLocation] {
+							// If we boost the signal on this cell, add to dBoost
+							dBoost += (pcar.selfCoverageMap[cellLocation]-localMapOfCoverage[cellLocation])
 						}
-						dSat += localMapOfSaturation[xx,yy]
+						// Add to dSat as a function of how much the cell is already saturated, over a specified threshold
+						if localMapOfSaturation[cellLocation] >= saturationThreshold {
+							dSat += localMapOfSaturation[cellLocation] - saturationThreshold + 1
+							// Alternative algorithms:
+							//dSat += 1
+						}
 					}
 				}
 			}
 
 			// 5. Compute dScore
 			let dScore = kappa*Double(dNew) + lamda*Double(dBoost) - mu*Double(dSat)
+
+			// Debug
+			if debug.contains("CellCoverageEffects.decide()"){
+				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():\t".cyan(), "ParkedCar", pcar.id, "mapCount", mapList.count, "dNew", dNew, "dBoost", dBoost, "dSat", dSat, "dScore", dScore ) }
+
+			// Statistics
+			if pcar.city.stats.hooks["detailedDecisions"] != nil {
+				pcar.city.stats.writeToHook("detailedDecisions", data: "\n\n\n=== DECISION ON PARKED CAR ID \(pcar.id) ===\n")
+				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== Received Maps:\n")
+				for map in mapList {
+					pcar.city.stats.writeToHook("detailedDecisions", data: map.description)
+				}
+
+				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== Self Coverage Map\n")
+				pcar.city.stats.writeToHook("detailedDecisions", data: pcar.selfCoverageMap.description)
+
+				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== Local Map of Coverage\n")
+				pcar.city.stats.writeToHook("detailedDecisions", data: localMapOfCoverage.description)
+
+				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== Local Map of Saturation\n")
+				pcar.city.stats.writeToHook("detailedDecisions", data: localMapOfSaturation.description)
+
+				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== dNew \(dNew) dBoost \(dBoost) dSat \(dSat) dScore \(dScore)\n")
+			}
+
 			if dScore <= 0 { return }
 		} else {
-			return
+			// Debug
+			if debug.contains("CellCoverageEffects.decide()"){
+				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():\t".cyan(), "ParkedCar", pcar.id, "mapCount", 0 ) }
 		}
 
 		// Parked car becomes an RSU (unless we returned earlier)

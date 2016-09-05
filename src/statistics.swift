@@ -246,7 +246,7 @@ class Statistics {
 				statData += "\(sigMeasure.count)\(separator)"
 				statData += "\(sigMeasure.mean)\(separator)"
 				statData += "\(sigMeasure.variance)\(separator)"
-				statData += "\(sigMeasure.stdev)"
+				statData += "\(sigMeasure.stdev)\n"
 			} else {
 				// Print an error message if a mask was not provided
 				statData = "Please generate and provide an obstruction mask first."
@@ -280,7 +280,7 @@ class Statistics {
 				statData += "\(satMeasure.count)\(separator)"
 				statData += "\(satMeasure.mean)\(separator)"
 				statData += "\(satMeasure.variance)\(separator)"
-				statData += "\(satMeasure.stdev)"
+				statData += "\(satMeasure.stdev)\n"
 			} else {
 				// Print an error message if a mask was not provided
 				statData = "Please generate and provide an obstruction mask first."
@@ -318,6 +318,10 @@ class Statistics {
 
 		if hooks["finalCityCoverageStats"] != nil {
 			writeToHook("finalCityCoverageStats", data: "count\(separator)mean\(separator)var\(separator)stdev\n")
+		}
+
+		if hooks["finalCitySaturationStats"] != nil {
+			writeToHook("finalCitySaturationStats", data: "count\(separator)mean\(separator)var\(separator)stdev\n")
 		}
 
 		if hooks["cityCoverageEvolution"] != nil {
