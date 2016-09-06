@@ -6,6 +6,10 @@
 	<string>work/fcdout.xml</string>
 	<key>stopTime</key>
 	<integer>300</integer>
+	<key>locationSRID</key>
+	<integer>27492</integer>
+	<key>useHaversine</key>
+	<true/>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
@@ -58,7 +62,7 @@
 			<key>finalCitySaturationStats</key>
 			<true/>
 			<key>detailedDecisions</key>
-			<true/>
+			<false/>
 			<key>obstructionMask</key>
 			<true/>
 		</dict>
@@ -124,7 +128,7 @@
 		<key>FixedRoadEntity.trackSignalStrength()</key>
 		<false/>
 		<key>CellCoverageEffects.decide()</key>
-		<true/>
+		<false/>
 	</dict>
 	<key>tools</key>
 	<dict>

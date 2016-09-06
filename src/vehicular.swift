@@ -199,6 +199,37 @@ class City {
 		} else { return nil }
 	}
 
+	/// Returns the GIDs of features in a specified circle (no database query)
+	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: [GIS.FeatureType]) -> [UInt] {
+		var listOfGIDs = [UInt]()
+
+		if featureTypes.contains(.Vehicle) {
+			for vehicle in vehicles {
+				if gis.getHaversineDistance(fromPoint: center, toPoint: vehicle.geo) < range {
+					listOfGIDs.append(vehicle.gid!)
+				}
+			}
+		}
+
+		if featureTypes.contains(.RoadsideUnit) {
+			for rsu in roadsideUnits {
+				if gis.getHaversineDistance(fromPoint: center, toPoint: rsu.geo) < range {
+					listOfGIDs.append(rsu.gid!)
+				}
+			}
+		}
+
+		if featureTypes.contains(.ParkedCar) {
+			for pcar in parkedCars {
+				if gis.getHaversineDistance(fromPoint: center, toPoint: pcar.geo) < range {
+					listOfGIDs.append(pcar.gid!)
+				}
+			}
+		}
+
+		return listOfGIDs
+	}
+
 
 	/*** GLOBAL CELL MAPS ***/
 	// Get the global map of best signal strength (Global Map of Coverage)

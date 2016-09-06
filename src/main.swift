@@ -89,14 +89,16 @@ guard	let gisConfig = config["gis"],
 	let gisPort = gisConfig["port"] as? Int,
 	let gisDB = gisConfig["database"] as? String,
 	let gisUser = gisConfig["user"] as? String,
-	let gisPass = gisConfig["password"] as? String
+	let gisPass = gisConfig["password"] as? String,
+	let sridConfig = config["locationSRID"] as? UInt,
+	let useHaversineConfig = config["useHaversine"] as? Bool
 	else {
 		print("failed", "\nError: Invalid database configuration.")
 		exit(EXIT_FAILURE)
 }
 
 let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
-let gisdb = GIS(parameters: databaseParams)
+let gisdb = GIS(parameters: databaseParams, srid: sridConfig, inUseHaversine: useHaversineConfig )
 let buildingCount = gisdb.countFeatures(withType: .Building)
 print("okay")
 print("\tSaw", buildingCount, "buildings in the database")

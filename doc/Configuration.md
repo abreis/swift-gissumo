@@ -13,6 +13,16 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
   The time at which the simulation should stop. GISSUMO will also not load FCD data belonging to timesteps that occur after this time.
 
 
+* `locationSRID`
+
+  The best SRID for the area of the city under simulation, for accurate distance calculations. Not required if using the Haversine formula.
+
+
+* `useHaversine`
+
+  Instead of querying the GIS database, use the Haversine formula to approximate the distance between two points. This formula typically shows 0.5% error, but it can reduce the simulation time in ~20%-30%.
+
+
 * `innerBounds` (x(min,max), y(min,max))
 
   An inner square area on which to collect statistics from. This helps the statistics module avoid fringe effects where the data might be suboptimal.

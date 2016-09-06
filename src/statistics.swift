@@ -18,6 +18,7 @@ class Statistics {
 
 	// Data separator (e.g. ',' or ';' for CSV (comma not recommended in Europe, prefer semicolon), '\t' for TSV
 	let separator = "\t"
+	let terminator = "\n"
 
 	// A map showing open and blocked cells
 	// Can be generated with config->tools->buildObstructionMask=true
@@ -243,10 +244,11 @@ class Statistics {
 				}
 
 				// 1.2. Record the desired metrics
-				statData += "\(sigMeasure.count)\(separator)"
-				statData += "\(sigMeasure.mean)\(separator)"
-				statData += "\(sigMeasure.variance)\(separator)"
-				statData += "\(sigMeasure.stdev)\n"
+				statData += "count\(separator)\(sigMeasure.count)\(terminator)"
+				statData += "mean\(separator)\(sigMeasure.mean)\(terminator)"
+				statData += "var\(separator)\(sigMeasure.variance)\(terminator)"
+				statData += "stdev\(separator)\(sigMeasure.stdev)\(terminator)"
+				statData += "samples\(separator)\(sigMeasure.samples.description)\(terminator)"
 			} else {
 				// Print an error message if a mask was not provided
 				statData = "Please generate and provide an obstruction mask first."
@@ -277,10 +279,11 @@ class Statistics {
 				}
 
 				// 1.2. Record the desired metrics
-				statData += "\(satMeasure.count)\(separator)"
-				statData += "\(satMeasure.mean)\(separator)"
-				statData += "\(satMeasure.variance)\(separator)"
-				statData += "\(satMeasure.stdev)\n"
+				statData += "count\(separator)\(satMeasure.count)\(terminator)"
+				statData += "mean\(separator)\(satMeasure.mean)\(terminator)"
+				statData += "var\(separator)\(satMeasure.variance)\(terminator)"
+				statData += "stdev\(separator)\(satMeasure.stdev)\(terminator)"
+				statData += "samples\(separator)\(satMeasure.samples.description)\(terminator)"
 			} else {
 				// Print an error message if a mask was not provided
 				statData = "Please generate and provide an obstruction mask first."
@@ -314,14 +317,6 @@ class Statistics {
 
 		if hooks["beaconCounts"] != nil {
 			writeToHook("beaconCounts", data: "time\(separator)sent\(separator)recv\n")
-		}
-
-		if hooks["finalCityCoverageStats"] != nil {
-			writeToHook("finalCityCoverageStats", data: "count\(separator)mean\(separator)var\(separator)stdev\n")
-		}
-
-		if hooks["finalCitySaturationStats"] != nil {
-			writeToHook("finalCitySaturationStats", data: "count\(separator)mean\(separator)var\(separator)stdev\n")
 		}
 
 		if hooks["cityCoverageEvolution"] != nil {

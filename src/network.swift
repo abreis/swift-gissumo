@@ -274,16 +274,23 @@ extension RoadEntity {
 		}
 
 		// Locate matching neighbor GIDs
-		let neighborGIDarray = city.gis.getFeatureGIDs(inCircleWithRadius: city.network.maxRange, center: geo, featureTypes: features)
+		var neighborGIDs: [UInt]
 
-		if var neighborGIDs = neighborGIDarray {
+		// If we're using the Haversine formula, skip the GIS query and locate neighbors right in the simulator
+		if city.gis.useHaversine {
+			neighborGIDs = city.getFeatureGIDs(inCircleWithRadius: city.network.maxRange, center: geo, featureTypes: features)
+		} else {
+			neighborGIDs = city.gis.getFeatureGIDs(inCircleWithRadius: city.network.maxRange, center: geo, featureTypes: features)
+		}
+
+		if neighborGIDs.count > 0 {
 			// Remove ourselves from the list
 			if let selfGID = self.gid,
 				let selfIndex = neighborGIDs.indexOf(selfGID) {
 					neighborGIDs.removeAtIndex(selfIndex)
 			}
 
-			// TODO: Broadcast packets to other vehicles
+			// TODO: Broadcast packets to other Vehicles
 			// Necessary for >1 hop transmissions, forwarding geocasts
 
 			// Send the packet to all neighboring RSUs

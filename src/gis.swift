@@ -6,14 +6,18 @@ import Foundation
 
 class GIS {
 	let connection: Connection
+	let srid: UInt
+	let useHaversine: Bool
 
-	init(parameters: ConnectionParameters) {
+	init(parameters: ConnectionParameters, srid insrid: UInt, inUseHaversine: Bool = false) {
 		do {
 			connection = try Database.connect(parameters: parameters)
 		} catch {
 			print("\nDatabase connection error.")
 			exit(EXIT_FAILURE)
 		}
+		srid = insrid
+		useHaversine = inUseHaversine
 	}
 
 	// Valid feature types and their 'feattyp' codes.
@@ -99,7 +103,7 @@ class GIS {
 
 
 	/// Returns the GIDs of features in a specified circle (center+radius)
-	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: [FeatureType]) -> [UInt]? {
+	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: [FeatureType]) -> [UInt] {
 		let wgs84range = range*degreesPerMeter
 		var query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(center.x) + " " + String(center.y) + ")',4326)," + String(wgs84range) + ")"
 
@@ -120,14 +124,14 @@ class GIS {
 		query += ")"
 
 		do {
-			let result = try connection.execute(Query(query))
-			if result.numberOfRows == 0 {
-				return nil
-			}
 			var listOfGIDs = [UInt]()
-			for row in result.rows {
-				let gid = row["gid"] as! Int32
-				listOfGIDs.append(UInt(gid))
+
+			let result = try connection.execute(Query(query))
+			if result.numberOfRows > 0 {
+				for row in result.rows {
+					let gid = row["gid"] as! Int32
+					listOfGIDs.append(UInt(gid))
+				}
 			}
 			return listOfGIDs
 		} catch {
@@ -143,35 +147,28 @@ class GIS {
 		return getFeatureGIDs(inCircleWithRadius: range, center: center, featureTypes: featureTypes)
 	}
 
+
 	/// Returns the distance from a specified GID to a geographic location
 	func getDistance(fromGID gid: UInt, toPoint geo: (x: Double, y: Double)) -> Double {
-		// First find the coordinates of the target point
 		let gidCoords: (x: Double, y: Double) = getCoordinates(fromGID: gid)
-
-		// Then calculate the distance between the two points
-		let query: String = "SELECT ST_Distance('POINT(" + String(geo.x) + " " + String(geo.y) + ")', 'POINT(" + String(gidCoords.x) + " " + String(gidCoords.y) + ")')"
-		do {
-			let result = try connection.execute(Query(query))
-			guard	let resultRow = result.rows.first,
-					let distance = resultRow["st_distance"] as? Double
-					else {
-						print("\nInvalid distance returned.")
-						print("Query: " + query)
-						exit(EXIT_FAILURE)
-			}
-			return distance/degreesPerMeter
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
-			exit(EXIT_FAILURE)
-		}
+		return getDistance(fromPoint: gidCoords, toPoint: geo)
 	}
 
 
 	/// Returns the distance between two geographic locations
 	func getDistance(fromPoint geo1: (x: Double, y: Double), toPoint geo2: (x: Double, y: Double)) -> Double {
+		if useHaversine {
+			return getHaversineDistance(fromPoint: geo1, toPoint: geo2)
+		} else {
+			return getGISDistance(fromPoint: geo1, toPoint: geo2)
+		}
+	}
+
+
+	/// Queries the database for the distance between two geographic locations
+	func getGISDistance(fromPoint geo1: (x: Double, y: Double), toPoint geo2: (x: Double, y: Double)) -> Double {
 		// Then calculate the distance between the two points
-		let query: String = "SELECT ST_Distance('POINT(" + String(geo1.x) + " " + String(geo1.y) + ")', 'POINT(" + String(geo2.x) + " " + String(geo2.y) + ")')"
+		let query: String = "SELECT ST_Distance(ST_Transform(ST_GeomFromText('POINT(\(geo1.x) \(geo1.y))',4326),\(srid)),ST_Transform(ST_GeomFromText('POINT(\(geo2.x) \(geo2.y))',4326),\(srid)));"
 
 		do {
 			let result = try connection.execute(Query(query))
@@ -188,6 +185,24 @@ class GIS {
 			print("Query: " + query)
 			exit(EXIT_FAILURE)
 		}
+	}
+
+
+	/// Returns the distance between two geographic locations with the Haversine approximation (no database query)
+	func getHaversineDistance(fromPoint geo1: (x: Double, y: Double), toPoint geo2: (x: Double, y: Double)) -> Double {
+		// Credits to rosettacode.org
+		let lat1rad = geo1.y * M_PI/180
+		let lon1rad = geo1.x * M_PI/180
+		let lat2rad = geo2.y * M_PI/180
+		let lon2rad = geo2.x * M_PI/180
+
+		let dLat = lat2rad - lat1rad
+		let dLon = lon2rad - lon1rad
+		let a = sin(dLat/2) * sin(dLat/2) + sin(dLon/2) * sin(dLon/2) * cos(lat1rad) * cos(lat2rad)
+		let c = 2 * asin(sqrt(a))
+		let R = 6372.8
+
+		return R * c / degreesPerMeter / 100
 	}
 
 
