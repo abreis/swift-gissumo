@@ -18,12 +18,14 @@ if [ -z "$SUMO_HOME" ]; then
 fi
 
 # Generate trips on default net
+# On a smaller map, increasing fringe-factor can cause cars to pool up
+# around city edges and cause congestion
 ${SUMO_HOME}/tools/randomTrips.py \
  --net-file=${NETFILE} \
  --output-trip-file=${TRIPFILE} \
  --begin=0 \
  --end=${STOPTIME} \
- --fringe-factor=2 \
- --min-distance 250.0 \
+ --fringe-factor=1 \
+ --min-distance 100.0 \
  --period=${PERIOD} \
  --seed=${SEED} 
