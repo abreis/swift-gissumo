@@ -1,3 +1,4 @@
+XCRUN = xcrun --toolchain com.apple.dt.toolchain.Swift_2_3
 CC = swiftc
 CMODE = -emit-executable
 OPTIMIZATION = -O -whole-module-optimization
@@ -6,7 +7,7 @@ SEARCHPATH = src/lib/libpq
 OUTPUT = build/gissumo_fast
 
 all:
-	${CC} ${CMODE} ${OPTIMIZATION} ${INPUTS} -I ${SEARCHPATH} -o ${OUTPUT}
+	${XCRUN} ${CC} ${CMODE} ${OPTIMIZATION} ${INPUTS} -I ${SEARCHPATH} -o ${OUTPUT}
 
 clean:
 	rm -rf ${OUTPUT}

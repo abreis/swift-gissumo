@@ -61,5 +61,5 @@ for FCDFILE in $(find ${FCDDIR} -type f -iname '*.fcd.xml'); do
 
 	if [ $SIMSREMAINING -eq 0 ]; then printf "okay\n"; exit 0; fi
 
-	printf "okay, time %ds, %d to go, ETA %dh%02dm%02ds\n" "${SIMULATIONTIME}" "${SIMSREMAINING}" =$((${ESTTIMEREMAINING}/3600)) $((${ESTTIMEREMAINING}%3600/60)) $((${ESTTIMEREMAINING}%60))
+	printf "okay, time %ds, %d to go, ETA %dh%02dm%02ds\n" "${SIMULATIONTIME}" "${SIMSREMAINING}" $((${ESTTIMEREMAINING}/3600)) $((${ESTTIMEREMAINING}%3600/60)) $((${ESTTIMEREMAINING}%60))
 done
