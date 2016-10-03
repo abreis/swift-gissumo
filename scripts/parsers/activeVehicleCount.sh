@@ -1,12 +1,12 @@
 #!/bin/bash
-# This script concatenates the 'samples' entries in finalCityCoverageStats, then plots a histogram of all the data points (which is effectively the mean distribution -- all simulations with the same obstructionMask will report the same number of cells, and binning will even data out).
+# This script runs statistics on the 'count' entries in activeVehicleCount, then plots a line chart of the average number of active vehicles on each time step.
 
 set -e
 
 SIMDIR=simulations
 STATDIR=stats
 VISDIR=plots
-VISNAME=sigCovDistHist
+VISNAME=actVehCnt
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -22,20 +22,14 @@ if [ -d ${VISDIR} ]; then
 fi
 mkdir -p ${VISDIR}
 
-# Aggregate data
-COMPLETESAMPLES=""
+touch statfilelist
 for SIMULATION in $(find ${SIMDIR} -maxdepth 1 -type d ! -path ${SIMDIR}); do
-	SAMPLES=$(cat ${SIMULATION}/${STATDIR}/finalCityCoverageStats.log | grep samples)
-	SAMPLES=${SAMPLES#"samples	["}	# Remove prefix (there's a \t here)
-	SAMPLES=${SAMPLES%"]"}			# Remove suffix
-	COMPLETESAMPLES+=${SAMPLES}
-	COMPLETESAMPLES+=", "
+	printf "${SIMULATION}/stats/activeVehicleCount.log\n" >> statfilelist
 done
-COMPLETESAMPLES=${COMPLETESAMPLES%", "}	# Trim the leading comma
-printf "${COMPLETESAMPLES}\n" > ${VISDIR}/${VISNAME}.col.data
 
-# Row to column
-tr -s ", " "\n" < ${VISDIR}/${VISNAME}.col.data > ${VISDIR}/${VISNAME}.data
+# Call swift interpreter
+swift $(dirname $0)/analyzeColumnByTime.swift statfilelist count > ${VISDIR}/${VISNAME}.data
+rm -rf statfilelist
 
 # Copy over gnuplot scaffold script
 cp $(dirname $0)/${VISNAME}.gnuplot ${VISDIR}/
