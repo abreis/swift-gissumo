@@ -1,0 +1,3 @@
+This folder contains a Dockerfile that creates a container with a PostgreSQL server running multiple GIS-enabled databases (named gis0..gis7), which are preloaded with the building obstruction data for the city of Porto.
+
+GISSUMO simulations modify a database, so by having multiple clones of the GIS database multiple simulations can be executed in parallel, as long as one ensures each active simulation is using a single, specific database.
