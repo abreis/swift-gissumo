@@ -91,11 +91,11 @@
 	<key>gis</key>
 	<dict>
 		<key>host</key>
-		<string>192.168.99.100</string>
+		<string>10.0.0.10</string>
 		<key>port</key>
 		<integer>5432</integer>
 		<key>database</key>
-		<string>gisdb</string>
+		<string>gisdb1</string>
 		<key>user</key>
 		<string>root</string>
 		<key>password</key>
