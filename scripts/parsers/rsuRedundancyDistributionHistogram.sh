@@ -1,12 +1,12 @@
 #!/bin/bash
-# This script concatenates the 'samples' entries in finalCityCoverageStats, then plots a histogram of all the data points (which is effectively the mean distribution -- all simulations with the same obstructionMask will report the same number of cells, and binning will even data out).
+# This script concatenates the 'samples' entries in finalCitySaturationStats, then plots a histogram of all the data points (which is effectively the mean distribution -- all simulations with the same obstructionMask will report the same number of cells, and binning will even data out).
 
 set -e
 
 SIMDIR=simulations
 STATDIR=stats
 VISBASEDIR=plots
-VISNAME=sigCovDistHist
+VISNAME=rsuSatDistHist
 VISDIR=${VISBASEDIR}/${VISNAME}
 
 # Ensure we're working with gnuplot version 5
@@ -30,7 +30,7 @@ mkdir -p ${VISDIR}
 # Aggregate data
 COMPLETESAMPLES=""
 for SIMULATION in $(find ${SIMDIR} -maxdepth 1 -type d ! -path ${SIMDIR}); do
-	SAMPLES=$(cat ${SIMULATION}/${STATDIR}/finalCityCoverageStats.log | grep samples)
+	SAMPLES=$(cat ${SIMULATION}/${STATDIR}/finalCitySaturationStats.log | grep samples)
 	SAMPLES=${SAMPLES#"samples	["}	# Remove prefix (there's a \t here)
 	SAMPLES=${SAMPLES%"]"}			# Remove suffix
 	COMPLETESAMPLES+=${SAMPLES}
