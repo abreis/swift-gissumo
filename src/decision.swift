@@ -168,6 +168,11 @@ class CellCoverageEffects: DecisionAlgorithm {
 				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== dNew \(dNew) dBoost \(dBoost) dSat \(dSat) dScore \(dScore)\n")
 			}
 
+			if pcar.city.stats.hooks["decisionCellCoverageEffects"] != nil {
+				let separator = pcar.city.stats.separator
+				pcar.city.stats.writeToHook("decisionCellCoverageEffects", data: "\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(dNew)\(separator)\(dBoost)\(separator)\(dSat)\(separator)\(dScore)\(separator)\(kappa)\(separator)\(lamda)\(separator)\(mu)\n")
+			}
+
 			if dScore <= 0 { return }
 		} else {
 			// Debug

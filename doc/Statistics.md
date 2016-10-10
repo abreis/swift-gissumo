@@ -74,3 +74,6 @@ Available hooks:
   Prints the map of obstructions being used for statistics, after cropping.
 
 
+* decisionCellCoverageEffects (trigger)
+
+  Prints the intermediate and final metrics used to compute the decision score when the CellCoverageEffects decision algorithm is selected.
