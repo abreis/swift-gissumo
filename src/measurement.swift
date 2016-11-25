@@ -5,11 +5,11 @@
 import Foundation
 
 // Auxiliary mathematical functions
-func normalCDF(value: Double) -> Double { return 0.5 * erfc(-value * M_SQRT1_2) }
-func inverseNormalCDF(value: Double) -> Double {
+func normalCDF(_ value: Double) -> Double { return 0.5 * erfc(-value * M_SQRT1_2) }
+func inverseNormalCDF(_ value: Double) -> Double {
 	// Abramowitz and Stegun formula 26.2.23
 	// The absolute value of the error should be less than 4.5 e-4
-	func RationalApproximation(t: Double) -> Double {
+	func RationalApproximation(_ t: Double) -> Double {
 		let c = [2.515517, 0.802853, 0.010328]
 		let d = [1.432788, 0.189269, 0.001308]
 		return t - ((c[2]*t + c[1])*t + c[0]) /
@@ -23,14 +23,14 @@ func inverseNormalCDF(value: Double) -> Double {
 // A measurement object: load data into 'samples' and all metrics are obtained as computed properties
 struct Measurement {
 	var samples = [Double]()
-	mutating func add(point: Double) { samples.append(point) }
+	mutating func add(_ point: Double) { samples.append(point) }
 
 	var count: Double { return Double(samples.count) }
-	var sum: Double { return samples.reduce(0, combine:+) }
+	var sum: Double { return samples.reduce(0, +) }
 	var mean: Double { return sum/count	}
 
 	// This returns the maximum likelihood estimator(over N), not the minimum variance unbiased estimator (over N-1)
-	var variance: Double { return samples.reduce(0, combine: {$0 + pow($1-mean,2)} )/count }
+	var variance: Double { return samples.reduce(0, {$0 + pow($1-mean,2)} )/count }
 	var stdev: Double { return sqrt(variance) }
 
 	// Specify the desired confidence level (1-significance) before requesting the intervals

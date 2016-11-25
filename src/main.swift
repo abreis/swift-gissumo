@@ -12,7 +12,7 @@ import Foundation
 
 /* Process command line options
  */
-guard Process.arguments.count == 2 && Process.arguments[1].hasSuffix(".plist") else {
+guard CommandLine.arguments.count == 2 && CommandLine.arguments[1].hasSuffix(".plist") else {
 	print("ERROR: Please supply a .plist configuration file.")
 	exit(EXIT_FAILURE)
 }
@@ -22,16 +22,20 @@ guard Process.arguments.count == 2 && Process.arguments[1].hasSuffix(".plist") e
 /* Load and validate configuration file
  */
 print("Reading configuration file... ", terminator: ""); fflush(stdout)
-
-let configFileURL = NSURL.fileURLWithPath(Process.arguments[1])
-var configFileError : NSError?
-guard configFileURL.checkResourceIsReachableAndReturnError(&configFileError) else {
-	print("failed\n", configFileError)
+let configFileURL = URL(fileURLWithPath: CommandLine.arguments[1])
+do {
+	guard try configFileURL.checkResourceIsReachable() else {
+		print("failed\n", "\nError: Configuration file not found.")
+		exit(EXIT_FAILURE)
+	}
+} catch {
+	print("failed\n", error)
 	exit(EXIT_FAILURE)
 }
 
+
 // Load plist into a configuration dictionary array
-guard let config = NSDictionary(contentsOfURL: configFileURL) else {
+guard let config = NSDictionary(contentsOf: configFileURL) else {
 	print("failed", "\nError: Invalid configuration file format.")
 	exit(EXIT_FAILURE)
 }
@@ -46,8 +50,8 @@ guard let configStopTime = config["stopTime"] as? Double else {
 var debug = [String]()
 if let debugConfig = config["debug"] as? NSDictionary {
 	for element in debugConfig {
-		if let enabled = element.value as? Bool where enabled == true {
-			debug.append(String(element.key))
+		if let enabled = element.value as? Bool, enabled == true {
+			debug.append(String(describing: element.key))
 		}
 	}
 }
@@ -84,22 +88,23 @@ print("okay")
 */
 print("Initializing GIS connection... ", terminator: ""); fflush(stdout)
 
-guard	let gisConfig = config["gis"],
-	let gisHost = gisConfig["host"] as? String,
-	let gisPort = gisConfig["port"] as? Int,
-	let gisDB = gisConfig["database"] as? String,
-	let gisUser = gisConfig["user"] as? String,
-	let gisPass = gisConfig["password"] as? String,
-	let sridConfig = config["locationSRID"] as? UInt,
-	let useHaversineConfig = config["useHaversine"] as? Bool
+guard	let gisConfig = config["gis"] as? NSDictionary,
+		let gisHost = gisConfig["host"] as? String,
+		let gisPort = gisConfig["port"] as? Int,
+		let gisDB = gisConfig["database"] as? String,
+		let gisUser = gisConfig["user"] as? String,
+		let gisPass = gisConfig["password"] as? String,
+		let sridConfig = config["locationSRID"] as? UInt,
+		let useHaversineConfig = config["useHaversine"] as? Bool
 	else {
 		print("failed", "\nError: Invalid database configuration.")
 		exit(EXIT_FAILURE)
 }
 
-let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
+//let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
+let databaseParams = "host=\(gisHost) port=\(String(gisPort)) dbname=\(gisDB) user=\(gisUser) password=\(gisPass)"
 let gisdb = GIS(parameters: databaseParams, srid: sridConfig, inUseHaversine: useHaversineConfig )
-let buildingCount = gisdb.countFeatures(withType: .Building)
+let buildingCount = gisdb.countFeatures(withType: .building)
 print("okay")
 print("\tSaw", buildingCount, "buildings in the database")
 
@@ -129,8 +134,7 @@ print("\tLoaded", fcdTrips.count, "timesteps from data file")
 /* To build an obstruction cell mask, jump here.
  */
 if	let toolsConfig = config["tools"] as? NSDictionary,
-	let buildMask = toolsConfig["buildObstructionMask"] as? Bool
-	where buildMask == true
+	let buildMask = toolsConfig["buildObstructionMask"] as? Bool, buildMask == true
 {
 	print("Building obstruction mask... ", terminator: ""); fflush(stdout)
 	do {
@@ -163,9 +167,9 @@ simCity.innerBounds = cityInnerBounds
 
 // Clear all points from the database
 print("Clearing old features from GIS... ", terminator: ""); fflush(stdout)
-simCity.gis.clearFeatures(withType: .Vehicle)
-simCity.gis.clearFeatures(withType: .RoadsideUnit)
-simCity.gis.clearFeatures(withType: .ParkedCar)
+simCity.gis.clearFeatures(withType: .vehicle)
+simCity.gis.clearFeatures(withType: .roadsideUnit)
+simCity.gis.clearFeatures(withType: .parkedCar)
 print("okay")
 
 // Add statistics collection events to the eventlist

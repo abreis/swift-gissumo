@@ -26,7 +26,7 @@ extension Int: InitializableWithString {  init?(string: String) { self.init(stri
 extension Double: InitializableWithString {  init?(string: String) { self.init(string) } }
 extension Character: InitializableWithString {  init?(string: String) { self.init(string) } }
 
-struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: CustomStringConvertible {
+struct CellMap<T>: CustomStringConvertible where T:InitializableWithString, T:Comparable, T:Equatable {
 	var cells: [[T]]
 	var flatCells: [T] { return cells.flatMap{ $0 } }
 	var size: (x: Int, y: Int)
@@ -45,7 +45,7 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 	/// Initialize with a geographic pair of a coordinate in the top-left cell
 	init(ofSize mSize:(x: Int, y: Int), withValue val: T, geographicTopLeft topLeft: (x: Double, y: Double)) {
 		size = mSize
-		cells = Array(count: size.y, repeatedValue: Array(count: size.x, repeatedValue: val))
+		cells = Array(repeating: Array(repeating: val, count: size.x), count: size.y)
 		topLeftCellCoordinate = (x: Int(floor(topLeft.x * 3600)), y: Int(floor(topLeft.y * 3600)))
 	}
 
@@ -57,7 +57,7 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 		}
 
 		size = mSize
-		cells = Array(count: size.y, repeatedValue: Array(count: size.x, repeatedValue: val))
+		cells = Array(repeating: Array(repeating: val, count: size.x), count: size.y)
 
 		let centerCellCoordinate = (x: Int(floor(center.x * 3600)), y: Int(floor(center.y * 3600)) )
 		topLeftCellCoordinate = (x: centerCellCoordinate.x - (size.x-1)/2, y: centerCellCoordinate.y + (size.y-1)/2)
@@ -78,7 +78,7 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 
 		topLeftCellCoordinate = topLeft
 		size = (bottomRight.x-topLeft.x, topLeft.y-bottomRight.y)
-		cells = Array(count: size.y, repeatedValue: Array(count: size.x, repeatedValue: val))
+		cells = Array(repeating: Array(repeating: val, count: size.x), count: size.y)
 	}
 
 	// Computed property implementing CustomStringConvertible
@@ -90,7 +90,7 @@ struct CellMap<T where T:InitializableWithString, T:Comparable, T:Equatable>: Cu
 		description += "tlc" + String(topLeftCellCoordinate.x) + ";" + String(topLeftCellCoordinate.y) + "\n"
 		for row in cells {
 			for element in row {
-				let stringElement = String(element)
+				let stringElement = String(describing: element)
 				description += stringElement
 			}
 			description += "\n"
@@ -209,7 +209,7 @@ extension CellMap {
 /* Extend maps of signal coverage (T:Int) with the ability to overlap other maps on them
  * and keep the max(lhs(i,j), rhs(i,j)), i.e., the best signal strength available.
  */
-extension CellMap where T:IntegerArithmeticType, T:SignedIntegerType {
+extension CellMap where T:IntegerArithmetic, T:SignedInteger {
 	mutating func keepBestSignal(fromSignalMap inMap: CellMap<T>) {
 		// Get the intersection range between the two maps
 		guard let bounds = self.getOverlapBounds(withMap: inMap) else {
@@ -232,7 +232,7 @@ extension CellMap where T:IntegerArithmeticType, T:SignedIntegerType {
 /* Extend maps of RSU saturation (Int) with the ability to add a signal coverage map
  * and increment the cells that are covered by that map ( rhs(i,j)>0 ? lhs(i,j)+=1 ) .
  */
-extension CellMap where T:IntegerArithmeticType, T:SignedIntegerType {
+extension CellMap where T:IntegerArithmetic, T:SignedInteger {
 	mutating func incrementSaturation(fromSignalMap inMap: CellMap<T>) {
 		// Get the intersection range between the two maps
 		guard let bounds = self.getOverlapBounds(withMap: inMap) else {

@@ -30,32 +30,32 @@ class FCDTimestep {
  * - See if file exists
  * - Parse XML
  */
-enum FloatingCarDataError: ErrorType, CustomStringConvertible{
-	case FileError
-	case UnableToParse
-	case InvalidTimestamp
-	case FailedConversion
+enum FloatingCarDataError: Error, CustomStringConvertible{
+	case fileError
+	case unableToParse
+	case invalidTimestamp
+	case failedConversion
 
 	var description: String {
 		switch self {
-		case .FileError: return "Unable to read data file."
-		case .UnableToParse: return "Unable to parse XML data from file."
-		case .InvalidTimestamp: return "Invalid timestep entry."
-		case .FailedConversion:	return "Unable to convert vehicle properties."
+		case .fileError: return "Unable to read data file."
+		case .unableToParse: return "Unable to parse XML data from file."
+		case .invalidTimestamp: return "Invalid timestep entry."
+		case .failedConversion:	return "Unable to convert vehicle properties."
 		}
 	}
 }
 
 func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Double) throws -> [FCDTimestep] {
 	// See if the file exists
-	let fcdFileURL = NSURL.fileURLWithPath(fcdFile)
-	guard fcdFileURL.checkResourceIsReachableAndReturnError(nil) else {
-		throw FloatingCarDataError.FileError
+	let fcdFileURL = URL(fileURLWithPath: fcdFile)
+	guard (fcdFileURL as NSURL).checkResourceIsReachableAndReturnError(nil) else {
+		throw FloatingCarDataError.fileError
 	}
 
 	// Parse XML Floating Car Data
-	guard let fcdData = NSData(contentsOfURL: fcdFileURL) else {
-			throw FloatingCarDataError.UnableToParse
+	guard let fcdData = try? Data(contentsOf: fcdFileURL) else {
+			throw FloatingCarDataError.unableToParse
 	}
 	let fcdXML = SWXMLHash.parse(fcdData)
 
@@ -63,10 +63,10 @@ func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Doub
 	var fcdTrips = [FCDTimestep]()
 	timestepLoop: for timestep in fcdXML["fcd-export"]["timestep"] {
 		guard let timestepElement = timestep.element,
-			let s_time = timestepElement.attributes["time"],
+			let s_time = timestepElement.attribute(by: "time")?.text,
 			let timestepTime = Double(s_time)
 			else {
-				throw FloatingCarDataError.InvalidTimestamp
+				throw FloatingCarDataError.invalidTimestamp
 		}
 
 		// Don't load timesteps that occur later than the simulation stopTime
@@ -75,16 +75,16 @@ func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Doub
 		var timestepVehicles = [FCDVehicle]()
 		for vehicle in timestep["vehicle"] {
 			guard let vehicleElement = vehicle.element,
-				let s_id = vehicleElement.attributes["id"],
-				let s_xgeo = vehicleElement.attributes["x"],
-				let s_ygeo = vehicleElement.attributes["y"],
-				let s_speed = vehicleElement.attributes["speed"],
+				let s_id = vehicleElement.attribute(by: "id")?.text,
+				let s_xgeo = vehicleElement.attribute(by: "x")?.text,
+				let s_ygeo = vehicleElement.attribute(by: "y")?.text,
+				let s_speed = vehicleElement.attribute(by: "speed")?.text,
 				let v_id = UInt(s_id),
 				let v_xgeo = Double(s_xgeo),
 				let v_ygeo = Double(s_ygeo),
 				let v_speed = Double(s_speed)
 				else {
-					throw FloatingCarDataError.FailedConversion
+					throw FloatingCarDataError.failedConversion
 			}
 			timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo), speed: v_speed) )
 		}

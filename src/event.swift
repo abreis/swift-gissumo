@@ -6,10 +6,10 @@ import Foundation
 
 struct SimulationEvent {
 	enum EventType {
-		case Mobility
-		case Network
-		case Statistics
-		case Decision
+		case mobility
+		case network
+		case statistics
+		case decision
 	}
 
 	var time: SimulationTime
@@ -19,7 +19,7 @@ struct SimulationEvent {
 }
 
 
-struct SimulationTime: Equatable, Comparable, Hashable, FloatLiteralConvertible, CustomStringConvertible {
+struct SimulationTime: Equatable, Comparable, Hashable, ExpressibleByFloatLiteral, CustomStringConvertible {
 	var nanoseconds: Int
 	// Standard init
 	init() { nanoseconds = 0 }
@@ -48,7 +48,7 @@ func <(lhs: SimulationTime, rhs: SimulationTime) -> Bool { return lhs.nanosecond
 // Overload operatos +, -, +=
 func +(left: SimulationTime, right: SimulationTime) -> SimulationTime { return SimulationTime(nanoseconds: left.nanoseconds+right.nanoseconds) }
 func -(left: SimulationTime, right: SimulationTime) -> SimulationTime { return SimulationTime(nanoseconds: left.nanoseconds-right.nanoseconds) }
-func +=(inout left: SimulationTime, right: SimulationTime) { left = left + right }
+func +=(left: inout SimulationTime, right: SimulationTime) { left = left + right }
 
 class EventList {
 	let minTimestep = SimulationTime(microseconds: 1)
@@ -74,12 +74,12 @@ class EventList {
 	}
 
 	// Add a new event, keeping the event list sorted
-	func add(newEvent newEvent: SimulationEvent) {
+	func add(newEvent: SimulationEvent) {
 		orderedBisectAdd(newEvent: newEvent)
 	}
 
 	// A bisection-based ordered-insertion algorithm
-	func orderedBisectAdd(newEvent newEvent: SimulationEvent) {
+	func orderedBisectAdd(newEvent: SimulationEvent) {
 		var insertionIndex: Int = 0
 
 		// Make event mutable
@@ -122,7 +122,7 @@ class EventList {
 		}
 
 		// Now insert the new event at the correct position
-		list.insert(newEvent, atIndex: insertionIndex)
+		list.insert(newEvent, at: insertionIndex)
 
 		// Debug
 		if debug.contains("EventList.add()") {
@@ -132,7 +132,7 @@ class EventList {
 
 	// A safe version of ordered event insertion
 	// Test new ordered insertion routines against this one
-	func reverseIteratorAdd(newEvent newEvent: SimulationEvent) {
+	func reverseIteratorAdd(newEvent: SimulationEvent) {
 		var insertionIndex: Int = 0
 
 		// Make event mutable
@@ -144,7 +144,7 @@ class EventList {
 			* likely to be scheduled for the end of the simulation, we run
 			* through the eventlist in reverse order.
 			*/
-			forevent: for (pos, iteratorEvent) in list.enumerate().reverse() {
+			forevent: for (pos, iteratorEvent) in list.enumerated().reversed() {
 				insertionIndex = pos
 				if iteratorEvent.time < newEvent.time {
 					insertionIndex += 1
@@ -162,7 +162,7 @@ class EventList {
 		}
 
 		// Now insert the new event at the correct position
-		list.insert(newEvent, atIndex: insertionIndex)
+		list.insert(newEvent, at: insertionIndex)
 
 		// Debug
 		if debug.contains("EventList.add()") {
@@ -181,7 +181,7 @@ class EventList {
 	}
 
 	// Process mobility timesteps, adding events to create, update and remove vehicles
-	func scheduleMobilityEvents(inout fromFCD fcdTimesteps: [FCDTimestep], city: City) {
+	func scheduleMobilityEvents(fromFCD fcdTimesteps: inout [FCDTimestep], city: City) {
 		// A temporary array to store vehicles that will be active
 		var cityVehicleIDs = Set<UInt>()
 
@@ -194,9 +194,9 @@ class EventList {
 			let fcdVehicleIDs = Set<UInt>( timestep.vehicles.map({$0.id}) )
 
 			// Through set relations we can now get the IDs of all new, existing and removed vehicles
-			let newVehicleIDs = fcdVehicleIDs.subtract(cityVehicleIDs)
-			let existingVehicleIDs = fcdVehicleIDs.intersect(cityVehicleIDs)
-			let missingVehicleIDs = cityVehicleIDs.subtract(fcdVehicleIDs)
+			let newVehicleIDs = fcdVehicleIDs.subtracting(cityVehicleIDs)
+			let existingVehicleIDs = fcdVehicleIDs.intersection(cityVehicleIDs)
+			let missingVehicleIDs = cityVehicleIDs.subtracting(fcdVehicleIDs)
 
 			// Debug
 			if debug.contains("EventList.scheduleMobilityEvents()"){
@@ -209,31 +209,31 @@ class EventList {
 			}
 
 			// Insert and remove vehicles into our temporary array
-			cityVehicleIDs.unionInPlace(newVehicleIDs)
-			cityVehicleIDs.subtractInPlace(missingVehicleIDs)
+			cityVehicleIDs.formUnion(newVehicleIDs)
+			cityVehicleIDs.subtract(missingVehicleIDs)
 
 			// Schedule events to create new vehicles
 			for newFCDvehicleID in newVehicleIDs {
-				let newFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == newFCDvehicleID} )! ]
+				let newFCDvehicle = timestep.vehicles[ timestep.vehicles.index( where: {$0.id == newFCDvehicleID} )! ]
 				// (note: the IDs came from timestep.vehicles, so an .indexOf on the array can be force-unwrapped safely)
 
-				let newVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.addNew(vehicleWithID: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
+				let newVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {_ = city.addNew(vehicleWithID: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
 
 				add(newEvent: newVehicleEvent)
 			}
 
 			// Schedule events to update existing vehicles
 			for existingFDCvehicleID in existingVehicleIDs {
-				let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.indexOf( {$0.id == existingFDCvehicleID} )! ]
+				let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.index( where: {$0.id == existingFDCvehicleID} )! ]
 
-				let updateVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.updateLocation(entityType: .Vehicle, id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
+				let updateVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {city.updateLocation(entityType: .vehicle, id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
 
 				add(newEvent: updateVehicleEvent)
 			}
 
 			// Schedule events to act on vehicles ending their trips
 			for missingFDCvehicleID in missingVehicleIDs {
-				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .Mobility, action: {city.endTripHook(vehicleID: missingFDCvehicleID)}, description: "endTripHook vehicle \(missingFDCvehicleID)")
+				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {city.endTripHook(vehicleID: missingFDCvehicleID)}, description: "endTripHook vehicle \(missingFDCvehicleID)")
 
 				add(newEvent: endTripEvent)
 			}

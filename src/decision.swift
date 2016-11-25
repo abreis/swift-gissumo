@@ -48,7 +48,7 @@ class Decision {
 
 // A decision algorithm must have a trigger to be called from the vehicle
 protocol DecisionAlgorithm {
-	func trigger(pcar: ParkedCar)
+	func trigger(_ pcar: ParkedCar)
 }
 
 class CellCoverageEffects: DecisionAlgorithm {
@@ -63,23 +63,23 @@ class CellCoverageEffects: DecisionAlgorithm {
 		if let satThresh = saturationThreshold { self.saturationThreshold = satThresh }
 	}
 
-	func trigger(pcar: ParkedCar) {
+	func trigger(_ pcar: ParkedCar) {
 		// 1. Send a request for neighbor coverage maps
 		pcar.isRequestingMaps = true
-		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: .Broadcast(hopLimit: 1), payload: Payload(type: .CoverageMapRequest, content: CoverageMapRequest().toPayload().content) )
+		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: .broadcast(hopLimit: 1), payload: Payload(type: .coverageMapRequest, content: CoverageMapRequest().toPayload().content) )
 		pcar.broadcastPacket(covMapRequestPacket)
 
 		// 2. Schedule an event to process the coverage maps and make the decision
-		let decisionEvent = SimulationEvent(time: pcar.city.events.now + mapRequestWaitingTime, type: .Decision, action: { self.decide(pcar)}, description: "decide id \(pcar.id)")
+		let decisionEvent = SimulationEvent(time: pcar.city.events.now + mapRequestWaitingTime, type: .decision, action: { self.decide(pcar)}, description: "decide id \(pcar.id)")
 		pcar.city.events.add(newEvent: decisionEvent)
 	}
 
-	func decide(pcar: ParkedCar) {
+	func decide(_ pcar: ParkedCar) {
 		// 1. Stop receiving maps
 		pcar.isRequestingMaps = false
 
 		// 2. Run algorithm if at least 1 coverage map was received
-		let mapPayloadList = pcar.payloadBuffer.filter( {$0.type == .CoverageMap} )
+		let mapPayloadList = pcar.payloadBuffer.filter( {$0.type == .coverageMap} )
 
 		if mapPayloadList.count > 0 {
 			// 1. Convert the payloads to actual maps
@@ -181,6 +181,6 @@ class CellCoverageEffects: DecisionAlgorithm {
 		}
 
 		// Parked car becomes an RSU (unless we returned earlier)
-		pcar.city.convertEntity(pcar, to: .RoadsideUnit)
+		pcar.city.convertEntity(pcar, to: .roadsideUnit)
 	}
 }
