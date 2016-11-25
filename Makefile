@@ -1,4 +1,4 @@
-XCRUN = xcrun --toolchain com.apple.dt.toolchain.Swift_2_3
+XCRUN = xcrun -sdk macosx --toolchain com.apple.dt.toolchain.Swift_2_3
 CC = swiftc
 CMODE = -emit-executable
 OPTIMIZATION = -O -whole-module-optimization
