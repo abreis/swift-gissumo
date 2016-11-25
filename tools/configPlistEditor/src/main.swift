@@ -5,32 +5,36 @@ import Foundation
 
 /* Process command line options
 */
-guard Process.arguments.count == 4 && Process.arguments[1].hasSuffix(".plist") else {
+guard CommandLine.arguments.count == 4 && CommandLine.arguments[1].hasSuffix(".plist") else {
 	print("ERROR: Please supply a .plist configuration file, an entry to edit, and a new value for the entry.")
 	exit(EXIT_FAILURE)
 }
 
-let configFileURL = NSURL.fileURLWithPath(Process.arguments[1])
-var configFileError : NSError?
-guard configFileURL.checkResourceIsReachableAndReturnError(&configFileError) else {
-	print("Error: Can't open file.\n", configFileError)
+let configFileURL = URL(fileURLWithPath: CommandLine.arguments[1])
+do {
+	guard try configFileURL.checkResourceIsReachable() else {
+		print("Error: Configuration file not found.")
+		exit(EXIT_FAILURE)
+	}
+} catch {
+	print("Error: Can't open file.", error)
 	exit(EXIT_FAILURE)
 }
 
 // Load plist into a configuration dictionary array
-guard var config = NSMutableDictionary(contentsOfURL: configFileURL) else {
-	print("failed", "\nError: Invalid configuration file format.")
+guard var config = NSMutableDictionary(contentsOf: configFileURL) else {
+	print("Error: Invalid configuration file format.")
 	exit(EXIT_FAILURE)
 }
 
 
-let newValue = Process.arguments[3]
-let key = Process.arguments[2]
+let newValue = CommandLine.arguments[3]
+let key = CommandLine.arguments[2]
 
 // Try to match the input to a specific type supported by the Property List
-if newValue.caseInsensitiveCompare("false") == .OrderedSame {
+if newValue.caseInsensitiveCompare("false") == .orderedSame {
 	config.setValue(false, forKeyPath: key)
-} else if newValue.caseInsensitiveCompare("true") == .OrderedSame {
+} else if newValue.caseInsensitiveCompare("true") == .orderedSame {
 	config.setValue(true, forKeyPath: key)
 } else if let integerValue = Int(newValue) {
 	config.setValue(integerValue, forKeyPath: key)
@@ -41,4 +45,4 @@ if newValue.caseInsensitiveCompare("false") == .OrderedSame {
 }
 
 // Write back to the same config file
-config.writeToURL(configFileURL, atomically: true)
+config.write(to: configFileURL, atomically: true)
