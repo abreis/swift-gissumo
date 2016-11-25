@@ -45,9 +45,9 @@ func buildObstructionMask(fromTrips trips: [FCDTimestep]) throws {
 	}
 
 	// Write the map as a Payload.content to a file
-	let mapURL = NSURL.fileURLWithPath("obstructionMask.payload")
+	let mapURL = URL(fileURLWithPath: "obstructionMask.payload")
 	do {
-		try blockageMap.toPayload().content.writeToURL(mapURL, atomically: true, encoding: NSUTF8StringEncoding)
+		try blockageMap.toPayload().content.write(to: mapURL, atomically: true, encoding: String.Encoding.utf8)
 	} catch {
 		throw error
 	}

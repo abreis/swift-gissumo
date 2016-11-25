@@ -42,8 +42,8 @@ class Statistics {
 		// Load hook list and ready statistics collection point
 		if let hookList = config["hooks"] as? NSDictionary {
 			for element in hookList {
-				if let enabled = element.value as? Bool where enabled == true {
-					let hook = String(element.key)
+				if let enabled = element.value as? Bool, enabled == true {
+					let hook = String(describing: element.key)
 					hooks[hook] = ""
 				}
 			}
@@ -51,10 +51,10 @@ class Statistics {
 
 		// Load obstruction mask if given
 		if let maskFileConfig = config["obstructionMaskFile"] as? String {
-			let maskFileURL = NSURL.fileURLWithPath(maskFileConfig)
+			let maskFileURL = URL(fileURLWithPath: maskFileConfig)
 			do {
-				let maskAsString = try String(contentsOfURL: maskFileURL)
-				let maskAsPayload = Payload(type: .CoverageMap, content: maskAsString)
+				let maskAsString = try String(contentsOf: maskFileURL)
+				let maskAsPayload = Payload(type: .coverageMap, content: maskAsString)
 				obstructionMask = CellMap<Character>(fromPayload: maskAsPayload)
 			} catch {
 				obstructionMask = nil
@@ -71,10 +71,10 @@ class Statistics {
 	// Write all collected statistical data, overwriting existing files
 	func writeStatisticsToFiles() {
 		// Try to create the statistics folder if it doesn't exist
-		let folderURL = NSURL.fileURLWithPath(folder)
+		let folderURL = URL(fileURLWithPath: folder)
 		do {
-			if !folderURL.checkResourceIsReachableAndReturnError(nil) {
-				try NSFileManager.defaultManager().createDirectoryAtURL(folderURL, withIntermediateDirectories: true, attributes: nil)
+			if !(folderURL as NSURL).checkResourceIsReachableAndReturnError(nil) {
+				try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true, attributes: nil)
 			}
 		} catch let error as NSError {
 			print("Error: Failed to create collection directory", folderURL)
@@ -84,9 +84,9 @@ class Statistics {
 
 		// Write all collected data
 		for (statName, statData) in hooks {
-			let hookURL = NSURL.fileURLWithPath("\(folder)\(statName).log")
+			let hookURL = URL(fileURLWithPath: "\(folder)\(statName).log")
 			do {
-				try statData.writeToURL(hookURL, atomically: true, encoding: NSUTF8StringEncoding)
+				try statData.write(to: hookURL, atomically: true, encoding: String.Encoding.utf8)
 			} catch {
 				print("Error: Failed to write statistical data to", hookURL)
 				print(error)
@@ -96,7 +96,7 @@ class Statistics {
 	}
 
 	// Add data to a specific statistic
-	func writeToHook(name: String, data: String) {
+	func writeToHook(_ name: String, data: String) {
 		guard hooks[name] != nil else {
 			print("Error: Tried to write to an undeclared stat hook.")
 			exit(EXIT_FAILURE)
@@ -112,7 +112,7 @@ class Statistics {
 		var scheduledCollectionTime = startTime
 		repeat {
 			// Create and schedule an event
-			let scheduledCollectionEvent = SimulationEvent(time: scheduledCollectionTime, type: .Statistics, action: { city.stats.collectStatistics(fromCity: city)}, description: "scheduledCollectStats")
+			let scheduledCollectionEvent = SimulationEvent(time: scheduledCollectionTime, type: .statistics, action: { city.stats.collectStatistics(fromCity: city)}, description: "scheduledCollectStats")
 			city.events.add(newEvent: scheduledCollectionEvent)
 
 			// Jump to next collection time
@@ -120,15 +120,15 @@ class Statistics {
 		} while scheduledCollectionTime < city.events.stopTime
 
 		// Schedule an init-stage event to set up the statistics module
-		let statisticsSetupEvent = SimulationEvent(time: SimulationTime(), type: .Statistics, action: {city.stats.initialSetup(onCity: city)}, description: "initialStatsSetup")
+		let statisticsSetupEvent = SimulationEvent(time: SimulationTime(), type: .statistics, action: {city.stats.initialSetup(onCity: city)}, description: "initialStatsSetup")
 		city.events.add(initialEvent: statisticsSetupEvent)
 
 		// Schedule a cleanup-stage event to collect final statistics
-		let finalCollectionEvent = SimulationEvent(time: SimulationTime(), type: .Statistics, action: {city.stats.finalCollection(onCity: city)}, description: "finalCollectStats")
+		let finalCollectionEvent = SimulationEvent(time: SimulationTime(), type: .statistics, action: {city.stats.finalCollection(onCity: city)}, description: "finalCollectStats")
 		city.events.add(cleanupEvent: finalCollectionEvent)
 
 		// Schedule a cleanup-stage event to write all statistical data to files
-		let statWriteEvent = SimulationEvent(time: SimulationTime(), type: .Statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
+		let statWriteEvent = SimulationEvent(time: SimulationTime(), type: .statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
 		city.events.add(cleanupEvent: statWriteEvent)
 	}
 

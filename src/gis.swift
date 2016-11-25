@@ -5,27 +5,28 @@
 import Foundation
 
 class GIS {
-	let connection: Connection
+	let connection: PGConnection
 	let srid: UInt
 	let useHaversine: Bool
 
-	init(parameters: ConnectionParameters, srid insrid: UInt, inUseHaversine: Bool = false) {
-		do {
-			connection = try Database.connect(parameters: parameters)
-		} catch {
+	init(parameters: String, srid insrid: UInt, inUseHaversine: Bool = false) {
+		connection = PGConnection()
+
+		guard connection.connectdb(parameters) == PGConnection.StatusType.ok else {
 			print("\nDatabase connection error.")
 			exit(EXIT_FAILURE)
 		}
+
 		srid = insrid
 		useHaversine = inUseHaversine
 	}
 
 	// Valid feature types and their 'feattyp' codes.
 	enum FeatureType: UInt {
-		case Building	= 9790
-		case Vehicle	= 2222
-		case RoadsideUnit = 2223
-		case ParkedCar = 2224
+		case building	= 9790
+		case vehicle	= 2222
+		case roadsideUnit = 2223
+		case parkedCar = 2224
 	}
 
 	// Conversion rate from meters to degrees.
@@ -42,34 +43,42 @@ class GIS {
 	/*** Database Interactions ***/
 	/*****************************/
 
+	/* Possible query results from libpq:
+	 * Bad:
+	 * .emptyQuery		The string sent to the server was empty.
+	 * .badResponse		The server's response was not understood.
+	 * .nonFatalError	A nonfatal error (a notice or warning) occurred.
+	 * .fatalError		A fatal error occurred.
+	 *
+	 * Good:
+	 * .commandOK		Successful completion of a command returning no data.
+	 * .tuplesOK		Successful completion of a command returning data (such as a SELECT or SHOW).
+	 * .singleTuple		For libpq in single-row mode only.
+	 *
+	 */
+
+
 	/// Returns the number of features with the specified type
 	func countFeatures(withType featureType: FeatureType) -> UInt {
 		let query: String = "SELECT COUNT(gid) FROM buildings WHERE feattyp='" + String(featureType.rawValue) + "'"
-		do {
-			let result = try connection.execute(Query(query))
-			guard	let resultRow = result.rows.first,
-					let countRow = resultRow["count"] as? Int64
-					else {
-						print("\nInvalid feature count returned.")
-						print("Query: " + query)
-						exit(EXIT_FAILURE)
-			}
-			return UInt(countRow)
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
+		let result = connection.exec(statement: query)
+		guard result.status() == .tuplesOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
+		guard let count = result.getFieldInt(tupleIndex: 0, fieldIndex: 0) else {
+			print("\nInvalid feature count returned.", "Query: ", query)
+			exit(EXIT_FAILURE)
+		}
+		return UInt(count)
 	}
 
 	/// Removes all features with the specified type from the database
 	func clearFeatures(withType featureType: FeatureType) {
 		let query: String = "DELETE FROM buildings WHERE feattyp='" + String(featureType.rawValue) + "'"
-		do {
-			try connection.execute(Query(query))
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
+		let result = connection.exec(statement: query)
+		guard result.status() == .commandOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
 	}
@@ -78,44 +87,42 @@ class GIS {
 	/// Returns the geographic coordinates of a feature identified by its GID (only works for Point type features)
 	func getCoordinates(fromGID gid: UInt) -> (x: Double, y: Double) {
 		let query: String = "SELECT ST_X(geom),ST_Y(geom) FROM buildings WHERE gid='" + String(gid) + "'"
-		do {
-			let result = try connection.execute(Query(query))
-			if result.numberOfRows != 1 {
-				print("\nNo matching GID in database.")
-				print("Query: " + query)
-				exit(EXIT_FAILURE)
-			}
-			guard	let resultRow = result.rows.first,
-					let xgeo = resultRow["st_x"] as? Double,
-					let ygeo = resultRow["st_y"] as? Double
-					else {
-						print("\nInvalid coordinate pair returned.")
-						print("Query: " + query)
-						exit(EXIT_FAILURE)
-			}
-			return (xgeo, ygeo)
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
+		let result = connection.exec(statement: query)
+		// If no GIDs are found, this might return .commandOK instead, and should fail
+		guard result.status() == .tuplesOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
+		guard result.numTuples() > 0 else {
+			print("\nNo matching GID in database.", "Query: ", query)
+			exit(EXIT_FAILURE)
+		}
+		guard	result.numFields() > 1,
+				result.fieldName(index: 0) == "st_x",
+				result.fieldName(index: 0) == "st_y",
+				let xgeo = result.getFieldDouble(tupleIndex: 0, fieldIndex: 0),
+				let ygeo = result.getFieldDouble(tupleIndex: 0, fieldIndex: 1)
+				else {
+					print("\nInvalid coordinate pair returned.", "Query: ", query)
+					exit(EXIT_FAILURE)
+		}
+		return (xgeo, ygeo)
 	}
 
 
 	/// Returns the GIDs of features in a specified circle (center+radius)
 	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: [FeatureType]) -> [UInt] {
 		let wgs84range = range*degreesPerMeter
-		var query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(center.x) + " " + String(center.y) + ")',4326)," + String(wgs84range) + ")"
 
+		// Assemble query
+		var query: String = "SELECT gid FROM buildings WHERE ST_DWithin(geom,ST_GeomFromText('POINT(" + String(center.x) + " " + String(center.y) + ")',4326)," + String(wgs84range) + ")"
 		// Should always have at least one featureType
 		guard let firstType = featureTypes.first else {
 			print("\nError: At least one feature type must be specified.")
 			exit(EXIT_FAILURE)
 		}
-
 		// Append first feature type to request
 		query += " AND (feattyp='" + String(firstType.rawValue) + "'"
-
 		// Append additional feature types to the query using OR clauses
 		let additionalFeatureTypes = featureTypes.dropFirst()
 		for type in additionalFeatureTypes {
@@ -123,22 +130,29 @@ class GIS {
 		}
 		query += ")"
 
-		do {
-			var listOfGIDs = [UInt]()
-
-			let result = try connection.execute(Query(query))
-			if result.numberOfRows > 0 {
-				for row in result.rows {
-					let gid = row["gid"] as! Int32
-					listOfGIDs.append(UInt(gid))
-				}
-			}
+		// Execute query
+		let result = connection.exec(statement: query)
+		// If no GIDs are found, this might return .commandOK instead -> and should succeed and return an empty array
+		var listOfGIDs = [UInt]()
+		if result.status() == .commandOK {
+			print("TODO: Got a .commandOK, need to address it.\n")
 			return listOfGIDs
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
+		}
+		guard result.status() == .tuplesOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
+		guard result.fieldName(index: 0) == "gid" else {
+			print("\nUnexpected reply structure.", "Query: ", query)
+			exit(EXIT_FAILURE)
+		}
+		if result.numFields() > 0 {
+			for tupleNum in 0..<result.numTuples() {
+				let gid = result.getFieldInt(tupleIndex: tupleNum, fieldIndex: 0)
+				listOfGIDs.append(UInt(gid!))
+			}
+		}
+		return listOfGIDs
 	}
 
 	// Temporary convenience counterpart until splattering is implemented in Swift
@@ -167,24 +181,21 @@ class GIS {
 
 	/// Queries the database for the distance between two geographic locations
 	func getGISDistance(fromPoint geo1: (x: Double, y: Double), toPoint geo2: (x: Double, y: Double)) -> Double {
-		// Then calculate the distance between the two points
 		let query: String = "SELECT ST_Distance(ST_Transform(ST_GeomFromText('POINT(\(geo1.x) \(geo1.y))',4326),\(srid)),ST_Transform(ST_GeomFromText('POINT(\(geo2.x) \(geo2.y))',4326),\(srid)));"
-
-		do {
-			let result = try connection.execute(Query(query))
-			guard	let resultRow = result.rows.first,
-				let distance = resultRow["st_distance"] as? Double
-				else {
-					print("\nInvalid distance returned.")
-					print("Query: " + query)
-					exit(EXIT_FAILURE)
-			}
-			return distance/degreesPerMeter
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
+		let result = connection.exec(statement: query)
+		guard result.status() == .tuplesOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
+		guard	result.numTuples() > 0,
+				result.numFields() > 0,
+				result.fieldName(index: 0) == "st_distance",
+				let distance = result.getFieldDouble(tupleIndex: 0, fieldIndex: 0)
+				else {
+					print("\nInvalid distance returned, ", "Query: ", query)
+					exit(EXIT_FAILURE)
+		}
+		return distance/degreesPerMeter
 	}
 
 
@@ -208,77 +219,72 @@ class GIS {
 
 	/// Checks whether there are any buildings in the line-of-sight between two points
 	func checkForLineOfSight(fromPoint geo1: (x: Double, y: Double), toPoint geo2: (x: Double, y: Double)) -> Bool {
-		let query: String = "SELECT COUNT(id) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('LINESTRING(" + String(geo1.x) + " "	+ String(geo1.y) + "," + String(geo2.x) + " " + String(geo2.y) + ")',4326)) and feattyp='" + String(FeatureType.Building.rawValue) + "'"
-		do {
-			let result = try connection.execute(Query(query))
-			guard	let resultRow = result.rows.first,
-					let countRow = resultRow["count"] as? Int64
-					else {
-						print("\nInvalid feature count returned.")
-						print("Query: " + query)
-						exit(EXIT_FAILURE)
-			}
-			// If any buildings matched, return false
-			return countRow > 0 ? false	: true
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
+		let query: String = "SELECT COUNT(id) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('LINESTRING(" + String(geo1.x) + " "	+ String(geo1.y) + "," + String(geo2.x) + " " + String(geo2.y) + ")',4326)) and feattyp='" + String(FeatureType.building.rawValue) + "'"
+		let result = connection.exec(statement: query)
+		guard result.status() == .tuplesOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
+		guard	result.numTuples() > 0,
+				result.numFields() > 0,
+				result.fieldName(index: 0) == "count",
+				let count = result.getFieldInt(tupleIndex: 0, fieldIndex: 0)
+			else {
+				print("\nInvalid feature count returned, ", "Query: ", query)
+				exit(EXIT_FAILURE)
+		}
+		// If any buildings matched, return false
+		return count > 0 ? false : true
 	}
 
 
 	/// Checks whether there is a building at a specified location
 	func checkForObstruction(atPoint geo: (x: Double, y: Double)) -> Bool {
-		let query: String = "SELECT COUNT(gid) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326)) AND feattyp='" + String(FeatureType.Building.rawValue) + "'"
-		do {
-			let result = try connection.execute(Query(query))
-			guard	let resultRow = result.rows.first,
-					let countRow = resultRow["count"] as? Int64
-					else {
-						print("\nInvalid feature count returned.")
-						print("Query: " + query)
-						exit(EXIT_FAILURE)
-			}
-			// If anything matched, return true
-			return countRow > 0 ? true : false
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
+		let query: String = "SELECT COUNT(gid) FROM buildings WHERE ST_Intersects(geom, ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326)) AND feattyp='" + String(FeatureType.building.rawValue) + "'"
+		let result = connection.exec(statement: query)
+		guard result.status() == .tuplesOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
+		guard	result.numTuples() > 0,
+			result.numFields() > 0,
+			result.fieldName(index: 0) == "count",
+			let count = result.getFieldInt(tupleIndex: 0, fieldIndex: 0)
+			else {
+				print("\nInvalid feature count returned, ", "Query: ", query)
+				exit(EXIT_FAILURE)
+		}
+		// If anything matched, return true
+		return count > 0 ? true : false
 	}
 
 
 	/// Adds a new point feature of the specified type, and returns its new GID
 	func addPoint(ofType type: FeatureType, geo: (x: Double, y: Double), id: UInt) -> UInt {
 		let query: String = "INSERT INTO buildings(id, geom, feattyp) VALUES (" + String(id) + ", ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326)," + String(type.rawValue) + ") RETURNING gid"
-		do {
-			let result = try connection.execute(Query(query))
-			guard	let resultRow = result.rows.first,
-					let gid = resultRow["gid"] as? Int32
-					else {
-						print("\nInvalid GID value returned.")
-						print("Query: " + query)
-						exit(EXIT_FAILURE)
-			}
-			return UInt(gid)
-		} catch {
-			print("\nDatabase insertion error.")
-			print("Query: " + query)
+		let result = connection.exec(statement: query)
+		guard result.status() == .tuplesOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
+		guard	result.numTuples() > 0,
+				result.numFields() > 0,
+				result.fieldName(index: 0) == "gid",
+				let gid = result.getFieldInt(tupleIndex: 0, fieldIndex: 0)
+				else {
+					print("\nInvalid GID value returned, ", "Query: ", query)
+					exit(EXIT_FAILURE)
+		}
+		return UInt(gid)
 	}
 
 
 	/// Updates the coordinates of a specific point
 	func updatePoint(withGID gid: UInt, geo: (x: Double, y: Double)) {
 		let query: String = "UPDATE buildings SET geom=ST_GeomFromText('POINT(" + String(geo.x) + " " + String(geo.y) + ")',4326) WHERE gid='" + String(gid) + "'"
-		do {
-			try connection.execute(Query(query))
-		} catch {
-			print("\nDatabase update error.")
-			print("Query: " + query)
+		let result = connection.exec(statement: query)
+		guard result.status() == .commandOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
 	}
@@ -287,11 +293,9 @@ class GIS {
 	/// Deletes a point from the database by its GID
 	func deletePoint(withGID gid: UInt) {
 		let query: String = "DELETE FROM buildings WHERE gid='" + String(gid) + "'"
-		do {
-			try connection.execute(Query(query))
-		} catch {
-			print("\nDatabase query error.")
-			print("Query: " + query)
+		let result = connection.exec(statement: query)
+		guard result.status() == .commandOK else {
+			print("\nDatabase query error.", "Query: ", query)
 			exit(EXIT_FAILURE)
 		}
 	}
