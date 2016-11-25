@@ -195,7 +195,13 @@ class GIS {
 					print("\nInvalid distance returned, ", "Query: ", query)
 					exit(EXIT_FAILURE)
 		}
-		return distance/degreesPerMeter
+
+		/* NOTE: For some unknown reason PostGIS might be returning st_distance in meters or degrees,
+		 * so this routine may need to be adjusted accordingly. We're not solving this bug now, as 
+		 * we'll be using the faster Haversine distance routine (below).
+		 */
+//		return distance/degreesPerMeter
+		return distance
 	}
 
 
