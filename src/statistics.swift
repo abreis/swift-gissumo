@@ -322,6 +322,7 @@ class Statistics {
 		if hooks["cityCoverageEvolution"] != nil {
 			writeToHook("cityCoverageEvolution", data: "time\(separator)#covered\(separator)%covered\(separator)meanSig\(separator)stdevSig\n")
 		}
+
 		if hooks["decisionCellCoverageEffects"] != nil {
 			writeToHook("decisionCellCoverageEffects", data: "time\(separator)id\(separator)dNew\(separator)dBoost\(separator)dSat\(separator)dScore\(separator)kappa\(separator)lambda\(separator)mu\n")
 		}
