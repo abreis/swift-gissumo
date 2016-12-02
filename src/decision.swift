@@ -30,7 +30,7 @@ class Decision {
 		case "CellCoverageEffects":
 			guard let cellCoverageEffectsConfig = algoConfig["CellCoverageEffects"] as? NSDictionary,
 					let kappa = cellCoverageEffectsConfig["kappa"] as? Double,
-					let lamda = cellCoverageEffectsConfig["lamda"] as? Double,
+					let lambda = cellCoverageEffectsConfig["lambda"] as? Double,
 					let mu = cellCoverageEffectsConfig["mu"] as? Double
 			else {
 				print("Error: Invalid parameters for CellCoverageEffects algorithm.")
@@ -38,7 +38,7 @@ class Decision {
 			}
 
 			let satThresh = cellCoverageEffectsConfig["saturationThreshold"] as? Int
-			algorithm = CellCoverageEffects(κ: kappa, λ: lamda, μ: mu, saturationThreshold: satThresh)
+			algorithm = CellCoverageEffects(κ: kappa, λ: lambda, μ: mu, saturationThreshold: satThresh)
 		default:
 			print("Error: Invalid decision algorithm chosen.")
 			exit(EXIT_FAILURE)
@@ -52,13 +52,13 @@ protocol DecisionAlgorithm {
 }
 
 class CellCoverageEffects: DecisionAlgorithm {
-	let kappa, lamda, mu: Double
+	let kappa, lambda, mu: Double
 	var saturationThreshold: Int = -1
 	let mapRequestWaitingTime = SimulationTime(seconds: 1)
 
 	init(κ: Double, λ: Double, μ: Double, saturationThreshold: Int? = nil) {
 		kappa = κ
-		lamda = λ
+		lambda = λ
 		mu = μ
 		if let satThresh = saturationThreshold { self.saturationThreshold = satThresh }
 	}
@@ -142,7 +142,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 			}
 
 			// 5. Compute dScore
-			let dScore = kappa*Double(dNew) + lamda*Double(dBoost) - mu*Double(dSat)
+			let dScore = kappa*Double(dNew) + lambda*Double(dBoost) - mu*Double(dSat)
 
 			// Debug
 			if debug.contains("CellCoverageEffects.decide()"){
@@ -170,7 +170,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 
 			if pcar.city.stats.hooks["decisionCellCoverageEffects"] != nil {
 				let separator = pcar.city.stats.separator
-				pcar.city.stats.writeToHook("decisionCellCoverageEffects", data: "\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(dNew)\(separator)\(dBoost)\(separator)\(dSat)\(separator)\(dScore)\(separator)\(kappa)\(separator)\(lamda)\(separator)\(mu)\n")
+				pcar.city.stats.writeToHook("decisionCellCoverageEffects", data: "\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(dNew)\(separator)\(dBoost)\(separator)\(dSat)\(separator)\(dScore)\(separator)\(kappa)\(separator)\(lambda)\(separator)\(mu)\n")
 			}
 
 			if dScore <= 0 { return }

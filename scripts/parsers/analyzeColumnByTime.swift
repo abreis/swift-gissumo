@@ -81,7 +81,7 @@ for statFile in statFiles.components(separatedBy: .newlines).filter({!$0.isEmpty
 				exit(EXIT_FAILURE)
 		}
 		columnNumber = colIndex
-		print(columnNumber)
+		print(columnNumber!)
 	}
 
 	// 3. Drop the first line (header)

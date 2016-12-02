@@ -79,7 +79,7 @@
 			<dict>
 				<key>kappa</key>
 				<real>1</real>
-				<key>lamda</key>
+				<key>lambda</key>
 				<real>1</real>
 				<key>mu</key>
 				<real>1</real>
