@@ -90,7 +90,6 @@ for statFile in statFiles.components(separatedBy: .newlines).filter({!$0.isEmpty
 // Sort the array
 decisionData.sort { $0.time < $1.time }
 
-
 // Determine bins
 let firstBin = UInt( decisionData.first!.time.subtracting(decisionData.first!.time.truncatingRemainder(dividingBy: Double(binningWidth)) ) )
 let lastBin = UInt( decisionData.last!.time.subtracting(decisionData.last!.time.truncatingRemainder(dividingBy: Double(binningWidth)) ) )
@@ -113,18 +112,20 @@ var outputDictionary : [UInt:SubDecisionEntry] = [:]
 
 var countStart = 0
 binLoop: for bin in bins {
-	var decisions = 0
+	var decisions: UInt = 0
 	var accumulatedDecision = SubDecisionEntry()
 
 	// Decision array is sorted, so we brute iterate
 	decisionLoop: for index in countStart..<Int(decisionData.count) {
 		let decision = decisionData[index]
-		if(decision.time < Double(bin+binningWidth) ) {
-			accumulatedDecision.dNew	+= Double(decision.dNew)	* decision.kappa
-			accumulatedDecision.dBoost	+= Double(decision.dBoost)	* decision.lambda
-			accumulatedDecision.dSat	+= Double(decision.dSat)	* decision.mu
-			accumulatedDecision.dScore	+= decision.dScore
-			decisions += 1
+		if(decision.time < Double(bin+binningWidth)) {
+			if(decision.dScore > 0) {
+				accumulatedDecision.dNew	+= Double(decision.dNew)	* decision.kappa
+				accumulatedDecision.dBoost	+= Double(decision.dBoost)	* decision.lambda
+				accumulatedDecision.dSat	+= Double(decision.dSat)	* decision.mu
+				accumulatedDecision.dScore	+= decision.dScore
+				decisions += 1
+			}
 		} else {
 			break decisionLoop
 		}
