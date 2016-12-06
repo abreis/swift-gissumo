@@ -44,7 +44,14 @@ struct DecisionEntry {
 // Process statistics files
 var decisionData: [DecisionEntry] = []
 
-for statFile in statFiles.components(separatedBy: .newlines).filter({!$0.isEmpty}) {
+let statFileArray = statFiles.components(separatedBy: .newlines).filter({!$0.isEmpty})
+
+guard statFileArray.count > 0 else {
+	print("Error: No statistics files provided.")
+	exit(EXIT_FAILURE)
+}
+
+for statFile in statFileArray {
 	// 1. Open and read the statFile into a string
 	var statFileData: String
 	do {
