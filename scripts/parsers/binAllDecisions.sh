@@ -7,7 +7,7 @@ BINNING=50	# Interval (in seconds) to group decisions
 SIMDIR=simulations
 STATDIR=stats
 VISDIR=plots
-VISNAME=binDecPostCoeff
+VISNAME=binAllDec
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -29,7 +29,7 @@ for SIMULATION in $(find ${SIMDIR} -maxdepth 1 -type d ! -path ${SIMDIR}); do
 done
 
 # Call swift interpreter
-swift $(dirname $0)/binAndWeightDecisions.swift statfilelist ${BINNING} > ${VISDIR}/${VISNAME}.data
+swift $(dirname $0)/binAndWeighAllDecisions.swift statfilelist ${BINNING} > ${VISDIR}/${VISNAME}.data
 rm -rf statfilelist
 
 # Copy over gnuplot scaffold script
