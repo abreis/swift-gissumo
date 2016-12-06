@@ -29,8 +29,8 @@ mkdir -p ${VISDIR}
 
 # Aggregate data
 COMPLETESAMPLES=""
-for SIMULATION in $(find ${SIMDIR} -maxdepth 1 -type d ! -path ${SIMDIR}); do
-	SAMPLES=$(cat ${SIMULATION}/${STATDIR}/finalCitySaturationStats.log | grep samples)
+for SIMULATIONLOG in $(find ${SIMDIR} -depth 3 -type f -name 'finalCitySaturationStats.log'); do
+	SAMPLES=$(grep samples ${SIMULATIONLOG})
 	SAMPLES=${SAMPLES#"samples	["}	# Remove prefix (there's a \t here)
 	SAMPLES=${SAMPLES%"]"}			# Remove suffix
 	COMPLETESAMPLES+=${SAMPLES}

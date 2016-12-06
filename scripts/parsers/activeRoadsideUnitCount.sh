@@ -23,8 +23,8 @@ fi
 mkdir -p ${VISDIR}
 
 touch statfilelist
-for SIMULATION in $(find ${SIMDIR} -maxdepth 1 -type d ! -path ${SIMDIR}); do
-	printf "${SIMULATION}/stats/activeRoadsideUnitCount.log\n" >> statfilelist
+for SIMULATIONLOG in $(find ${SIMDIR} -depth 3 -type f -name 'activeRoadsideUnitCount.log'); do
+	printf "${SIMULATIONLOG}\n" >> statfilelist
 done
 
 # Call swift interpreter
