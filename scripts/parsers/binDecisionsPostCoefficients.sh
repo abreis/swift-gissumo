@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script runs statistics in decisionCellCoverageEffects. For every decision, the intermediate metrics are weighted by the corresponding coefficients, and we output a stacked bar plot of the result.
+# This script runs statistics in decisionCellCoverageEffects. For every decision, the intermediate metrics are weighted by the corresponding coefficients, and we output a stacked bar plot of grouped decisions.
 
 set -e
 
@@ -7,7 +7,7 @@ BINNING=50	# Interval (in seconds) to group decisions
 SIMDIR=simulations
 STATDIR=stats
 VISDIR=plots
-VISNAME=allDecPostCoeff
+VISNAME=binDecPostCoeff
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -29,7 +29,7 @@ for SIMULATION in $(find ${SIMDIR} -maxdepth 1 -type d ! -path ${SIMDIR}); do
 done
 
 # Call swift interpreter
-swift $(dirname $0)/weighAndBinDecisions.swift statfilelist ${BINNING} > ${VISDIR}/${VISNAME}.data
+swift $(dirname $0)/binAndWeightDecisions.swift statfilelist ${BINNING} > ${VISDIR}/${VISNAME}.data
 rm -rf statfilelist
 
 # Copy over gnuplot scaffold script

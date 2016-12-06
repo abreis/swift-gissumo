@@ -1,6 +1,6 @@
 set terminal postscript eps enhanced color
 set output "dir/outfile.eps"
-set size 1.4, 0.7 # Extra wide plot
+set size 0.7, 0.7 # Extra wide plot
 
 set xlabel "Time Interval [s]"
 set ylabel "Score" rotate by +90 center
@@ -13,7 +13,7 @@ set style histogram rowstacked
 set boxwidth 0.40 relative # Bar width
 set style fill solid 1.00 noborder
 
-set xtics nomirror
+set xtics nomirror rotate by -90
 set ytics nomirror
 
 plot 'dir/datafile.name' \
