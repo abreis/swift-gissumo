@@ -174,21 +174,34 @@ class Statistics {
 		if hooks["cityCoverageEvolution"] != nil {
 			// Count covered cells
 			var coveredCells = Measurement()
-			let coverageMap = city.globalMapOfCoverage
+			var coverageMap = city.globalMapOfCoverage
+
+			// If an obstruction mask was supplied, crop the coverage map to the mask size
+			if let maskMap = obstructionMask {
+				coverageMap.cropInPlace(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
+			}
+
+			// Track the number of cells covered at each specific coverage strength
+			var coverageByStrength: [UInt] = [0,0,0,0,0,0]
+
+			// Add coverage cells to the Measurement
 			for row in coverageMap.cells {
 				for cell in row {
-					if cell != 0 { coveredCells.add(Double(cell)) }
+					if cell != 0 {
+						coveredCells.add(Double(cell))
+						coverageByStrength[cell] += 1
+					}
 				}
 			}
 
-			let cellCount = coveredCells.count
+			let cellCount = UInt(coveredCells.count)
 			var percentCovered: Double = 0.0
 			if let totalCells = obstructionMask?.flatCells.filter( {$0 == "O"} ).count {
 				percentCovered = Double(cellCount)/Double(totalCells)
 			}
 			let signalMean = coveredCells.mean.isNaN ? 0.0 : coveredCells.mean
 			let signalStdev = coveredCells.stdev.isNaN ? 0.0 : coveredCells.stdev
-			writeToHook("cityCoverageEvolution", data: "\(city.events.now.asSeconds)\(separator)\(cellCount)\(separator)\(percentCovered)\(separator)\(signalMean)\(separator)\(signalStdev)\n")
+			writeToHook("cityCoverageEvolution", data: "\(city.events.now.asSeconds)\(separator)\(cellCount)\(separator)\(percentCovered)\(separator)\(signalMean)\(separator)\(signalStdev)\(separator)\(coverageByStrength[0])\(separator)\(coverageByStrength[1])\(separator)\(coverageByStrength[2])\(separator)\(coverageByStrength[3])\(separator)\(coverageByStrength[4])\(separator)\(coverageByStrength[5])\n")
 		}
 	}
 
@@ -320,7 +333,7 @@ class Statistics {
 		}
 
 		if hooks["cityCoverageEvolution"] != nil {
-			writeToHook("cityCoverageEvolution", data: "time\(separator)#covered\(separator)%covered\(separator)meanSig\(separator)stdevSig\n")
+			writeToHook("cityCoverageEvolution", data: "time\(separator)#covered\(separator)%covered\(separator)meanSig\(separator)stdevSig\(separator)0cells\(separator)1cells\(separator)2cells\(separator)3cells\(separator)4cells\(separator)5cells\n")
 		}
 
 		if hooks["decisionCellCoverageEffects"] != nil {

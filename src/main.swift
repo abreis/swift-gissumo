@@ -101,7 +101,6 @@ guard	let gisConfig = config["gis"] as? NSDictionary,
 		exit(EXIT_FAILURE)
 }
 
-//let databaseParams = ConnectionParameters(host: gisHost, port: String(gisPort), databaseName: gisDB, user: gisUser, password: gisPass)
 let databaseParams = "host=\(gisHost) port=\(String(gisPort)) dbname=\(gisDB) user=\(gisUser) password=\(gisPass)"
 let gisdb = GIS(parameters: databaseParams, srid: sridConfig, inUseHaversine: useHaversineConfig )
 let buildingCount = gisdb.countFeatures(withType: .building)

@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script runs statistics in decisionCellCoverageEffects. For every decision, the intermediate metrics are weighted by the corresponding coefficients, and we output the number of positive and negative decisions.
+# This script plots the metrics on cityCoverageEvolution. The number of cells covered at each specific coverage strength is binned and then plotted in stacked column bars.
 
 set -e
 
@@ -7,7 +7,7 @@ BINNING=50	# Interval (in seconds) to group decisions
 SIMDIR=simulations
 STATDIR=stats
 VISDIR=plots
-VISNAME=binCntAllDec
+VISNAME=covOverTime
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -24,12 +24,12 @@ fi
 mkdir -p ${VISDIR}
 
 touch statfilelist
-for SIMULATIONLOG in $(find ${SIMDIR} -depth 3 -type f -name 'decisionCellCoverageEffects.log'); do
+for SIMULATIONLOG in $(find ${SIMDIR} -depth 3 -type f -name 'cityCoverageEvolution.log'); do
 	printf "${SIMULATIONLOG}\n" >> statfilelist
 done
 
 # Call swift interpreter
-swift $(dirname $0)/binAndCountAllDecisions.swift statfilelist ${BINNING} > ${VISDIR}/${VISNAME}.data
+swift $(dirname $0)/binCoverageEvolution.swift statfilelist ${BINNING} > ${VISDIR}/${VISNAME}.data
 rm -rf statfilelist
 
 # Copy over gnuplot scaffold script

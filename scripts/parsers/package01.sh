@@ -8,6 +8,7 @@
 # - activeRoadsideUnitCount
 # - signalCoverageDistributionHistogram
 # - rsuRedundancyDistributionHistogram
+# - coverageOverTime
 # - binAllDecisions
 # - binPositiveDecisions
 # - binAndCountDecisions
@@ -27,6 +28,7 @@ declare -a PARSERS=(
 "activeRoadsideUnitCount"
 "signalCoverageDistributionHistogram"
 "rsuRedundancyDistributionHistogram"
+"coverageOverTime"
 "binAllDecisions"
 "binPositiveDecisions"
 "binAndCountDecisions"
