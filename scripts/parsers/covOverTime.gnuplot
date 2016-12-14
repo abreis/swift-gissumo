@@ -1,6 +1,6 @@
 set terminal postscript eps enhanced color
 set output "dir/outfile.eps"
-set size 0.7, 0.70
+set size 0.7, 0.7
 
 set xlabel "Time Interval [s]"
 set ylabel "Count" rotate by +90 center

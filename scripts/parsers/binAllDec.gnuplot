@@ -4,9 +4,9 @@ set size 0.7, 0.7
 
 set xlabel "Time Interval [s]"
 set ylabel "Score" rotate by +90 center
-unset key
 
 set key autotitle columnhead # First lines are headers
+set key top right samplen 1.0
 
 set style data histograms
 set style histogram rowstacked

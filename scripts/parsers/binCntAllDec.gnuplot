@@ -7,7 +7,7 @@ set ylabel "Count" rotate by +90 center
 unset key
 
 set key autotitle columnhead # First lines are headers
-set key horizontal outside
+set key top left reverse samplen 1.0
 
 set style data histograms
 set style histogram rowstacked
@@ -27,6 +27,5 @@ set ytics nomirror
 #rgb "#046380"
 
 plot 'dir/datafile.name' \
-		   using 2:xticlabels(1)	lc rgb "#9C9B7A", \
-		'' using 3:xticlabels(1) 	lc rgb "#FFD393"
-		#'' using ($0):($2+$3+1.0):(sprintf('%.0f', $6)) notitle with labels font "Arial,8"
+		   using 2:xticlabels(1)	title "pos" lc rgb "#9C9B7A", \
+		'' using 3:xticlabels(1) 	title "neg" lc rgb "#FFD393"
