@@ -15,12 +15,16 @@
 #
 # Run from the location where the 'simulations' folder is present.
 
-SIMDIR=simulations
-VISBASEDIR=plots
+if [ -z "$1" ]; then
+    echo "Error: Please specify a directory with simulations."
+	exit 1
+fi
+SIMDIR=$1
+VISDIR=plots
 SCRIPTDIR=$(dirname $0)
 PACKAGENAME=package01
 TEXSUBDIR=tex
-PACKAGEDIR=${VISBASEDIR}/${PACKAGENAME}
+PACKAGEDIR=${SIMDIR}/${VISDIR}/${PACKAGENAME}
 LOGFILE=${PACKAGEDIR}/${PACKAGENAME}.log
 
 declare -a PARSERS=(
@@ -46,6 +50,17 @@ if [[ ! $(pdflatex --version) =~ "pdfTeX 3" ]]; then
 	exit 1
 fi
 
+# Check for previous plotfolders and offer to wipe them
+PLOTFOLDERS=$(find ${SIMDIR} -type d -name ${VISDIR} | wc -l | tr -d ' ')
+if [ ${PLOTFOLDERS} -ne 0 ]; then
+	if [ "$2" = "--overwrite" ]; then
+		echo "Erasing existing visualization folders..."
+		find ${SIMDIR} -type d -name ${VISDIR} -exec rm -rf {} +
+	else
+		echo "Error: A folder with previous plots exists."
+		exit 1
+	fi
+fi
 
 # Plotting directory
 if [ -d ${PACKAGEDIR} ]; then
@@ -61,7 +76,7 @@ for PARSER in "${PARSERS[@]}"
 do
 	printf "${PARSER} "
 	printf "\n### Running ${SCRIPTDIR}/${PARSER}.sh\n" >> ${LOGFILE}
-	${SCRIPTDIR}/${PARSER}.sh >> ${LOGFILE} 2>&1
+	${SCRIPTDIR}/${PARSER}.sh ${SIMDIR} >> ${LOGFILE} 2>&1
 done
 printf "\n"
 
@@ -72,7 +87,7 @@ mkdir -p ${PACKAGEDIR}/${TEXSUBDIR}/figures
 
 # Gather generated plots
 printf "\n### Moving plot PDF files\n" >> ${LOGFILE}
-find ${VISBASEDIR} -not \( -path ${PACKAGEDIR} -prune \) -type f -iname '*.pdf' -exec cp {} ${PACKAGEDIR}/${TEXSUBDIR}/figures/ \; >> ${LOGFILE} 2>&1
+find ${SIMDIR}/${VISDIR} -not \( -path ${PACKAGEDIR} -prune \) -type f -iname '*.pdf' -exec cp {} ${PACKAGEDIR}/${TEXSUBDIR}/figures/ \; >> ${LOGFILE} 2>&1
 
 # Copy TeX scaffold over
 cp ${SCRIPTDIR}/${PACKAGENAME}.tex ${PACKAGEDIR}/${TEXSUBDIR}
@@ -81,5 +96,5 @@ cp ${SCRIPTDIR}/${PACKAGENAME}.tex ${PACKAGEDIR}/${TEXSUBDIR}
 printf "\n### Running pdflatex\n" >> ${LOGFILE}
 ( cd ${PACKAGEDIR}/${TEXSUBDIR} ; pdflatex -interaction=nonstopmode -file-line-error -recorder ${PACKAGENAME}.tex ) >> ${LOGFILE} 2>&1
 
-printf "\n"
+printf "\nDone.\n"
 

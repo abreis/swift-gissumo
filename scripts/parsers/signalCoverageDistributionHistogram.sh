@@ -3,11 +3,14 @@
 
 set -e
 
-SIMDIR=simulations
+if [ -z "$1" ]; then
+    echo "Error: Please specify a directory with simulations."
+	exit 1
+fi
+SIMDIR=$1
 STATDIR=stats
-VISBASEDIR=plots
+VISDIR=plots
 VISNAME=sigCovDistHist
-VISDIR=${VISBASEDIR}/${VISNAME}
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -15,12 +18,8 @@ if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
 	exit 1
 fi
 
-# "-f" forces removal of the existing plot dir
-if [ "$1" == "-f" ]; then
-	rm -rf ${VISDIR}
-fi
-
 # Plotting directory
+VISDIR=${SIMDIR}/${VISDIR}/${VISNAME}
 if [ -d ${VISDIR} ]; then
 	echo "Folder with previous plots exists, move it before proceeding."
 	exit 1
