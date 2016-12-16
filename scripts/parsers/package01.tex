@@ -10,6 +10,7 @@
 
 \usepackage[margin=0mm]{geometry}
 \usepackage{tikz}
+\usepackage{verbatim}
 
 \begin{document}
 
@@ -25,7 +26,7 @@
 
 \begin{tikzpicture}[overlay]
 	\node[draw, anchor=north west, text width=90mm, color=white] (topleft) at (\xleft,\yone) {
-		%\includegraphics[width=\textwidth]{binPosDec}
+		\verbatiminput{description.txt}
 	};
 
 	\node[draw, anchor=north west, text width=90mm, color=lightgray] (topright) at (\xright,\yone) {

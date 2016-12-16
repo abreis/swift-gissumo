@@ -21,6 +21,7 @@ if [ -z "$1" ]; then
 fi
 SIMDIR=$1
 VISDIR=plots
+SIMDESCR=description.txt
 SCRIPTDIR=$(dirname $0)
 PACKAGENAME=package01
 TEXSUBDIR=tex
@@ -58,6 +59,7 @@ if [ ${PLOTFOLDERS} -ne 0 ]; then
 		find ${SIMDIR} -type d -name ${VISDIR} -exec rm -rf {} +
 	else
 		echo "Error: A folder with previous plots exists."
+		echo "Add '--overwrite' as the second argument to erase it."
 		exit 1
 	fi
 fi
@@ -71,10 +73,10 @@ mkdir -p ${PACKAGEDIR}
 
 
 # Run this package's parsers
-printf "Running parsers: "
+printf "Running parsers..."
 for PARSER in "${PARSERS[@]}"
 do
-	printf "${PARSER} "
+	printf "\n\t* ${PARSER} "
 	printf "\n### Running ${SCRIPTDIR}/${PARSER}.sh\n" >> ${LOGFILE}
 	${SCRIPTDIR}/${PARSER}.sh ${SIMDIR} >> ${LOGFILE} 2>&1
 done
@@ -91,6 +93,11 @@ find ${SIMDIR}/${VISDIR} -not \( -path ${PACKAGEDIR} -prune \) -type f -iname '*
 
 # Copy TeX scaffold over
 cp ${SCRIPTDIR}/${PACKAGENAME}.tex ${PACKAGEDIR}/${TEXSUBDIR}
+
+# Copy simulation description, if present
+if [ -f ${SIMDIR}/${SIMDESCR} ]; then
+	cp -f ${SIMDIR}/${SIMDESCR} ${PACKAGEDIR}/${TEXSUBDIR}
+fi
 
 # Compile TeX
 printf "\n### Running pdflatex\n" >> ${LOGFILE}
