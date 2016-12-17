@@ -10,7 +10,7 @@ import sys
 import time
 
 # Requires Python >3.5
-assert sys.version_info >= (3,5)
+assert sys.version_info >= (3,5), "This requires at least, Python 3.5"
 
 
 maxThreads = 4
@@ -74,13 +74,9 @@ def gunzip(fileIn):
 	fileOut = re.sub('\.gz$', '', fileIn)
 
 	# Handles
-	inFileGzipHandle = gzip.open(fileIn, 'rb')
-	outFileGzipHandle = open(fileOut, 'wb')
-
-	# Decompress and close
-	outFileGzipHandle.write( inFileGzipHandle.read() )
-	inFileGzipHandle.close()
-	outFileGzipHandle.close()
+	with gzip.open(fileIn, 'rb') as inFileGzipHandle:
+		with open(fileOut, 'wb') as outFileGzipHandle:
+			outFileGzipHandle.write( inFileGzipHandle.read() ) # Decompress and close
 
 	# Wipe compressed file
 	os.remove(fileIn)
@@ -166,9 +162,8 @@ while True:
 
 
 # Create a file with a description of the simulation set (overwriting)
-descriptionFp = open(os.path.join(simulationDir, simulationDescription), 'w')
-descriptionFp.write("{:d} simulations\n".format(totalSimulations))
-descriptionFp.close()
+with open(os.path.join(simulationDir, simulationDescription), 'w') as descriptionFp:
+	descriptionFp.write("{:d} simulations\n".format(totalSimulations))
 
 # Simulation over
 print("Set complete, ran {:d} simulations.".format(totalSimulations))
