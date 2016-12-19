@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# This script runs multiple GISSUMO simulations in parallel, one for each floating car data file provided.
 
 import gzip
 import os
@@ -10,7 +11,7 @@ import sys
 import time
 
 # Requires Python >3.5
-assert sys.version_info >= (3,5), "This requires at least, Python 3.5"
+assert sys.version_info >= (3,5), "This script requires Python 3.5 or later."
 
 
 maxThreads = 4
@@ -73,10 +74,10 @@ def gunzip(fileIn):
 	# Like gunzip, default output has the same base name
 	fileOut = re.sub('\.gz$', '', fileIn)
 
-	# Handles
+	# Decompress and close
 	with gzip.open(fileIn, 'rb') as inFileGzipHandle:
 		with open(fileOut, 'wb') as outFileGzipHandle:
-			outFileGzipHandle.write( inFileGzipHandle.read() ) # Decompress and close
+			outFileGzipHandle.write( inFileGzipHandle.read() )
 
 	# Wipe compressed file
 	os.remove(fileIn)
@@ -106,21 +107,20 @@ def simulate(fcdFileIn):
 	configFile = os.path.join(simulationDir, simulationName, 'config.plist')
 	shutil.copyfile('config.plist', configFile)
 
-	# Prepare to edit the configuration file
-	configFileHandle = open(configFile, 'rb')
-	configFileDict = plistlib.load(configFileHandle, fmt=plistlib.FMT_XML)
+	# Import and edit the configuration
+	with open(configFile, 'rb') as configFileHandle:
+		configFileDict = plistlib.load(configFileHandle, fmt=plistlib.FMT_XML)
 
-	# Edit 'floatingCarDataFile' and 'statsFolder' on the configuration
-	configFileDict['floatingCarDataFile'] = fcdFile
-	configFileDict['stats']['statsFolder'] = os.path.join(simulationDir, simulationName, 'stats')
+		# Edit 'floatingCarDataFile' and 'statsFolder' on the configuration
+		configFileDict['floatingCarDataFile'] = fcdFile
+		configFileDict['stats']['statsFolder'] = os.path.join(simulationDir, simulationName, 'stats')
 
-	# Set 'gis.database' to match the free worker id
-	configFileDict['gis']['database'] = 'gisdb{:d}'.format(freeWorkerId)
+		# Set 'gis.database' to match the free worker id
+		configFileDict['gis']['database'] = 'gisdb{:d}'.format(freeWorkerId)
 
-	# Write and close the configuration file
-	configFileHandle = open(configFile, 'wb')
-	plistlib.dump(configFileDict, configFileHandle, fmt=plistlib.FMT_XML)
-	configFileHandle.close()
+	# Write to the configuration file and close
+	with open(configFile, 'wb') as configFileHandle:
+		plistlib.dump(configFileDict, configFileHandle, fmt=plistlib.FMT_XML)
 
 	# Simulate
 	workerStartTimes[freeWorkerId] = time.time()
@@ -131,8 +131,6 @@ def simulate(fcdFileIn):
 # Main loop
 simulationCount = 0
 while True:
-	time.sleep(1)
-
 	# Update worker statuses
 	for workerId, worker in enumerate(workers):
 		if worker == 'busy':
@@ -145,8 +143,8 @@ while True:
 				simulationCount += 1
 				# Print some statistics if a simulation finished
 				meanSimulationTime = sum(simulationTimes)/len(simulationTimes)
-				remainingTime = meanSimulationTime*len(fcdFiles)
-				print("{:d}/{:d} simulations complete, ETA {:d}h{:02d}m{:02d}s".format(simulationCount, totalSimulations, int(remainingTime/3600), int(remainingTime%3600/60), int(remainingTime%60)))
+				remainingTime = meanSimulationTime*(totalSimulations-simulationCount)
+				print("{:d}/{:d} simulations complete, ETA {:d}h{:02d}m{:02d}s".format(simulationCount, totalSimulations, int(remainingTime/3600), int(remainingTime%3600/60), int(remainingTime%60)), flush=True)
 
 	# Run a simulation if a free worker is available
 	if (len(fcdFiles) > 0) and (workers.count('free') > 0):
@@ -160,6 +158,8 @@ while True:
 	if (len(fcdFiles) == 0) and (workers.count('busy') == 0):
 		break
 
+	time.sleep(1)
+
 
 # Create a file with a description of the simulation set (overwriting)
 with open(os.path.join(simulationDir, simulationDescription), 'w') as descriptionFp:
@@ -168,12 +168,11 @@ with open(os.path.join(simulationDir, simulationDescription), 'w') as descriptio
 # Simulation over
 print("Set complete, ran {:d} simulations.".format(totalSimulations))
 
-# Clean up
-os.remove('gissumo_fast')
-os.remove('configPlistEditor')
-
 # Remove FCD files
 for dirpath, dirnames, filenames in os.walk(simulationDir):
 	for file in filenames:
 		if file.endswith('fcd.xml'):
 			os.remove(os.path.join(dirpath, file))
+
+# Clean up
+os.remove('gissumo_fast')
