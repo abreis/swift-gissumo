@@ -15,6 +15,8 @@
 #
 # Run from the location where the 'simulations' folder is present.
 
+set -e
+
 if [ -z "$1" ]; then
     echo "Error: Please specify a directory with simulations."
 	exit 1
