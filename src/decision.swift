@@ -13,22 +13,12 @@ class Decision {
 	// The selected algorithm
 	var algorithm: DecisionAlgorithm
 
-	// The reach of coverage map requests
-	var reqReach: String
-
 	// Load decision configuration from config file entry
 	init(config: NSDictionary) {
 		// Load general statistics configurations, if defined: folder, interval, startTime
 		if let triggerDelayConfig = config["triggerDelay"] as? Int {
 			triggerDelay = SimulationTime(seconds: triggerDelayConfig)
 		}
-
-		guard let requestReachConfig = config["mapRequestReach"] as? String,
-			["1hop","2hop","geocast2r"].contains(requestReachConfig) else {
-				print("Error: Please specify a valid reach for coverage map requests.")
-				exit(EXIT_FAILURE)
-		}
-		reqReach = requestReachConfig
 
 		guard	let algoConfig = config["algorithm"] as? NSDictionary,
 				let algoInUse = algoConfig["inUse"] as? String else {
@@ -41,14 +31,16 @@ class Decision {
 			guard let cellCoverageEffectsConfig = algoConfig["CellCoverageEffects"] as? NSDictionary,
 					let kappa = cellCoverageEffectsConfig["kappa"] as? Double,
 					let lambda = cellCoverageEffectsConfig["lambda"] as? Double,
-					let mu = cellCoverageEffectsConfig["mu"] as? Double
+					let mu = cellCoverageEffectsConfig["mu"] as? Double,
+					let requestReachConfig = cellCoverageEffectsConfig["mapRequestReach"] as? String,
+					["1hop","2hop","geocast2r"].contains(requestReachConfig)
 			else {
 				print("Error: Invalid parameters for CellCoverageEffects algorithm.")
 				exit(EXIT_FAILURE)
 			}
 
 			let satThresh = cellCoverageEffectsConfig["saturationThreshold"] as? Int
-			algorithm = CellCoverageEffects(κ: kappa, λ: lambda, μ: mu, requestReach: reqReach, saturationThreshold: satThresh)
+			algorithm = CellCoverageEffects(κ: kappa, λ: lambda, μ: mu, requestReach: requestReachConfig, saturationThreshold: satThresh)
 		default:
 			print("Error: Invalid decision algorithm chosen.")
 			exit(EXIT_FAILURE)

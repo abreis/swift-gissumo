@@ -44,13 +44,17 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
   Decision module configuration.
 
   - `triggerDelay`: time, in seconds, to wait before the decision algorithms are executed (e.g., to allow cars to build their coverage maps).
-  - `mapRequestReach`: choose from:
-    - `1hop`: a 1-hop request.
-    - `2hop`: a 2-hop request.
-    - `geocast2r`: a geocast request to a circle of range 2*radioRange.
   - `algorithm/inUse`: select a decision algorithm to use, by name.
   - `algorithm/<algorithmName>`: the parameters of a given algorithm.
 
+  Decision algorithms:
+
+  - `CellCoverageEffects`:
+    - `kappa`, `lambda`, `mu`: coefficients for d_new, d_boost, d_sat.
+    - `mapRequestReach`: choose from:
+      - `1hop`, `2hop`: a 1-hop/2-hop request.
+      - `geocast2r`: a geocast request to a circle of range 2*radioRange.
+    - `saturationThreshold`: d_sat only starts to count above this value.
 
 * `gis`
 
