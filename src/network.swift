@@ -70,6 +70,23 @@ struct Square: AreaType, CustomStringConvertible {
 	var description: String { return "(\(x.min),\(y.min))(\(x.max),\(y.max))" }
 }
 
+struct Circle: AreaType, CustomStringConvertible {
+	var center: (x: Double, y: Double)
+	var radius: Double
+
+	init(centerIn: (x: Double, y: Double), radiusIn: Double) {
+		center = centerIn
+		radius = radiusIn
+	}
+
+	func isPointInside(_ point: (x: Double, y: Double)) -> Bool {
+		// TODO Unimplemented
+		exit(EXIT_FAILURE)
+		return true
+	}
+
+	var description: String { return "center (\(center.x),\(center.x)), radius\(radius)" }
+}
 
 /*** PACKETS ***/
 
