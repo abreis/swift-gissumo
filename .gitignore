@@ -1,0 +1,10 @@
+gissumo.xcodeproj
+src/lib/libpq/module.map
+build
+data
+fcddata
+archives
+simulations
+simulationsets
+stats
+plots
