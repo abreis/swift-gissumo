@@ -189,7 +189,7 @@ print("Running initial events... ", terminator: ""); fflush(stdout)
 for event in simCity.events.initial {
 	event.action()
 	if debug.contains("main().events"){
-		print("[initial] main():\t".cyan(), "Executing", event.type, "event\t", event.description.darkGray())
+		print("[initial] main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", event.type, "event\t", event.description.darkGray())
 	}
 }
 print("okay")
@@ -216,12 +216,15 @@ repeat {
 
 	// Print progress bar
 	if simCity.events.now.nanoseconds > nextTarget {
-		print(nextTargetPercent, terminator: "% "); fflush(stdout)
+		print(nextTargetPercent, terminator: "% ")
+		// If debug is being printed, don't single-line the progress bar
+		if !debug.isEmpty { print("") }
+		fflush(stdout)
 		nextTargetPercent += progressIncrement
 	}
 
 	if debug.contains("main().events"){
-		print("\(simCity.events.now.asSeconds) main():\t".cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
+		print("\(simCity.events.now.asSeconds) main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
 	}
 	nextEvent.action()
 	simCity.events.list.removeFirst()
@@ -235,7 +238,7 @@ print("Running cleanup events... ", terminator: ""); fflush(stdout)
 for event in simCity.events.cleanup {
 	event.action()
 	if debug.contains("main().events"){
-		print("[cleanup] main():\t".cyan(), "Executing", event.type, "event\t", event.description.darkGray())
+		print("[cleanup] main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", event.type, "event\t", event.description.darkGray())
 	}
 }
 print("okay")

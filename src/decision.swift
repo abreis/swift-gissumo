@@ -132,7 +132,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 			// These are the only cells where overlap occurs with the neighbors' maps
 			let actionRange = (x: (start: pcar.selfCoverageMap.topLeftCellCoordinate.x,
 									end: pcar.selfCoverageMap.topLeftCellCoordinate.x + pcar.selfCoverageMap.size.x - 1),
-			               y: (start: pcar.selfCoverageMap.topLeftCellCoordinate.y - pcar.selfCoverageMap.size.y + 1,
+			                   y: (start: pcar.selfCoverageMap.topLeftCellCoordinate.y - pcar.selfCoverageMap.size.y + 1,
 									end: pcar.selfCoverageMap.topLeftCellCoordinate.y))
 
 			// Run through actionRange on the SCM, LMC, LMS and compute the stats
@@ -164,7 +164,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 
 			// Debug
 			if debug.contains("CellCoverageEffects.decide()"){
-				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():\t".cyan(), "ParkedCar", pcar.id, "mapCount", mapList.count, "dNew", dNew, "dBoost", dBoost, "dSat", dSat, "dScore", dScore ) }
+				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "ParkedCar", pcar.id, "mapCount", mapList.count, "dNew", dNew, "dBoost", dBoost, "dSat", dSat, "dScore", dScore ) }
 
 			// Statistics
 			if pcar.city.stats.hooks["detailedDecisions"] != nil {
@@ -191,11 +191,15 @@ class CellCoverageEffects: DecisionAlgorithm {
 				pcar.city.stats.writeToHook("decisionCellCoverageEffects", data: "\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(dNew)\(separator)\(dBoost)\(separator)\(dSat)\(separator)\(dScore)\(separator)\(kappa)\(separator)\(lambda)\(separator)\(mu)\n")
 			}
 
-			if dScore <= 0 { return }
+			// If the parked car does not become an RSU, remove it
+			if dScore <= 0 {
+				pcar.city.removeEntity(pcar)
+				return
+			}
 		} else {
 			// Debug
 			if debug.contains("CellCoverageEffects.decide()"){
-				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():\t".cyan(), "ParkedCar", pcar.id, "mapCount", 0 ) }
+				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "ParkedCar", pcar.id, "mapCount", 0 ) }
 		}
 
 		// Parked car becomes an RSU (unless we returned earlier)

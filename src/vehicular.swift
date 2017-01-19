@@ -138,7 +138,7 @@ class City {
 			}
 			// Debug
 			if debug.contains("City.determineBounds()"){
-				print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City inner bounds", inBounds, "cell size", inCellSize, "top left cell", inTopLeft) }
+				print("\(events.now.asSeconds) City.determineBounds():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "City inner bounds", inBounds, "cell size", inCellSize, "top left cell", inTopLeft) }
 		}
 	}
 	var innerTopLeftCell: (x: Int, y: Int)? {
@@ -180,7 +180,7 @@ class City {
 		}
 
 		if debug.contains("City.determineBounds()"){
-			print("\(events.now.asSeconds) City.determineBounds():\t".cyan(), "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell) }
+			print("\(events.now.asSeconds) City.determineBounds():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell) }
 	}
 
 
@@ -277,7 +277,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.addNew(vehicle)") {
-			print("\(events.now.asSeconds) City.addNew(vehicle):\t".cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
+			print("\(events.now.asSeconds) City.addNew(vehicle):".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
 		}
 
 		return newVehicle
@@ -297,7 +297,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.addNew(roadsideUnit)") {
-			print("\(events.now.asSeconds) City.addNew(roadsideUnit):\t".cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
+			print("\(events.now.asSeconds) City.addNew(roadsideUnit):".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
 		}
 
 		return newRSU
@@ -320,7 +320,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.addNew(parkedCar)") {
-			print("\(events.now.asSeconds) City.addNew(parkedCar):\t".cyan(), "Create ParkedCar id", newParkedCar.id, "gid", newParkedCar.gid!, "at", newParkedCar.geo)
+			print("\(events.now.asSeconds) City.addNew(parkedCar):".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Create ParkedCar id", newParkedCar.id, "gid", newParkedCar.gid!, "at", newParkedCar.geo)
 		}
 
 		return newParkedCar
@@ -370,7 +370,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.updateLocation()") {
-			print("\(events.now.asSeconds) City.updateVehicleLocation():\t".cyan(), "Update", type, "id", e_id, "gid", eGID, "to coordinates", new_geo)
+			print("\(events.now.asSeconds) City.updateVehicleLocation():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Update", type, "id", e_id, "gid", eGID, "to coordinates", new_geo)
 		}
 	}
 
@@ -394,9 +394,9 @@ class City {
 			vehicles.remove(at: vIndex)
 		case .roadsideUnit:
 			guard	let rIndex = roadsideUnits.index( where: {$0.id == e_id} ),
-				let rGID = roadsideUnits[rIndex].gid else {
-					print("Error: Trying to remove a non-existent vehicle.")
-					exit(EXIT_FAILURE)
+					let rGID = roadsideUnits[rIndex].gid else {
+						print("Error: Trying to remove a non-existent vehicle.")
+						exit(EXIT_FAILURE)
 			}
 			eGID = rGID
 			// Remove the roadside unit from the City
@@ -420,7 +420,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.removeEntity()") {
-			print("\(events.now.asSeconds) City.removeEntity():\t".cyan(), "Remove", type, "id", e_id, "gid", eGID)
+			print("\(events.now.asSeconds) City.removeEntity():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Remove", type, "id", e_id, "gid", eGID)
 		}
 	}
 
@@ -473,7 +473,7 @@ class City {
 
 		// Debug
 		if debug.contains("City.convertEntity()") {
-			print("\(events.now.asSeconds) City.convertEntity():\t".cyan(), "Converted a", type(of: entity) , "id", entity.id, "gid", eGID, "to a", targetType, "gid", newEntity!.gid!)
+			print("\(events.now.asSeconds) City.convertEntity():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Converted a", type(of: entity) , "id", entity.id, "gid", eGID, "to a", targetType, "gid", newEntity!.gid!)
 		}
 	}
 

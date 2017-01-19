@@ -82,7 +82,6 @@ struct Circle: AreaType, CustomStringConvertible {
 	func isPointInside(_ point: (x: Double, y: Double)) -> Bool {
 		// TODO Unimplemented
 		exit(EXIT_FAILURE)
-		return true
 	}
 
 	var description: String { return "center (\(center.x),\(center.x)), radius\(radius)" }
@@ -352,7 +351,7 @@ extension RoadEntity: PacketReceiver {
 
 		// Debug
 		if debug.contains("RoadEntity.receive()"){
-			print("\(city.events.now.asSeconds) \(type(of: self)).receive():\t".cyan(), "RSU", id, "received packet", packet.id, "l2src", packet.l2src, "l3src", packet.l3src,  "l3dst", packet.l3dst, "payload", packet.payload.type) }
+			print("\(city.events.now.asSeconds) \(type(of: self)).receive():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "RSU", id, "received packet", packet.id, "l2src", packet.l2src, "l3src", packet.l3src,  "l3dst", packet.l3dst, "payload", packet.payload.type) }
 
 		// Process destination field
 		switch packet.l3dst {
@@ -375,7 +374,7 @@ extension RoadEntity: PacketReceiver {
 
 			// Debug
 			if debug.contains("RoadEntity.receive()"){
-				print("\(city.events.now.asSeconds) \(type(of: self)).receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payload.type) }
+				print("\(city.events.now.asSeconds) \(type(of: self)).receive():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payload.type) }
 
 		case .geocast(let targetArea):
 			// Disregard if we're not in the destination area
@@ -390,7 +389,7 @@ extension RoadEntity: PacketReceiver {
 
 			// Debug
 			if debug.contains("RoadEntity.receive()"){
-				print("\(city.events.now.asSeconds) \(type(of: self)).receive():\t".cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payload.type) }
+				print("\(city.events.now.asSeconds) \(type(of: self)).receive():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "RSU", id, "rebroadcasting packet", rebroadcastPacket.id, "l2src", rebroadcastPacket.l2src, "l3src", rebroadcastPacket.l3src,  "l3dst", rebroadcastPacket.l3dst, "payload", rebroadcastPacket.payload.type) }
 		}
 
 		// Entity-independent payload processing
@@ -444,7 +443,7 @@ extension Vehicle {
 // This must be initiated when the vehicle is created
 extension Vehicle {
 	func recurrentBeaconing() {
-		// Ensure this vehicle is still active -- a beaconing event may be scheduled for after the vehicle is removed
+		// Ensure this vehicle is still active -- a beaconing event may have been scheduled for after the vehicle is removed
 		// This requires tagging vehicles with active=false when they are removed
 		guard self.active else { return }
 
@@ -504,6 +503,6 @@ extension FixedRoadEntity {
 
 		// Debug
 		if debug.contains("FixedRoadEntity.trackSignalStrength()"){
-			print("\(city.events.now.asSeconds) FixedRoadEntity.trackSignalStrength():\t".cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
+			print("\(city.events.now.asSeconds) FixedRoadEntity.trackSignalStrength():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "RSU", id, "sees signal", beaconSignalStrength, "at geo", beacon.geo, "distance", beaconDistance, "los", beaconLOS) }
 	}
 }
