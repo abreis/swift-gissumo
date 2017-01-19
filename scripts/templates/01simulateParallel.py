@@ -142,7 +142,7 @@ while True:
 				# Update simulation count
 				simulationCount += 1
 				# Print some statistics if a simulation finished
-				meanSimulationTime = sum(simulationTimes)/len(simulationTimes)
+				meanSimulationTime = sum(simulationTimes)/len(simulationTimes)/maxThreads
 				remainingTime = meanSimulationTime*(totalSimulations-simulationCount)
 				print("{:d}/{:d} simulations complete, ETA {:d}h{:02d}m{:02d}s".format(simulationCount, totalSimulations, int(remainingTime/3600), int(remainingTime%3600/60), int(remainingTime%60)), flush=True)
 
