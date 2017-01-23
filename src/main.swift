@@ -185,7 +185,9 @@ print("okay")
 /*** EVENT LOOP ***/
 
 // Initial stage events
-print("Running initial events... ", terminator: ""); fflush(stdout)
+print("Running initial events... ", terminator: "");
+if !debug.isEmpty { print("") }
+fflush(stdout)
 for event in simCity.events.initial {
 	event.action()
 	if debug.contains("main().events"){
@@ -196,7 +198,9 @@ print("okay")
 
 
 // Main simulation events
-print("Running simulation events... ", terminator: ""); fflush(stdout)
+print("Running simulation events... ", terminator: "");
+if !debug.isEmpty { print("") }
+fflush(stdout)
 
 // Implement a simple progress bar
 let maxRunTime = simCity.events.list.last!.time.nanoseconds
@@ -204,11 +208,14 @@ let progressIncrement: Int = 10
 var nextTargetPercent: Int = 0 + progressIncrement
 var nextTarget: Int { return nextTargetPercent*maxRunTime/100 }
 
-repeat {
+mainEventLoop: repeat {
 	guard let nextEvent = simCity.events.list.first else {
 		print("Exhausted event list at time", simCity.events.now.asSeconds)
-		exit(EXIT_SUCCESS)
+		break mainEventLoop
 	}
+
+	// Remove the event from the eventlist
+	simCity.events.list.removeFirst()
 
 	// Update current time
 	assert(nextEvent.time > simCity.events.now)
@@ -226,15 +233,18 @@ repeat {
 	if debug.contains("main().events"){
 		print("\(simCity.events.now.asSeconds) main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
 	}
+
+	// Execute the event
 	nextEvent.action()
-	simCity.events.list.removeFirst()
 
 } while simCity.events.now < simCity.events.stopTime
 print("done")
 
 
 // Cleanup stage events
-print("Running cleanup events... ", terminator: ""); fflush(stdout)
+print("Running cleanup events... ", terminator: "");
+if !debug.isEmpty { print("") }
+fflush(stdout)
 for event in simCity.events.cleanup {
 	event.action()
 	if debug.contains("main().events"){

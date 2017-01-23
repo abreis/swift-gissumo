@@ -191,13 +191,20 @@ class City {
 		} else { return nil }
 	}
 
-
-	/// Match a vehicle GID to a Vehicle entity
+	/// Match a RoadEntity GID to a Vehicle entity
 	func get(vehicleFromGID vgid: UInt) -> Vehicle? {
 		if let vIndex = vehicles.index( where: { $0.gid == vgid } ) {
 			return vehicles[vIndex]
 		} else { return nil }
 	}
+
+	/// Match a RoadEntity GID to a Parked entity
+	func get(parkedCarFromGID pgid: UInt) -> ParkedCar? {
+		if let pIndex = parkedCars.index( where: { $0.gid == pgid } ) {
+			return parkedCars[pIndex]
+		} else { return nil }
+	}
+
 
 	/// Returns the GIDs of features in a specified circle (no database query)
 	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: [GIS.FeatureType]) -> [UInt] {

@@ -151,12 +151,12 @@ class Statistics {
 	func collectStatistics(fromCity city: City) {
 		// activeVehicleCount
 		if hooks["activeVehicleCount"] != nil {
-			writeToHook("activeVehicleCount", data: "\(city.events.now.asSeconds)\(separator)\(city.vehicles.count)\n")
+			writeToHook("activeVehicleCount", data: "\(city.events.now.asSeconds)\(separator)\(city.vehicles.count)\(terminator)")
 		}
 
 		// activeRoadsideUnitCount
 		if hooks["activeRoadsideUnitCount"] != nil {
-			writeToHook("activeRoadsideUnitCount", data: "\(city.events.now.asSeconds)\(separator)\(city.roadsideUnits.count)\n")
+			writeToHook("activeRoadsideUnitCount", data: "\(city.events.now.asSeconds)\(separator)\(city.roadsideUnits.count)\(terminator)")
 		}
 
 		// beaconCounts
@@ -167,7 +167,7 @@ class Statistics {
 						print("Error: Metrics unavailable for beaconCounts hook.")
 						exit(EXIT_FAILURE)
 			}
-			writeToHook("beaconCounts", data: "\(city.events.now.asSeconds)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\n")
+			writeToHook("beaconCounts", data: "\(city.events.now.asSeconds)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\(terminator)")
 		}
 
 		// cityCoverageEvolution
@@ -201,7 +201,7 @@ class Statistics {
 			}
 			let signalMean = coveredCells.mean.isNaN ? 0.0 : coveredCells.mean
 			let signalStdev = coveredCells.stdev.isNaN ? 0.0 : coveredCells.stdev
-			writeToHook("cityCoverageEvolution", data: "\(city.events.now.asSeconds)\(separator)\(cellCount)\(separator)\(percentCovered)\(separator)\(signalMean)\(separator)\(signalStdev)\(separator)\(coverageByStrength[0])\(separator)\(coverageByStrength[1])\(separator)\(coverageByStrength[2])\(separator)\(coverageByStrength[3])\(separator)\(coverageByStrength[4])\(separator)\(coverageByStrength[5])\n")
+			writeToHook("cityCoverageEvolution", data: "\(city.events.now.asSeconds)\(separator)\(cellCount)\(separator)\(percentCovered)\(separator)\(signalMean)\(separator)\(signalStdev)\(separator)\(coverageByStrength[0])\(separator)\(coverageByStrength[1])\(separator)\(coverageByStrength[2])\(separator)\(coverageByStrength[3])\(separator)\(coverageByStrength[4])\(separator)\(coverageByStrength[5])\(terminator)")
 		}
 	}
 
@@ -210,7 +210,7 @@ class Statistics {
 	func finalCollection(onCity city: City) {
 		if hooks["finalRoadsideUnitCoverageMaps"] != nil {
 			for rsu in city.roadsideUnits {
-				writeToHook("finalRoadsideUnitCoverageMaps", data: "\nRSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!.asSeconds)\n")
+				writeToHook("finalRoadsideUnitCoverageMaps", data: "\(terminator)RSU ID \(rsu.id) type \(rsu.type) created \(rsu.creationTime!.asSeconds)\(terminator)")
 				writeToHook("finalRoadsideUnitCoverageMaps", data: rsu.selfCoverageMap.description)
 			}
 		}
@@ -320,24 +320,24 @@ class Statistics {
 	func addHookHeaders() {
 		// activeVehicleCount
 		if hooks["activeVehicleCount"] != nil {
-			writeToHook("activeVehicleCount", data: "time\(separator)count\n")
+			writeToHook("activeVehicleCount", data: "time\(separator)count\(terminator)")
 		}
 
 		// activeRoadsideUnitCount
 		if hooks["activeRoadsideUnitCount"] != nil {
-			writeToHook("activeRoadsideUnitCount", data: "time\(separator)count\n")
+			writeToHook("activeRoadsideUnitCount", data: "time\(separator)count\(terminator)")
 		}
 
 		if hooks["beaconCounts"] != nil {
-			writeToHook("beaconCounts", data: "time\(separator)sent\(separator)recv\n")
+			writeToHook("beaconCounts", data: "time\(separator)sent\(separator)recv\(terminator)")
 		}
 
 		if hooks["cityCoverageEvolution"] != nil {
-			writeToHook("cityCoverageEvolution", data: "time\(separator)#covered\(separator)%covered\(separator)meanSig\(separator)stdevSig\(separator)0cells\(separator)1cells\(separator)2cells\(separator)3cells\(separator)4cells\(separator)5cells\n")
+			writeToHook("cityCoverageEvolution", data: "time\(separator)#covered\(separator)%covered\(separator)meanSig\(separator)stdevSig\(separator)0cells\(separator)1cells\(separator)2cells\(separator)3cells\(separator)4cells\(separator)5cells\(terminator)")
 		}
 
 		if hooks["decisionCellCoverageEffects"] != nil {
-			writeToHook("decisionCellCoverageEffects", data: "time\(separator)id\(separator)dNew\(separator)dBoost\(separator)dSat\(separator)dScore\(separator)kappa\(separator)lambda\(separator)mu\n")
+			writeToHook("decisionCellCoverageEffects", data: "time\(separator)id\(separator)dNew\(separator)dBoost\(separator)dSat\(separator)dScore\(separator)kappa\(separator)lambda\(separator)mu\(terminator)")
 		}
 	}
 
