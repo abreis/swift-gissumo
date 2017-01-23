@@ -199,6 +199,13 @@ class City {
 		} else { return nil }
 	}
 
+	/// Match a vehicle GID to a Vehicle entity
+	func get(parkedCarFromGID pgid: UInt) -> ParkedCar? {
+		if let pIndex = parkedCars.index( where: { $0.gid == pgid } ) {
+			return parkedCars[pIndex]
+		} else { return nil }
+	}
+
 	/// Returns the GIDs of features in a specified circle (no database query)
 	func getFeatureGIDs(inCircleWithRadius range: Double, center: (x: Double, y: Double), featureTypes: [GIS.FeatureType]) -> [UInt] {
 		var listOfGIDs = [UInt]()
@@ -314,9 +321,10 @@ class City {
 		// Append the new vehicle to the city's vehicle list
 		parkedCars.append(newParkedCar)
 
-		// Schedule a decision trigger event
-		let decisionTriggerEvent = SimulationEvent(time: events.now + decision.triggerDelay, type: .decision, action: { self.decision.algorithm.trigger(newParkedCar) }, description: "decisionTrigger id\(newParkedCar.id)")
-		events.add(newEvent: decisionTriggerEvent)
+		// NOTE: Removed the decision process
+//		// Schedule a decision trigger event
+//		let decisionTriggerEvent = SimulationEvent(time: events.now + decision.triggerDelay, type: .decision, action: { self.decision.algorithm.trigger(newParkedCar) }, description: "decisionTrigger id\(newParkedCar.id)")
+//		events.add(newEvent: decisionTriggerEvent)
 
 		// Debug
 		if debug.contains("City.addNew(parkedCar)") {
@@ -534,7 +542,108 @@ class City {
 	}
 
 	// Convert all vehicles that end their trips to parked cars
+	var targetNumberOfParkedCarsReached = false
 	func endTripConvertToParkedCar(vehicleID v_id: UInt) {
-		convertEntity(v_id, to: .parkedCar)
+		// NOTE: Static configuration of simulation parameters:
+		let targetNumberOfParkedCars = 100
+		let timeToBuildCoverageMaps = 350
+
+		// Limit the number of parked cars to a predefined value
+		if parkedCars.count < targetNumberOfParkedCars {
+			convertEntity(v_id, to: .parkedCar)
+		} else {
+			// One-time code, the first time the above if condition is false
+			if !targetNumberOfParkedCarsReached {
+				targetNumberOfParkedCarsReached = true
+
+				// When that value is reached, allow time for parked cars to build their coverage maps, and then run the coverage analysis
+				let analysisEvent = SimulationEvent(time: events.now + SimulationTime(seconds: timeToBuildCoverageMaps), type: .statistics, action: { self.analyzeParkedCarCombinations() }, description: "analyzeParkedCarCombinations")
+				events.add(newEvent: analysisEvent)
+			}
+		}
+	}
+
+	// NOTE: Routine to analyze combinations of parked cars
+	func analyzeParkedCarCombinations() {
+		// Output statistics
+		if debug.contains("City.analyzeCombinations()"){
+			print("\(events.now.asSeconds) City.analyzeCombinations():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Analyzing combinations, \(parkedCars.count) parked cars in the city.") }
+
+		// Run through every parked car, performing the analysis
+		for (pcIndex,parkedCar) in parkedCars.enumerated() {
+			/// 1. Create an array with the selected parked car and its neighbors
+			var parkedCarArray: [ParkedCar] = []
+			parkedCarArray.append(parkedCar)
+
+			// Get its neighbors
+			var neighborGIDs: [UInt]
+			if gis.useHaversine {
+				neighborGIDs = getFeatureGIDs(inCircleWithRadius: network.maxRange, center: parkedCar.geo, featureTypes: [.parkedCar] )
+			} else {
+				neighborGIDs = gis.getFeatureGIDs(inCircleWithRadius: network.maxRange, center: parkedCar.geo, featureTypes: [.parkedCar])
+			}
+
+			// Pull parked cars from the GIDs that were found
+			for pGID in neighborGIDs {
+				guard let neighborParkedCar = get(parkedCarFromGID: pGID)
+					else { print("Error: Couldn't match a GID to a parked car.\n"); exit(EXIT_FAILURE) }
+				parkedCarArray.append(neighborParkedCar)
+			}
+
+			/// 2. From the parkedCarArray, evaluate combinations with parkedCar as a reference
+
+			// Array with the coverage maps of every parked car
+			let coverageMapArray = parkedCarArray.map({$0.selfCoverageMap})
+			// An empty map large enough for all of the neighbors' maps, that can be cloned easily
+			let emptyMap = CellMap<Int>(toContainMaps: coverageMapArray, withValue: 0)
+			// Number of possible combinations to evaluate
+			let numberOfCombinations = Int(pow(2.0,Double(coverageMapArray.count)))
+			// Our reference map is a large map with the selected parked car applied to it
+			var referenceMap = emptyMap
+			referenceMap.incrementSaturation(fromSignalMap: parkedCar.selfCoverageMap)
+
+			// Debug
+			if debug.contains("City.analyzeCombinations()"){
+				print("\(events.now.asSeconds) City.analyzeCombinations():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Parked car \(pcIndex+1) has:\tGID \(parkedCar.gid!)\tneighborhood: \(neighborGIDs.count)\tcombinations: \(numberOfCombinations)") }
+
+			// Run through every possible combination
+			for combination in 0..<numberOfCombinations {
+				// Make this combination into a binary string
+				let combinationBinary = String(String(combination, radix: 2).characters.reversed()).padding(toLength: coverageMapArray.count, withPad: "0", startingAt: 0)
+
+				// Clone the empty map
+				var combinationMapOfCoverage = emptyMap
+				var combinationMapOfSaturation = emptyMap
+
+				// Run through the bits
+				for (combinationIndex,combinationBit) in combinationBinary.characters.enumerated() where combinationBit=="1" {
+					// Apply the maps where the combination bit is positive
+					combinationMapOfCoverage.keepBestSignal(fromSignalMap: coverageMapArray[combinationIndex])
+					combinationMapOfSaturation.incrementSaturation(fromSignalMap: coverageMapArray[combinationIndex])
+				}
+
+				// Create two measurement entries
+				var coverageMeasurement = Measurement()
+				var saturationMeasurement = Measurement()
+
+				// Now run through every cell in the reference map; if it's not '0', then pull the same cell in the combination maps into the measurements
+				for i in 0..<referenceMap.size.y {
+					for j in 0..<referenceMap.size.x {
+						if referenceMap.cells[i][j] != 0 {
+							coverageMeasurement.add(Double(combinationMapOfCoverage.cells[i][j]))
+							saturationMeasurement.add(Double(combinationMapOfSaturation.cells[i][j]))
+						}
+					}
+				}
+
+				// Report on the measurements
+				stats.writeToHook("combinationAnalysis", data: "\(parkedCar.id)\(stats.separator)\(combinationBinary)\(stats.separator)\(combinationBinary.characters.reduce(0, { if $1 == "1" {return $0+1} else {return $0} }))\(stats.separator)\(coverageMeasurement.mean)\(stats.separator)\(coverageMeasurement.stdev)\(stats.separator)\(saturationMeasurement.mean)\(stats.separator)\(saturationMeasurement.stdev)\(stats.terminator)")
+			}
+
+			/// Force end simulation
+			// Dump all events from the main event list except the first (ourselves)
+			// We only need the final (cleanup stage) events to write statistics to files
+			events.list.removeAll()
+		}
 	}
 }

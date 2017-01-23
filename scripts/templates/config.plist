@@ -67,6 +67,8 @@
 			<false/>
 			<key>obstructionMask</key>
 			<false/>
+			<key>combinationAnalysis</key>
+			<true/>
 		</dict>
 	</dict>
 	<key>decision</key>
@@ -133,6 +135,8 @@
 		<false/>
 		<key>main().events</key>
 		<false/>
+		<key>City.analyzeCombinations()</key>
+		<true/>
 	</dict>
 	<key>tools</key>
 	<dict>
