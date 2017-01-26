@@ -137,8 +137,7 @@ class City {
 				exit(EXIT_FAILURE)
 			}
 			// Debug
-			if debug.contains("City.determineBounds()"){
-				print("\(events.now.asSeconds) City.determineBounds():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "City inner bounds", inBounds, "cell size", inCellSize, "top left cell", inTopLeft) }
+			debug.printToHook("City.determineBounds()", data: "City inner bounds", inBounds, "cell size", inCellSize, "top left cell", inTopLeft)
 		}
 	}
 	var innerTopLeftCell: (x: Int, y: Int)? {
@@ -179,8 +178,7 @@ class City {
 			}
 		}
 
-		if debug.contains("City.determineBounds()"){
-			print("\(events.now.asSeconds) City.determineBounds():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell) }
+		debug.printToHook("City.determineBounds()", data: "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell)
 	}
 
 
@@ -283,9 +281,7 @@ class City {
 		events.add(newEvent: newBeaconEvent)
 
 		// Debug
-		if debug.contains("City.addNew(vehicle)") {
-			print("\(events.now.asSeconds) City.addNew(vehicle):".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
-		}
+		debug.printToHook("City.addNew(vehicle)", data: "Create vehicle id", newVehicle.id, "gid", newVehicle.gid!, "at", newVehicle.geo)
 
 		return newVehicle
 	}
@@ -303,9 +299,7 @@ class City {
 		roadsideUnits.append(newRSU)
 
 		// Debug
-		if debug.contains("City.addNew(roadsideUnit)") {
-			print("\(events.now.asSeconds) City.addNew(roadsideUnit):".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
-		}
+		debug.printToHook("City.addNew(roadsideUnit)", data: "Create RSU id", newRSU.id, "gid", newRSU.gid!, "at", newRSU.geo)
 
 		return newRSU
 	}
@@ -326,9 +320,7 @@ class City {
 		events.add(newEvent: decisionTriggerEvent)
 
 		// Debug
-		if debug.contains("City.addNew(parkedCar)") {
-			print("\(events.now.asSeconds) City.addNew(parkedCar):".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Create ParkedCar id", newParkedCar.id, "gid", newParkedCar.gid!, "at", newParkedCar.geo)
-		}
+		debug.printToHook("City.addNew(parkedCar)", data: "Create ParkedCar id", newParkedCar.id, "gid", newParkedCar.gid!, "at", newParkedCar.geo)
 
 		return newParkedCar
 	}
@@ -376,9 +368,7 @@ class City {
 		gis.updatePoint(withGID: eGID, geo: new_geo)
 
 		// Debug
-		if debug.contains("City.updateLocation()") {
-			print("\(events.now.asSeconds) City.updateVehicleLocation():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Update", type, "id", e_id, "gid", eGID, "to coordinates", new_geo)
-		}
+		debug.printToHook("City.updateLocation()", data: "Update", type, "id", e_id, "gid", eGID, "to coordinates", new_geo)
 	}
 
 
@@ -426,9 +416,7 @@ class City {
 		gis.deletePoint(withGID: eGID)
 
 		// Debug
-		if debug.contains("City.removeEntity()") {
-			print("\(events.now.asSeconds) City.removeEntity():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Remove", type, "id", e_id, "gid", eGID)
-		}
+		debug.printToHook("City.removeEntity()", data: "Remove", type, "id", e_id, "gid", eGID)
 	}
 
 	// Convenience remove() pulls the type and ID from the entity itself
@@ -479,9 +467,7 @@ class City {
 		// else if entity is RoadsideUnit {}
 
 		// Debug
-		if debug.contains("City.convertEntity()") {
-			print("\(events.now.asSeconds) City.convertEntity():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Converted a", type(of: entity) , "id", entity.id, "gid", eGID, "to a", targetType, "gid", newEntity!.gid!)
-		}
+		debug.printToHook("City.convertEntity()", data: "Converted a", type(of: entity) , "id", entity.id, "gid", eGID, "to a", targetType, "gid", newEntity!.gid!)
 	}
 
 

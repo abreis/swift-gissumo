@@ -47,14 +47,11 @@ guard let configStopTime = config["stopTime"] as? Double else {
 }
 
 // Load debug variable
-var debug = [String]()
-if let debugConfig = config["debug"] as? NSDictionary {
-	for element in debugConfig {
-		if let enabled = element.value as? Bool, enabled == true {
-			debug.append(String(describing: element.key))
-		}
-	}
+guard let debugConfig = config["debug"] as? NSDictionary else {
+	print("failed", "\nError: No debug section in the configuration file.")
+	exit(EXIT_FAILURE)
 }
+var debug = Debug(config: debugConfig)
 
 // Load inner bounds
 var cityInnerBounds: Square?
@@ -158,6 +155,9 @@ if	let toolsConfig = config["tools"] as? NSDictionary,
  */
 var simCity = City(gis: gisdb, network: Network(), eventList: EventList(stopTime: configStopTime), statistics: Statistics(config: statisticsConfig), decision: Decision(config: decisionConfig))
 
+// Feed the eventList class to the debug module
+debug.events = simCity.events
+
 // Load city characteristics, bounds, cell size from the FCD trips
 simCity.determineBounds(fromFCD: fcdTrips)
 
@@ -190,9 +190,7 @@ if !debug.isEmpty { print("") }
 fflush(stdout)
 for event in simCity.events.initial {
 	event.action()
-	if debug.contains("main().events"){
-		print("[initial] main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", event.type, "event\t", event.description.darkGray())
-	}
+	debug.printToHook("main().events", label: "[initial]", data: "Executing", event.type, "event\t", event.description.darkGray())
 }
 print("okay")
 
@@ -230,9 +228,7 @@ mainEventLoop: repeat {
 		nextTargetPercent += progressIncrement
 	}
 
-	if debug.contains("main().events"){
-		print("\(simCity.events.now.asSeconds) main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
-	}
+	debug.printToHook("main().events", data: "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
 
 	// Execute the event
 	nextEvent.action()
@@ -247,9 +243,7 @@ if !debug.isEmpty { print("") }
 fflush(stdout)
 for event in simCity.events.cleanup {
 	event.action()
-	if debug.contains("main().events"){
-		print("[cleanup] main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", event.type, "event\t", event.description.darkGray())
-	}
+	debug.printToHook("main().events", label: "[cleanup]", data: "Executing", event.type, "event\t", event.description.darkGray())
 }
 print("okay")
 

@@ -163,8 +163,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 			let dScore = kappa*Double(dNew) + lambda*Double(dBoost) - mu*Double(dSat)
 
 			// Debug
-			if debug.contains("CellCoverageEffects.decide()"){
-				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "ParkedCar", pcar.id, "mapCount", mapList.count, "dNew", dNew, "dBoost", dBoost, "dSat", dSat, "dScore", dScore ) }
+			debug.printToHook("CellCoverageEffects.decide()", data: "ParkedCar", pcar.id, "mapCount", mapList.count, "dNew", dNew, "dBoost", dBoost, "dSat", dSat, "dScore", dScore )
 
 			// Statistics
 			if pcar.city.stats.hooks["detailedDecisions"] != nil {
@@ -197,9 +196,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 				return
 			}
 		} else {
-			// Debug
-			if debug.contains("CellCoverageEffects.decide()"){
-				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "ParkedCar", pcar.id, "mapCount", 0 ) }
+			debug.printToHook("CellCoverageEffects.decide()", data: "ParkedCar", pcar.id, "mapCount", 0 )
 		}
 
 		// Parked car becomes an RSU (unless we returned earlier)

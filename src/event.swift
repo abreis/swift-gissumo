@@ -125,9 +125,7 @@ class EventList {
 		list.insert(newEvent, at: insertionIndex)
 
 		// Debug
-		if debug.contains("EventList.add()") {
-			print("\(now.asSeconds) EventList.add():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time.asSeconds)
-		}
+		debug.printToHook("EventList.add()", data: "Add new event of type", newEvent.type, "at time", newEvent.time.asSeconds)
 	}
 
 	// A safe version of ordered event insertion
@@ -165,9 +163,7 @@ class EventList {
 		list.insert(newEvent, at: insertionIndex)
 
 		// Debug
-		if debug.contains("EventList.add()") {
-			print("\(now.asSeconds) EventList.add():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
-		}
+		debug.printToHook("EventList.add()", data: "Add new event of type", newEvent.type, "at time", newEvent.time)
 	}
 
 	// Add events to the pre-simulation (initial) stage
@@ -199,14 +195,12 @@ class EventList {
 			let missingVehicleIDs = cityVehicleIDs.subtracting(fcdVehicleIDs)
 
 			// Debug
-			if debug.contains("EventList.scheduleMobilityEvents()"){
-				print("\(now.asSeconds) EventList.scheduleMobilityEvents():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Timestep", timestep.time, "sees:" )
-				print("\t\tFCD vehicles:", fcdVehicleIDs)
-				print("\t\tCity vehicles:", cityVehicleIDs)
-				print("\t\tNew vehicles:", newVehicleIDs)
-				print("\t\tExisting vehicles:", existingVehicleIDs)
-				print("\t\tMissing vehicles:", missingVehicleIDs)
-			}
+			debug.printToHook("EventList.scheduleMobilityEvents()", data: "Timestep", timestep.time, "sees:")
+			debug.printToHook("EventList.scheduleMobilityEvents()", label: "", data: "\tFCD vehicles:", fcdVehicleIDs)
+			debug.printToHook("EventList.scheduleMobilityEvents()", label: "", data: "\t\tCity vehicles:", cityVehicleIDs)
+			debug.printToHook("EventList.scheduleMobilityEvents()", label: "", data: "\t\tNew vehicles:", newVehicleIDs)
+			debug.printToHook("EventList.scheduleMobilityEvents()", label: "", data: "\t\tExisting vehicles:", existingVehicleIDs)
+			debug.printToHook("EventList.scheduleMobilityEvents()", label: "", data: "\t\tMissing vehicles:", missingVehicleIDs)
 
 			// Insert and remove vehicles into our temporary array
 			cityVehicleIDs.formUnion(newVehicleIDs)
