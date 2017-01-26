@@ -122,6 +122,7 @@ enum PayloadType: UInt {
 	case beacon = 0
 	case coverageMapRequest
 	case coverageMap
+	case disableRSU
 }
 
 // A payload is a simple text field and a header with its type
@@ -194,6 +195,26 @@ struct CoverageMapRequest: PayloadConvertible {
 	func toPayload() -> Payload { return Payload(type: .coverageMapRequest, content: "")}
 	init? (fromPayload: Payload) { }
 	init () {}
+}
+
+
+// A message to instruct an RSU to disable itself
+struct DisableRoadsideUnit: PayloadConvertible {
+	let rsuID: UInt
+
+	init (disableID inID: UInt) {
+		rsuID = inID
+	}
+
+	func toPayload() -> Payload { return Payload(type: .disableRSU, content: "\(rsuID)")}
+
+	init(fromPayload payload: Payload) {
+		guard let payloadID = UInt(payload.content) else {
+			print("Error: ID conversion from disableRSU payload failed.")
+			exit(EXIT_FAILURE)
+		}
+		rsuID = payloadID
+	}
 }
 
 
@@ -481,6 +502,18 @@ extension FixedRoadEntity: PayloadReceiver {
 		case .coverageMap:
 			// Store the map in a temporary buffer
 			if isRequestingMaps { payloadBuffer.append(packet.payload) }
+
+		case .disableRSU:
+			// Only RSUs can be disabled by a message
+			if self is RoadsideUnit {
+				// Pull the targed GID from the payload
+				let disableMessage = DisableRoadsideUnit(fromPayload: packet.payload)
+				// If the disable command was directed to us, schedule an event to remove us from the network
+				if disableMessage.rsuID == self.id {
+					let removalEvent = SimulationEvent(time: self.city.events.now + self.city.events.minTimestep, type: .vehicular, action: {self.city.removeEntity(self)}, description: "RSU id \(self.id) removed by disableRSU message")
+					self.city.events.add(newEvent: removalEvent)
+				}
+			}
 		}
 	}
 }

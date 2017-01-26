@@ -6,10 +6,11 @@ import Foundation
 
 struct SimulationEvent {
 	enum EventType {
-		case mobility
-		case network
-		case statistics
-		case decision
+		case mobility		// Events scheduled from the FCD data
+		case network		// Network-related events
+		case statistics		// Statistics-related events
+		case decision		// Decision-related events
+		case vehicular		// Vehicular events separate from the FCD data
 	}
 
 	var time: SimulationTime
