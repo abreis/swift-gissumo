@@ -191,9 +191,10 @@ class CellCoverageEffects: DecisionAlgorithm {
 				pcar.city.stats.writeToHook("decisionCellCoverageEffects", data: "\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(dNew)\(separator)\(dBoost)\(separator)\(dSat)\(separator)\(dScore)\(separator)\(kappa)\(separator)\(lambda)\(separator)\(mu)\n")
 			}
 
-			// If the parked car does not become an RSU, remove it
+			// If the parked car does not become an RSU, schedule it for removal
 			if dScore <= 0 {
-				pcar.city.removeEntity(pcar)
+				let removalEvent = SimulationEvent(time: pcar.city.events.now + pcar.city.events.minTimestep, type: .vehicular, action: {pcar.city.removeEntity(pcar)}, description: "Parked car id \(pcar.id) removed by negative dScore")
+				pcar.city.events.add(newEvent: removalEvent)
 				return
 			}
 		} else {
