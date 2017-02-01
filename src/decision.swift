@@ -41,6 +41,8 @@ class Decision {
 
 			let satThresh = cellCoverageEffectsConfig["saturationThreshold"] as? Int
 			algorithm = CellCoverageEffects(κ: kappa, λ: lambda, μ: mu, requestReach: requestReachConfig, saturationThreshold: satThresh)
+		case "NullDecision":
+			algorithm = NullDecision()
 		default:
 			print("Error: Invalid decision algorithm chosen.")
 			exit(EXIT_FAILURE)
@@ -53,6 +55,15 @@ protocol DecisionAlgorithm {
 	func trigger(_ pcar: ParkedCar)
 }
 
+/// NullDecision: a null decision algorithm that simply removes the parked car from the network
+class NullDecision: DecisionAlgorithm {
+	func trigger(_ pcar: ParkedCar) {
+		let removalEvent = SimulationEvent(time: pcar.city.events.now + pcar.city.events.minTimestep, type: .decision, action: {pcar.city.removeEntity(pcar)}, description: "Parked car id \(pcar.id) removed by negative dScore")
+		pcar.city.events.add(newEvent: removalEvent)
+	}
+}
+
+/// CellCoverageEffects: a decision algorithm based on cell coverage: new coverage, improved coverage, excess coverage
 class CellCoverageEffects: DecisionAlgorithm {
 	let kappa, lambda, mu: Double
 	var saturationThreshold: Int = -1
@@ -193,7 +204,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 
 			// If the parked car does not become an RSU, schedule it for removal
 			if dScore <= 0 {
-				let removalEvent = SimulationEvent(time: pcar.city.events.now + pcar.city.events.minTimestep, type: .vehicular, action: {pcar.city.removeEntity(pcar)}, description: "Parked car id \(pcar.id) removed by negative dScore")
+				let removalEvent = SimulationEvent(time: pcar.city.events.now + pcar.city.events.minTimestep, type: .decision, action: {pcar.city.removeEntity(pcar)}, description: "Parked car id \(pcar.id) removed by negative dScore")
 				pcar.city.events.add(newEvent: removalEvent)
 				return
 			}
