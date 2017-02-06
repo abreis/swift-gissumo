@@ -185,7 +185,7 @@ class City {
 
 	/// Schedule mobility events and determine bounds from the FCD data
 	func scheduleMobilityAndDetermineBounds(fromXML fcdXML: XMLIndexer, stopTime configStopTime: Double = 0.0) {
-		// Auxilliary variable to ensure we get time-sorted data
+		// Auxiliary variable to ensure we get time-sorted data
 		var lastTimestepTime: Double = -Double.greatestFiniteMagnitude
 
 		// Implement a simple progress bar
