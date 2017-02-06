@@ -118,16 +118,16 @@ guard let fcdFile = config["floatingCarDataFile"] as? String else {
 	exit(EXIT_FAILURE)
 }
 
-var fcdTrips: [FCDTimestep]
+var fcdXML: XMLIndexer
 do {
-	try fcdTrips = loadFloatingCarData(fromFile: fcdFile, stopTime: configStopTime)
+	try fcdXML = loadFloatingCarData(fromFile: fcdFile)
 } catch let error as FloatingCarDataError {
 	print("failed", "\nError:", error.description)
 	exit(EXIT_FAILURE)
 }
 
 print("okay")
-print("\tLoaded", fcdTrips.count, "timesteps from data file")
+//print("\tLoaded", fcdTrips.count, "timesteps from data file")
 
 
 /* To build an obstruction cell mask, jump here.
@@ -135,6 +135,16 @@ print("\tLoaded", fcdTrips.count, "timesteps from data file")
 if	let toolsConfig = config["tools"] as? NSDictionary,
 	let buildMask = toolsConfig["buildObstructionMask"] as? Bool, buildMask == true
 {
+	print("Parsing floating car data... ", terminator: ""); fflush(stdout)
+
+	let fcdTrips: [FCDTimestep]
+	do {
+		try fcdTrips = parseFloatingCarData(fromXML: fcdXML, stopTime: configStopTime)
+	} catch let error as FloatingCarDataError {
+		print("failed", "\nError:", error.description)
+		exit(EXIT_FAILURE)
+	}
+
 	print("Building obstruction mask... ", terminator: ""); fflush(stdout)
 	do {
 		try buildObstructionMask(fromTrips: fcdTrips)
@@ -158,12 +168,6 @@ if	let toolsConfig = config["tools"] as? NSDictionary,
  */
 var simCity = City(gis: gisdb, network: Network(), eventList: EventList(stopTime: configStopTime), statistics: Statistics(config: statisticsConfig), decision: Decision(config: decisionConfig))
 
-// Load city characteristics, bounds, cell size from the FCD trips
-simCity.determineBounds(fromFCD: fcdTrips)
-
-// Store inner city bounds from configuration file
-simCity.innerBounds = cityInnerBounds
-
 // Clear all points from the database
 print("Clearing old features from GIS... ", terminator: ""); fflush(stdout)
 simCity.gis.clearFeatures(withType: .vehicle)
@@ -178,8 +182,19 @@ print("okay")
 
 // Add mobility timestep events to the eventlist
 print("Scheduling mobility events... ", terminator: ""); fflush(stdout)
-simCity.events.scheduleMobilityEvents(fromFCD: &fcdTrips, city: simCity)
+/* One-shot:
+ * - Add mobility timestep events to the eventlist
+ * - Load city bounds from the FCD trips
+ *
+ * Previously, we parsed all the floating car data onto an array of our own, 
+ * and then iterated on that array for these two tasks. For larger datasets
+ * this is very inneficient.
+ */
+simCity.scheduleMobilityAndDetermineBounds(fromXML: fcdXML, stopTime: configStopTime)
 print("okay")
+
+// Store inner city bounds from configuration file
+simCity.innerBounds = cityInnerBounds
 
 
 /*** EVENT LOOP ***/

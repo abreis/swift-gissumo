@@ -162,8 +162,8 @@ class City {
 		decision = indecision
 	}
 
-	/// Automatically determine bounds and cell map sizes from FCD data
-	func determineBounds(fromFCD trips: [FCDTimestep]) {
+	/// Automatically determine bounds and cell map sizes from FCD data (DEPRECATED)
+	func determineBounds(fromFCD trips: inout [FCDTimestep]) {
 		// Initialize the city bounds with reversed WGS84 extreme bounds
 		bounds.x = (min:  180.0, max: -180.0)
 		bounds.y = (min:   90.0, max:  -90.0)
@@ -181,6 +181,142 @@ class City {
 
 		if debug.contains("City.determineBounds()"){
 			print("\(events.now.asSeconds) City.determineBounds():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell) }
+	}
+
+	/// Schedule mobility events and determine bounds from the FCD data
+	func scheduleMobilityAndDetermineBounds(fromXML fcdXML: XMLIndexer, stopTime configStopTime: Double = 0.0) {
+		// Auxilliary variable to ensure we get time-sorted data
+		var lastTimestepTime: Double = -Double.greatestFiniteMagnitude
+
+		// Implement a simple progress bar
+		let maxRunTime = events.stopTime.seconds
+		let progressIncrement: Int = 10
+		var nextTargetPercent: Int = 0 + progressIncrement
+		var nextTarget: Int { return nextTargetPercent*maxRunTime/100 }
+
+		// [bounds]
+		// Initialize the city bounds with reversed WGS84 extreme bounds
+		bounds.x = (min:  180.0, max: -180.0)
+		bounds.y = (min:   90.0, max:  -90.0)
+
+		// [mobility]
+		// A temporary array to store vehicles that will be active
+		var cityVehicleIDs = Set<UInt>()
+
+
+		// Timestep loop
+		print("(loading)", terminator: " "); fflush(stdout)
+		timestepLoop: for xmlTimestep in fcdXML["fcd-export"]["timestep"] {
+			// 1. Get this timestep's time
+			guard	let timestepElement = xmlTimestep.element,
+					let s_time = timestepElement.attribute(by: "time")?.text,
+					let timestepTime = Double(s_time)
+			else {
+					print("Error: Invalid timestep entry.")
+					exit(EXIT_FAILURE)
+			}
+
+			// 2. We assume the FCD data is provided to us sorted; if not, fail
+			if lastTimestepTime >= timestepTime {
+				print("Error: Floating car data not sorted in time.")
+				exit(EXIT_FAILURE)
+			} else { lastTimestepTime = timestepTime }
+
+			// Don't load timesteps that occur later than the simulation stopTime
+			if timestepTime > configStopTime { break timestepLoop }
+
+
+			// 3. Iterate through the vehicles on this timestep, creating an FCDTimestep entry
+			var timestepVehicles = [FCDVehicle]()
+			for vehicle in xmlTimestep["vehicle"] {
+				// Load the vehicle's ID and geographic position
+				guard let vehicleElement = vehicle.element,
+					let s_id = vehicleElement.attribute(by: "id")?.text,
+					let v_id = UInt(s_id),
+					let s_xgeo = vehicleElement.attribute(by: "x")?.text,
+					let v_xgeo = Double(s_xgeo),
+					let s_ygeo = vehicleElement.attribute(by: "y")?.text,
+					let v_ygeo = Double(s_ygeo)
+					//let s_speed = vehicleElement.attribute(by: "speed")?.text,
+					//let v_speed = Double(s_speed)
+					else {
+						print("Error: Unable to convert vehicle properties.")
+						exit(EXIT_FAILURE)
+				}
+				timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo), speed: 0) )
+			}
+			let timestep = FCDTimestep(time: timestepTime, vehicles: timestepVehicles)
+
+
+			// 4. Now schedule mobility and determine bounds as before
+			// [bounds]
+			for vehicle in timestep.vehicles {
+				if vehicle.geo.x < bounds.x.min { bounds.x.min = vehicle.geo.x }
+				if vehicle.geo.x > bounds.x.max { bounds.x.max = vehicle.geo.x }
+				if vehicle.geo.y < bounds.y.min { bounds.y.min = vehicle.geo.y }
+				if vehicle.geo.y > bounds.y.max { bounds.y.max = vehicle.geo.y }
+			}
+
+			// [mobility]
+			/* Create a set of vehicle IDs in this timestep
+			* This is done by mapping the timestep's array of FCDVehicles into an array of
+			* the vehicle's IDs, and then initializing the Set<UInt> with that array.
+			*/
+			let fcdVehicleIDs = Set<UInt>( timestep.vehicles.map({$0.id}) )
+
+			// Through set relations we can now get the IDs of all new, existing and removed vehicles
+			let newVehicleIDs = fcdVehicleIDs.subtracting(cityVehicleIDs)
+			let existingVehicleIDs = fcdVehicleIDs.intersection(cityVehicleIDs)
+			let missingVehicleIDs = cityVehicleIDs.subtracting(fcdVehicleIDs)
+
+			// Debug
+			if debug.contains("EventList.scheduleMobilityEvents()"){
+				print("\(events.now.asSeconds) EventList.scheduleMobilityEvents():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Timestep", timestep.time, "sees:" )
+				print("\t\tFCD vehicles:", fcdVehicleIDs)
+				print("\t\tCity vehicles:", cityVehicleIDs)
+				print("\t\tNew vehicles:", newVehicleIDs)
+				print("\t\tExisting vehicles:", existingVehicleIDs)
+				print("\t\tMissing vehicles:", missingVehicleIDs)
+			}
+
+			// Insert and remove vehicles into our temporary array
+			cityVehicleIDs.formUnion(newVehicleIDs)
+			cityVehicleIDs.subtract(missingVehicleIDs)
+
+			// Schedule events to create new vehicles
+			for newFCDvehicleID in newVehicleIDs {
+				let newFCDvehicle = timestep.vehicles[ timestep.vehicles.index( where: {$0.id == newFCDvehicleID} )! ]
+				// (note: the IDs came from timestep.vehicles, so an .indexOf on the array can be force-unwrapped safely)
+
+				let newVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {_ = self.addNew(vehicleWithID: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
+
+				events.add(newEvent: newVehicleEvent)
+			}
+
+			// Schedule events to update existing vehicles
+			for existingFDCvehicleID in existingVehicleIDs {
+				let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.index( where: {$0.id == existingFDCvehicleID} )! ]
+
+				let updateVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {self.updateLocation(entityType: .vehicle, id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
+
+				events.add(newEvent: updateVehicleEvent)
+			}
+
+			// Schedule events to act on vehicles ending their trips
+			for missingFDCvehicleID in missingVehicleIDs {
+				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {self.endTripHook(vehicleID: missingFDCvehicleID)}, description: "endTripHook vehicle \(missingFDCvehicleID)")
+
+				events.add(newEvent: endTripEvent)
+			}
+
+
+			// Print progress bar
+			if Int(timestep.time) > nextTarget {
+				print(nextTargetPercent, terminator: "% ")
+				fflush(stdout)
+				nextTargetPercent += progressIncrement
+			}
+		}
 	}
 
 

@@ -22,6 +22,10 @@ struct SimulationEvent {
 
 struct SimulationTime: Equatable, Comparable, Hashable, ExpressibleByFloatLiteral, CustomStringConvertible {
 	var nanoseconds: Int
+	var milliseconds: Int { return nanoseconds/1000 }
+	var microseconds: Int { return nanoseconds/1000000 }
+	var seconds: Int { return nanoseconds/1000000000 }
+
 	// Standard init
 	init() { nanoseconds = 0 }
 	// FloatLiteralConvertible: initialize with a Float (assumes Seconds are provided)
@@ -181,7 +185,7 @@ class EventList {
 		cleanup.append(event)
 	}
 
-	// Process mobility timesteps, adding events to create, update and remove vehicles
+	// Process mobility timesteps, adding events to create, update and remove vehicles (DEPRECATED)
 	func scheduleMobilityEvents(fromFCD fcdTimesteps: inout [FCDTimestep], city: City) {
 		// A temporary array to store vehicles that will be active
 		var cityVehicleIDs = Set<UInt>()

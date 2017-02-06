@@ -46,7 +46,12 @@ enum FloatingCarDataError: Error, CustomStringConvertible{
 	}
 }
 
-func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Double) throws -> [FCDTimestep] {
+/* Load Floating Car Data onto an XMLIndexer object
+ * Datasets can be of considerable size and are usually only iterated on once,
+ * so we memmap the file and process the XML lazily. This routine should be
+ * near-instantaneous.
+ */
+func loadFloatingCarData(fromFile fcdFile: String) throws -> XMLIndexer {
 	// See if the file exists
 	let fcdFileURL = URL(fileURLWithPath: fcdFile)
 	guard (fcdFileURL as NSURL).checkResourceIsReachableAndReturnError(nil) else {
@@ -54,11 +59,21 @@ func loadFloatingCarData(fromFile fcdFile: String, stopTime configStopTime: Doub
 	}
 
 	// Parse XML Floating Car Data
-	guard let fcdData = try? Data(contentsOf: fcdFileURL) else {
-			throw FloatingCarDataError.unableToParse
+	guard let fcdData = try? Data(contentsOf: fcdFileURL, options: [.mappedIfSafe, .uncached] ) else {
+		throw FloatingCarDataError.unableToParse
 	}
-	let fcdXML = SWXMLHash.parse(fcdData)
 
+	// Create an XML indexer for the FCD data
+	let fcdXML = SWXMLHash.config {
+		config in
+		config.shouldProcessLazily = true
+		}.parse(fcdData)
+
+	return fcdXML
+}
+
+// Parse the Floating Car Data into an FCDTimestep array (DEPRECATED)
+func parseFloatingCarData(fromXML fcdXML: XMLIndexer, stopTime configStopTime: Double) throws -> [FCDTimestep] {
 	// Load data onto our Trips array
 	var fcdTrips = [FCDTimestep]()
 	timestepLoop: for timestep in fcdXML["fcd-export"]["timestep"] {
