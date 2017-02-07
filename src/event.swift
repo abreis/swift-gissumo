@@ -237,7 +237,7 @@ class EventList {
 
 			// Schedule events to act on vehicles ending their trips
 			for missingFDCvehicleID in missingVehicleIDs {
-				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {city.endTripHook(vehicleID: missingFDCvehicleID)}, description: "endTripHook vehicle \(missingFDCvehicleID)")
+				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {city.endTripConvertToParkedCar(vehicleID: missingFDCvehicleID)}, description: "endTripConvertToParkedCar vehicle \(missingFDCvehicleID)")
 
 				add(newEvent: endTripEvent)
 			}

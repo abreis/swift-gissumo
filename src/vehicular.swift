@@ -307,7 +307,7 @@ class City {
 
 			// Schedule events to act on vehicles ending their trips
 			for missingFDCvehicleID in missingVehicleIDs {
-				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {self.endTripHook(vehicleID: missingFDCvehicleID)}, description: "endTripHook vehicle \(missingFDCvehicleID)")
+				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {self.endTripConvertToParkedCar(vehicleID: missingFDCvehicleID)}, description: "endTripConvertToParkedCar vehicle \(missingFDCvehicleID)")
 
 				events.add(newEvent: endTripEvent)
 			}
@@ -653,17 +653,6 @@ class City {
 
 
 	/*** END TRIP ACTIONS ***/
-
-	/// Action to perform on vehicles that end their FCD trips
-	func endTripHook(vehicleID v_id: UInt) {
-		// Pick the routine to be ran whenever a vehicle ends its trip here
-		let endTripRoutineForVehicle: (UInt)->() = endTripConvertToParkedCar
-		let routineName = "endTripConvertToParkedCar" // For debugging, match the name in the previous line
-
-		// Schedule an event right away for the end trip action
-		let endTripEvent = SimulationEvent(time: events.now + events.minTimestep, type: .mobility, action: { endTripRoutineForVehicle(v_id) }, description: "\(routineName) id \(v_id)")
-		events.add(newEvent: endTripEvent)
-	}
 
 	/* One of these routines can be executed when a vehicle ends its trip in the FDC data.
 	* The routines can, e.g., simply remove the vehicle, park the vehicle, park and convert the
