@@ -184,7 +184,7 @@ class City {
 	}
 
 	/// Schedule mobility events and determine bounds from the FCD data
-	func scheduleMobilityAndDetermineBounds(fromXML fcdXML: XMLIndexer, stopTime configStopTime: Double = 0.0) {
+	func scheduleMobilityAndDetermineBounds(fromTSV fcdTSV: inout [String], stopTime configStopTime: Double = 0.0) {
 		// Auxiliary variable to ensure we get time-sorted data
 		var lastTimestepTime: Double = -Double.greatestFiniteMagnitude
 
@@ -203,52 +203,55 @@ class City {
 		// A temporary array to store vehicles that will be active
 		var cityVehicleIDs = Set<UInt>()
 
+		// Index for iterating the TSV file
+		var entryPosition: Int = 0
 
-		// Timestep loop
-		print("(loading)", terminator: " "); fflush(stdout)
-		timestepLoop: for xmlTimestep in fcdXML["fcd-export"]["timestep"] {
-			// 1. Get this timestep's time
-			guard	let timestepElement = xmlTimestep.element,
-					let s_time = timestepElement.attribute(by: "time")?.text,
-					let timestepTime = Double(s_time)
-			else {
-					print("Error: Invalid timestep entry.")
-					exit(EXIT_FAILURE)
+		// Iterate over the TSV file, pulling a timestep set at a time
+		tsvLoop: repeat {
+			// Pull a complete timestep
+			// This timestep's time is the time on the current position
+			guard let timestepTime = Double(fcdTSV[entryPosition].components(separatedBy: "\t").first!) else {
+				print("Error: Failed to grab the time on a timestep.")
+				exit(EXIT_FAILURE)
 			}
 
-			// 2. We assume the FCD data is provided to us sorted; if not, fail
-			if lastTimestepTime >= timestepTime {
-				print("Error: Floating car data not sorted in time.")
-				exit(EXIT_FAILURE)
-			} else { lastTimestepTime = timestepTime }
-
 			// Don't load timesteps that occur later than the simulation stopTime
-			if timestepTime > configStopTime { break timestepLoop }
+			if configStopTime > 0, timestepTime > configStopTime { break tsvLoop }
 
-
-			// 3. Iterate through the vehicles on this timestep, creating an FCDTimestep entry
+			// Create an array for storing FCDVehicles
 			var timestepVehicles = [FCDVehicle]()
-			for vehicle in xmlTimestep["vehicle"] {
-				// Load the vehicle's ID and geographic position
-				guard let vehicleElement = vehicle.element,
-					let s_id = vehicleElement.attribute(by: "id")?.text,
-					let v_id = UInt(s_id),
-					let s_xgeo = vehicleElement.attribute(by: "x")?.text,
-					let v_xgeo = Double(s_xgeo),
-					let s_ygeo = vehicleElement.attribute(by: "y")?.text,
-					let v_ygeo = Double(s_ygeo)
-					//let s_speed = vehicleElement.attribute(by: "speed")?.text,
-					//let v_speed = Double(s_speed)
-					else {
+			timestepLoop: repeat {
+				// Pull an entry
+				let fcdEntry = fcdTSV[entryPosition].components(separatedBy: "\t")
+
+				// Get the entry's timestep time, and continue if it belongs to the next timestep
+				guard	let v_time = Double(fcdEntry[0]),
+						v_time == timestepTime
+				else {
+					break timestepLoop
+				}
+
+				// Process the entry
+				guard	let v_id = UInt(fcdEntry[1]),
+						let v_xgeo = Double(fcdEntry[2]),
+						let v_ygeo = Double(fcdEntry[3])
+				else {
 						print("Error: Unable to convert vehicle properties.")
 						exit(EXIT_FAILURE)
 				}
-				timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo), speed: 0) )
-			}
+
+				// Append a new FCDVehicle entry
+				timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo)) )
+
+				// Increment our position on the TSV array
+				entryPosition += 1
+			} while entryPosition < fcdTSV.count
+
+			// Create an FCDTimestep object
 			let timestep = FCDTimestep(time: timestepTime, vehicles: timestepVehicles)
 
 
-			// 4. Now schedule mobility and determine bounds as before
+			// Schedule mobility and determine bounds
 			// [bounds]
 			for vehicle in timestep.vehicles {
 				if vehicle.geo.x < bounds.x.min { bounds.x.min = vehicle.geo.x }
@@ -316,7 +319,8 @@ class City {
 				fflush(stdout)
 				nextTargetPercent += progressIncrement
 			}
-		}
+
+		} while entryPosition < fcdTSV.count
 	}
 
 

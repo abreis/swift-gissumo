@@ -109,53 +109,65 @@ print("\tSaw", buildingCount, "buildings in the database")
 
 
 
-/* Load floating car data from an XML file
+/* Load floating car data from a TSV file
  */
 print("Loading floating car data... ", terminator: ""); fflush(stdout)
 
-guard let fcdFile = config["floatingCarDataFile"] as? String else {
-	print("failed", "\nError: Please specify a valid SUMO FCD file with 'floatingCarDataFile'.")
+guard	let fcdFile = config["floatingCarDataFile"] as? String,
+		fcdFile.hasSuffix(".fcd.tsv")
+else {
+	print("failed", "\nError: Please specify a valid .fcd.tsv file with 'floatingCarDataFile'.")
 	exit(EXIT_FAILURE)
 }
 
-var fcdXML: XMLIndexer
-do {
-	try fcdXML = loadFloatingCarData(fromFile: fcdFile)
-} catch let error as FloatingCarDataError {
-	print("failed", "\nError:", error.description)
+let fcdFileURL = URL(fileURLWithPath: fcdFile)
+guard (fcdFileURL as NSURL).checkResourceIsReachableAndReturnError(nil) else {
+	print("failed", "\nError: FCD file is not reachable.")
 	exit(EXIT_FAILURE)
 }
+
+var fcdTSV: [String]
+do {
+	fcdTSV = try String(contentsOf: fcdFileURL, encoding: .utf8).components(separatedBy: .newlines).filter{!$0.isEmpty}
+} catch {
+	print("failed", "\nError: Unable to parse FCD file.", "\n", error)
+	exit(EXIT_FAILURE)
+}
+
+// Drop the header file
+fcdTSV.removeFirst()
 
 print("okay")
-//print("\tLoaded", fcdTrips.count, "timesteps from data file")
+
 
 
 /* To build an obstruction cell mask, jump here.
  */
-if	let toolsConfig = config["tools"] as? NSDictionary,
-	let buildMask = toolsConfig["buildObstructionMask"] as? Bool, buildMask == true
-{
-	print("Parsing floating car data... ", terminator: ""); fflush(stdout)
-
-	let fcdTrips: [FCDTimestep]
-	do {
-		try fcdTrips = parseFloatingCarData(fromXML: fcdXML, stopTime: configStopTime)
-	} catch let error as FloatingCarDataError {
-		print("failed", "\nError:", error.description)
-		exit(EXIT_FAILURE)
-	}
-
-	print("Building obstruction mask... ", terminator: ""); fflush(stdout)
-	do {
-		try buildObstructionMask(fromTrips: fcdTrips)
-	} catch {
-		print("failed", "\nError:", error)
-		exit(EXIT_FAILURE)
-	}
-	print("okay")
-	print("\tBuilt a map of obstructions from \(fcdTrips.count) steps.")
-	exit(EXIT_SUCCESS)
-}
+// TODO: Rewrite buildObstructionMask to work with TSV data
+//if	let toolsConfig = config["tools"] as? NSDictionary,
+//	let buildMask = toolsConfig["buildObstructionMask"] as? Bool, buildMask == true
+//{
+//	print("Parsing floating car data... ", terminator: ""); fflush(stdout)
+//
+//	let fcdTrips: [FCDTimestep]
+//	do {
+//		try fcdTrips = parseFloatingCarData(fromXML: fcdXML, stopTime: configStopTime)
+//	} catch let error as FloatingCarDataError {
+//		print("failed", "\nError:", error.description)
+//		exit(EXIT_FAILURE)
+//	}
+//
+//	print("Building obstruction mask... ", terminator: ""); fflush(stdout)
+//	do {
+//		try buildObstructionMask(fromTrips: fcdTrips)
+//	} catch {
+//		print("failed", "\nError:", error)
+//		exit(EXIT_FAILURE)
+//	}
+//	print("okay")
+//	print("\tBuilt a map of obstructions from \(fcdTrips.count) steps.")
+//	exit(EXIT_SUCCESS)
+//}
 
 
 
@@ -190,7 +202,7 @@ print("Scheduling mobility events... ", terminator: ""); fflush(stdout)
  * and then iterated on that array for these two tasks. For larger datasets
  * this is very inneficient.
  */
-simCity.scheduleMobilityAndDetermineBounds(fromXML: fcdXML, stopTime: configStopTime)
+simCity.scheduleMobilityAndDetermineBounds(fromTSV: &fcdTSV, stopTime: configStopTime)
 print("okay")
 
 // Store inner city bounds from configuration file

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>floatingCarDataFile</key>
-	<string>work/fcdout.xml</string>
+	<string>work/fcdout.tsv</string>
 	<key>stopTime</key>
 	<integer>1200</integer>
 	<key>locationSRID</key>

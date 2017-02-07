@@ -7,12 +7,10 @@ import Foundation
 class FCDVehicle {
 	let id: UInt
 	let geo: (x: Double, y: Double)
-	let speed: Double
 
-	init(id v_id: UInt, geo v_geo: (x: Double, y: Double), speed v_speed: Double) {
+	init(id v_id: UInt, geo v_geo: (x: Double, y: Double)) {
 		id = v_id
 		geo = v_geo
-		speed = v_speed
 	}
 }
 
@@ -46,7 +44,7 @@ enum FloatingCarDataError: Error, CustomStringConvertible{
 	}
 }
 
-/* Load Floating Car Data onto an XMLIndexer object
+/* Load Floating Car Data onto an XMLIndexer object (DEPRECATED)
  * Datasets can be of considerable size and are usually only iterated on once,
  * so we memmap the file and process the XML lazily. This routine should be
  * near-instantaneous.
@@ -93,15 +91,13 @@ func parseFloatingCarData(fromXML fcdXML: XMLIndexer, stopTime configStopTime: D
 				let s_id = vehicleElement.attribute(by: "id")?.text,
 				let s_xgeo = vehicleElement.attribute(by: "x")?.text,
 				let s_ygeo = vehicleElement.attribute(by: "y")?.text,
-				let s_speed = vehicleElement.attribute(by: "speed")?.text,
 				let v_id = UInt(s_id),
 				let v_xgeo = Double(s_xgeo),
-				let v_ygeo = Double(s_ygeo),
-				let v_speed = Double(s_speed)
+				let v_ygeo = Double(s_ygeo)
 				else {
 					throw FloatingCarDataError.failedConversion
 			}
-			timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo), speed: v_speed) )
+			timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo)) )
 		}
 		fcdTrips.append( FCDTimestep(time: timestepTime, vehicles: timestepVehicles) )
 	}
