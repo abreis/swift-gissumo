@@ -193,7 +193,6 @@ simCity.stats.scheduleCollectionEvents(onCity: simCity)
 print("okay")
 
 // Add mobility timestep events to the eventlist
-print("Scheduling mobility events... ", terminator: ""); fflush(stdout)
 /* One-shot:
  * - Add mobility timestep events to the eventlist
  * - Load city bounds from the FCD trips
@@ -202,6 +201,7 @@ print("Scheduling mobility events... ", terminator: ""); fflush(stdout)
  * and then iterated on that array for these two tasks. For larger datasets
  * this is very inneficient.
  */
+print("Scheduling mobility events... ", terminator: ""); fflush(stdout)
 simCity.scheduleMobilityAndDetermineBounds(fromTSV: &fcdTSV, stopTime: configStopTime)
 print("okay")
 
@@ -235,18 +235,16 @@ let progressIncrement: Int = 10
 var nextTargetPercent: Int = 0 + progressIncrement
 var nextTarget: Int { return nextTargetPercent*maxRunTime/100 }
 
-mainEventLoop: repeat {
-	guard let nextEvent = simCity.events.list.first else {
-		print("Exhausted event list at time", simCity.events.now.asSeconds)
-		break mainEventLoop
-	}
-
-	// Remove the event from the eventlist
-	simCity.events.list.removeFirst()
-
+mainEventLoop: for nextEvent in simCity.events.list {
 	// Update current time
 	assert(nextEvent.time > simCity.events.now)
 	simCity.events.now = nextEvent.time
+
+	// Stop processing events if the configuration stop time is reached
+	if	simCity.events.stopTime.nanoseconds > 0,
+		simCity.events.now >= simCity.events.stopTime {
+		break mainEventLoop
+	}
 
 	// Print progress bar
 	if simCity.events.now.nanoseconds > nextTarget {
@@ -263,8 +261,7 @@ mainEventLoop: repeat {
 
 	// Execute the event
 	nextEvent.action()
-
-} while simCity.events.now < simCity.events.stopTime
+}
 print("done")
 
 

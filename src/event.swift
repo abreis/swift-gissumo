@@ -99,9 +99,8 @@ class EventList {
 			} else if newEvent.time == list.last!.time {
 				newEvent.time += minTimestep
 				insertionIndex = list.count
-			}
-			// Locate position through bisection
-			else {
+			} else {
+				// Locate position through bisection
 				var low = 0
 				var high = list.count
 
