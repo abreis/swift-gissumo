@@ -1,17 +1,18 @@
 #!/bin/bash
 
-## PARSER PACKAGE 01 ##
+## PARSER PACKAGE 02 ##
 #
-# This package will grab the following plots from the data:
+# This package is tailored towards longer simulations.
+# It will grab the following plots from the data:
 #
-# - activeVehicleCount
-# - activeRoadsideUnitCount
-# - signalCoverageDistributionHistogram
-# - rsuRedundancyDistributionHistogram
-# - coverageOverTime
-# - binAllDecisions
-# - binPositiveDecisions
-# - binAndCountDecisions
+# - activeVehicleCount (wide)
+# - activeRoadsideUnitCount (wide)
+# TODO (once new decision is implemented):
+# - TODO meanCoverageOverTime
+# - TODO meanSaturationOverTime
+# - TODO coverateToSaturationRatioOverTime
+# - TODO distribution of active RSU time
+# - TODO decision analysis
 #
 # Run from the location where the 'simulations' folder is present.
 
@@ -25,20 +26,14 @@ SIMDIR=$1
 VISDIR=plots
 SIMDESCR=description.txt
 SCRIPTDIR=$(dirname $0)
-PACKAGENAME=package01
+PACKAGENAME=package02
 TEXSUBDIR=tex
 PACKAGEDIR=${SIMDIR}/${VISDIR}/${PACKAGENAME}
 LOGFILE=${PACKAGEDIR}/${PACKAGENAME}.log
 
 declare -a PARSERS=(
-"activeVehicleCount"
-"activeRoadsideUnitCount"
-"signalCoverageDistributionHistogram"
-"rsuRedundancyDistributionHistogram"
-"coverageOverTime"
-"binAllDecisions"
-"binPositiveDecisions"
-"binAndCountDecisions"
+"activeVehicleCount_wide"
+"activeRoadsideUnitCount_wide"
 )
 
 # Check for the presence of a simulation folder

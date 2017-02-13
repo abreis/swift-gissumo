@@ -17,6 +17,8 @@
 % A4 paper size: 210 x 297 mm
 % Figure ratio is 10:7 standard, 10:3.5 / 3.5:7 half size
 
+\newcommand{\singlewidthrow}{\singlewidthrow}
+\newcommand{\doublewidthrow}{1\singlewidthrow}
 \newcommand{\xleft}{4mm}
 \newcommand{\xright}{104mm}
 \newcommand{\yone}{-3mm}
@@ -24,38 +26,44 @@
 \newcommand{\ythree}{-143mm}
 \newcommand{\yfour}{-213mm}
 
+% Draw the following structure:
+% -1- -2-
+% -3- -4-
+% -5- -6-
+% -7- -8-
+
 \begin{tikzpicture}[overlay]
-	\node[draw, anchor=north west, text width=90mm, color=white] (topleft) at (\xleft,\yone) {
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=white    ] (fig1) at (\xleft,\yone) {
 		\verbatiminput{description.txt}
 	};
 
-	\node[draw, anchor=north west, text width=90mm, color=lightgray] (topright) at (\xright,\yone) {
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=lightgray] (fig2) at (\xright,\yone) {
 		\includegraphics[width=0.49\textwidth]{sigCovDistHist}
 		\includegraphics[width=0.49\textwidth]{rsuSatDistHist}
 	};
 
-	\node[draw, anchor=north west, text width=90mm, color=lightgray] (midtopleft) at (\xleft,\ytwo) {
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=lightgray] (fig3) at (\xleft,\ytwo) {
 		\includegraphics[width=\textwidth]{covOverTime}
 	};
 
-	\node[draw, anchor=north west, text width=90mm, color=lightgray] (midtopright) at (\xright,\ytwo) {
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=lightgray] (fig4) at (\xright,\ytwo) {
 		\includegraphics[width=\textwidth]{actVehCnt}
 		\includegraphics[width=\textwidth]{actRsuCnt}
 	};
 
-	\node[draw, anchor=north west, text width=90mm, color=lightgray] (midbottomleft) at (\xleft,\ythree) {
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=lightgray] (fig5) at (\xleft,\ythree) {
 		\includegraphics[width=\textwidth]{binAllDec}
 	};
 
-	\node[draw, anchor=north west, text width=90mm, color=lightgray] (midbottomright) at (\xright,\ythree) {
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=lightgray] (fig6) at (\xright,\ythree) {
 		\includegraphics[width=\textwidth]{binPosDec}
 	};
 
-	\node[draw, anchor=north west, text width=90mm, color=white] (bottomleft) at (\xleft,\yfour) {
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=white    ] (fig7) at (\xleft,\yfour) {
 		%\includegraphics[width=\textwidth]{binPosDec}
 	};
 
-	\node[draw, anchor=north west, text width=90mm, color=lightgray] (bottomright) at (\xright,\yfour) {
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=lightgray] (fig8) at (\xright,\yfour) {
 		\includegraphics[width=\textwidth]{binCntAllDec}
 	};
 \end{tikzpicture}
