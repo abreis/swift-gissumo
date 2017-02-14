@@ -44,8 +44,8 @@ class MovingRoadEntity: RoadEntity {
 // Fixed entities, e.g. parked cars, roadside units, sensors
 // Can request coverage maps and build their own from beacons
 class FixedRoadEntity: RoadEntity {
-	// Payload buffer to store coverage map request replies
-	var payloadBuffer = [Payload]()
+	// Payload buffer to store coverage map request replies (a VehicleID:CoverageMap tuple array)
+	var payloadBuffer = [(id: UInt, payload: Payload)]()
 
 	// Flag to mark whether we are requesting coverage maps
 	var isRequestingMaps: Bool = false

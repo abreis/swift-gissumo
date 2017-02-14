@@ -501,7 +501,7 @@ extension FixedRoadEntity: PayloadReceiver {
 
 		case .coverageMap:
 			// Store the map in a temporary buffer
-			if isRequestingMaps { payloadBuffer.append(packet.payload) }
+			if isRequestingMaps { payloadBuffer.append( (id: packet.l3src, payload: packet.payload) ) }
 
 		case .disableRSU:
 			// Only RSUs can be disabled by a message
