@@ -218,3 +218,32 @@ class CellCoverageEffects: DecisionAlgorithm {
 		pcar.city.convertEntity(pcar, to: .roadsideUnit)
 	}
 }
+
+
+/// BestNeighborhoodSolution: a decision algorithm with the ability to shut down nearby RSUs
+class BestNeighborhoodSolution: DecisionAlgorithm {
+	let mapRequestWaitingTime = SimulationTime(seconds: 1)
+
+	init() {}
+
+	// On trigger, request 1-hop neighborhood coverage maps, and wait 1 second to receive replies before deciding
+	func trigger(_ pcar: ParkedCar) {
+		// 1. Send a request for neighbor coverage maps
+		pcar.isRequestingMaps = true
+
+		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: Payload(type: .coverageMapRequest, content: CoverageMapRequest().toPayload().content) )
+		pcar.broadcastPacket(covMapRequestPacket)
+
+		// 2. Schedule an event to process the coverage maps and make the decision
+		let decisionEvent = SimulationEvent(time: pcar.city.events.now + mapRequestWaitingTime, type: .decision, action: { self.decide(pcar)}, description: "decide id \(pcar.id)")
+		pcar.city.events.add(newEvent: decisionEvent)
+	}
+
+	func decide(_ pcar: ParkedCar) {
+		// 1. Stop receiving maps
+		pcar.isRequestingMaps = false
+
+		// TODO: do we get the maps with the neighbor IDs? required for a decision
+
+	}
+}
