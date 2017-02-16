@@ -107,6 +107,8 @@
 	</dict>
 	<key>debug</key>
 	<dict>
+		<key>BestNeighborhoodSolution.decide()</key>
+		<true/>
 		<key>CellCoverageEffects.decide()</key>
 		<false/>
 		<key>City.addNew(parkedCar)</key>

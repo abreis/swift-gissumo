@@ -27,6 +27,8 @@ class Decision {
 		}
 
 		switch algoInUse {
+		case "NullDecision":
+			algorithm = NullDecision()
 		case "CellCoverageEffects":
 			guard let cellCoverageEffectsConfig = algoConfig["CellCoverageEffects"] as? NSDictionary,
 					let kappa = cellCoverageEffectsConfig["kappa"] as? Double,
@@ -41,8 +43,8 @@ class Decision {
 
 			let satThresh = cellCoverageEffectsConfig["saturationThreshold"] as? Int
 			algorithm = CellCoverageEffects(κ: kappa, λ: lambda, μ: mu, requestReach: requestReachConfig, saturationThreshold: satThresh)
-		case "NullDecision":
-			algorithm = NullDecision()
+		case "BestNeighborhoodSolution":
+			algorithm = BestNeighborhoodSolution()
 		default:
 			print("Error: Invalid decision algorithm chosen.")
 			exit(EXIT_FAILURE)
@@ -108,13 +110,13 @@ class CellCoverageEffects: DecisionAlgorithm {
 		pcar.isRequestingMaps = false
 
 		// 2. Run algorithm if at least 1 coverage map was received
-		let mapPayloadList = pcar.payloadBuffer.filter( {$0.type == .coverageMap} )
+		let mapPayloadList = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
 
 		if mapPayloadList.count > 0 {
 			// 1. Convert the payloads to actual maps
 			var mapList = [CellMap<Int>]()
 			for mapPayload in mapPayloadList {
-				guard let newMap = CellMap<Int>(fromPayload: mapPayload) else {
+				guard let newMap = CellMap<Int>(fromPayload: mapPayload.payload) else {
 					print("Error: Failed to convert coverage map payload to an actual map.")
 					exit(EXIT_FAILURE)
 				}
@@ -243,7 +245,114 @@ class BestNeighborhoodSolution: DecisionAlgorithm {
 		// 1. Stop receiving maps
 		pcar.isRequestingMaps = false
 
-		// TODO: do we get the maps with the neighbor IDs? required for a decision
+		// 2. Prepare neighborhood coverage maps
+		// Filter out payloads that do not contain coverage maps from the buffer
+		var neighborhoodCoverageMaps = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
+
+		// Algorithm runs if at least one map was received; else, the vehicle becomes an RSU straight away
+		if neighborhoodCoverageMaps.count == 0 { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
+
+		// Add our own map to the neighborhood
+		neighborhoodCoverageMaps.append((id: pcar.id, payload: pcar.selfCoverageMap.toPayload()))
+
+		// 3. Combinatorials
+		// Number of elements in each combination
+		let setSize = neighborhoodCoverageMaps.count
+
+		// A combination is an array of [Bool]
+		typealias Combination = [Bool]
+
+		// The array of possible combinations is an array of combinations
+		var combinations = [Combination]()
+
+		// Push the first combination (where no neighbors are disabled (nor our parked car)) into the set
+		let baseCombination: Combination = Array(repeating: true, count: setSize)
+		combinations.append(baseCombination)
+
+		// Build and append (N choose 1) (combinations where a single neighbor is disabled)
+		for cIndex in 0..<setSize {
+			// Simply disable one entity at a time
+			var newCombination = baseCombination
+			newCombination[cIndex] = false
+			combinations.append(newCombination)
+		}
+
+		// Build and append (N choose 2) (combinations where two neighbors are disabled)
+		for cIndex in 0..<setSize {
+			// Disable the entity at cIndex and a second entity after it
+			var newCombination = baseCombination
+			newCombination[cIndex] = false
+			for cIndexNext in cIndex..<setSize {
+				var newNewCombination = newCombination
+				newNewCombination[cIndexNext] = false
+				combinations.append(newNewCombination)
+			}
+		}
+
+		// Sanity check: combinations array must be of length (n choose 2)+n+1
+		func factorial(_ factorialNumber: Int) -> UInt64 {
+			guard factorialNumber < 21 else { print("Error: Factorial too large."); exit(EXIT_FAILURE) }
+			if factorialNumber == 0 { return 1 }
+			else { return UInt64(factorialNumber) * factorial(factorialNumber - 1) }
+		}
+		// Lord help us if (m choose n) ever goes into UInt64 territory
+		let expectedSize = Int(factorial(setSize)/(2*factorial(setSize-2))) + setSize + 1
+		guard combinations.count == expectedSize
+			else { print("Error: Incorrect combination size"); exit(EXIT_FAILURE) }
+
+		if debug.contains("BestNeighborhoodSolution.decide()"){
+			print("\(pcar.city.events.now.asSeconds) BestNeighborhoodSolution.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Evaluating \(expectedSize) solutions at parked vehicle \(pcar.id)" )
+		}
+
+		// DEBUG
+		for combination in combinations {
+			print(combination)
+		}
+
+		// TODO
+		// 4. Routine that analyzes a combination and returns its utility score
+		func analyzeCombination(_ combination: Combination) -> Double {
+			for (combinationIndex, combinationValue) in combination.enumerated() {
+				// If an entry in a combination is true, that RSU is to be left active
+				if combinationValue == true {
+					// neighborhoodCoverageMaps[combinationIndex].payload
+				}
+			}
+			return 0.0
+		}
+
+
+
+		// TODO
+		// 5. Decision: run through each combination, evaluate it, store its score, and decide
+		var scoredCombinations = [(combination: Combination, score: Double)]()
+		for combination in combinations {
+			let score = analyzeCombination(combination)
+			scoredCombinations.append( (combination: combination, score: score) )
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		// TODO
+		// Pick the best combination and execute it, sending 'RSU disable' messages as necessary
+
+
+		// Parked car becomes an RSU
+		pcar.city.convertEntity(pcar, to: .roadsideUnit)
+
 
 	}
 }
