@@ -40,11 +40,12 @@ guard let config = NSDictionary(contentsOf: configFileURL) else {
 	exit(EXIT_FAILURE)
 }
 
-// Load stop time
-guard let configStopTime = config["stopTime"] as? Double else {
+// Load stop time, and set it to DBL_MAX if it equals 0 (meaning, no stop time)
+guard var configStopTime = config["stopTime"] as? Double else {
 	print("failed", "\nError: Please provide a valid simulation stop time in the configuration.")
 	exit(EXIT_FAILURE)
 }
+if configStopTime.isLessThanOrEqualTo(0) { configStopTime = Double.greatestFiniteMagnitude }
 
 // Load debug variable
 var debug = [String]()
@@ -203,7 +204,7 @@ print("okay")
  */
 print("Scheduling mobility events... ", terminator: ""); fflush(stdout)
 simCity.scheduleMobilityAndDetermineBounds(fromTSV: &fcdTSV, stopTime: configStopTime)
-print("okay")
+print("done")
 
 // Store inner city bounds from configuration file
 simCity.innerBounds = cityInnerBounds
@@ -235,16 +236,14 @@ let progressIncrement: Int = 10
 var nextTargetPercent: Int = 0 + progressIncrement
 var nextTarget: Int { return nextTargetPercent*maxRunTime/100 }
 
-mainEventLoop: for nextEvent in simCity.events.list {
+var nextEventIndex = 0
+mainEventLoop: repeat {
+	// Pop the next event in the list
+	let nextEvent = simCity.events.list[nextEventIndex]
+
 	// Update current time
 	assert(nextEvent.time > simCity.events.now)
 	simCity.events.now = nextEvent.time
-
-	// Stop processing events if the configuration stop time is reached
-	if	simCity.events.stopTime.nanoseconds > 0,
-		simCity.events.now >= simCity.events.stopTime {
-		break mainEventLoop
-	}
 
 	// Print progress bar
 	if simCity.events.now.nanoseconds > nextTarget {
@@ -261,8 +260,44 @@ mainEventLoop: for nextEvent in simCity.events.list {
 
 	// Execute the event
 	nextEvent.action()
-}
+
+	nextEventIndex += 1
+	// Stop processing events if the configuration stop time is reached
+} while nextEventIndex < simCity.events.list.endIndex || simCity.events.now > simCity.events.stopTime
 print("done")
+
+/* This implementation removes the first element from the events array and executes it.
+ * Swift's documentation indicates that Array.removeFirst() is O(1), so the array size should
+ * not matter. However, our simulations slow down substantially when the event array is
+ * pre-filled with larger numbers of mobility events.
+ */
+//mainEventLoop: repeat {
+//	// Pop the next event in the list
+//	let nextEvent = simCity.events.list.removeFirst()
+//
+//	// Update current time
+//	assert(nextEvent.time > simCity.events.now)
+//	simCity.events.now = nextEvent.time
+//
+//	// Print progress bar
+//	if simCity.events.now.nanoseconds > nextTarget {
+//		print(nextTargetPercent, terminator: "% ")
+//		// If debug is being printed, don't single-line the progress bar
+//		if !debug.isEmpty { print("") }
+//		fflush(stdout)
+//		nextTargetPercent += progressIncrement
+//	}
+//
+//	if debug.contains("main().events"){
+//		print("\(simCity.events.now.asSeconds) main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
+//	}
+//
+//	// Execute the event
+//	nextEvent.action()
+//
+//// Stop processing events if the configuration stop time is reached
+//} while !simCity.events.list.isEmpty || simCity.events.now > simCity.events.stopTime
+//print("done")
 
 
 // Cleanup stage events
