@@ -128,7 +128,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 			var extendedMapList = mapList
 			extendedMapList.append(pcar.selfCoverageMap)
 			var localMapOfCoverage = CellMap<Int>(toContainMaps: extendedMapList, withValue: 0)
-			var localMapOfSaturation = CellMap<Int>(toContainMaps: extendedMapList, withValue: 0)
+			var localMapOfSaturation = localMapOfCoverage
 
 			// 3. Populate maps
 			for map in mapList {
@@ -247,15 +247,22 @@ class BestNeighborhoodSolution: DecisionAlgorithm {
 
 		// 2. Prepare neighborhood coverage maps
 		// Filter out payloads that do not contain coverage maps from the buffer
-		var neighborhoodCoverageMaps = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
+		var neighborhoodCoverageMapPayloads = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
 
 		// Algorithm runs if at least one map was received; else, the vehicle becomes an RSU straight away
-		if neighborhoodCoverageMaps.count == 0 { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
+		if neighborhoodCoverageMapPayloads.count == 0 {
+			pcar.city.convertEntity(pcar, to: .roadsideUnit)
+			return
+		}
 
-		// Add our own map to the neighborhood
-		neighborhoodCoverageMaps.append((id: pcar.id, payload: pcar.selfCoverageMap.toPayload()))
 
 		// 3. Combinatorials
+		// Convert the payloads to actual maps
+		var neighborhoodCoverageMaps = neighborhoodCoverageMapPayloads.map( { return (id: $0.id, map: CellMap<Int>(fromPayload: $0.payload)!) } )
+
+		// Add our own map to the neighborhood
+		neighborhoodCoverageMaps.append( (id: pcar.id, map: pcar.selfCoverageMap) )
+
 		// Number of elements in each combination
 		let setSize = neighborhoodCoverageMaps.count
 
@@ -278,81 +285,111 @@ class BestNeighborhoodSolution: DecisionAlgorithm {
 		}
 
 		// Build and append (N choose 2) (combinations where two neighbors are disabled)
-		for cIndex in 0..<setSize {
+		for cIndex in 0..<(setSize-1) {
 			// Disable the entity at cIndex and a second entity after it
 			var newCombination = baseCombination
 			newCombination[cIndex] = false
-			for cIndexNext in cIndex..<setSize {
+			for cIndexNext in (cIndex+1)..<setSize {
 				var newNewCombination = newCombination
 				newNewCombination[cIndexNext] = false
 				combinations.append(newNewCombination)
 			}
 		}
 
-		// Sanity check: combinations array must be of length (n choose 2)+n+1
-		func factorial(_ factorialNumber: Int) -> UInt64 {
-			guard factorialNumber < 21 else { print("Error: Factorial too large."); exit(EXIT_FAILURE) }
-			if factorialNumber == 0 { return 1 }
-			else { return UInt64(factorialNumber) * factorial(factorialNumber - 1) }
-		}
-		// Lord help us if (m choose n) ever goes into UInt64 territory
-		let expectedSize = Int(factorial(setSize)/(2*factorial(setSize-2))) + setSize + 1
-		guard combinations.count == expectedSize
-			else { print("Error: Incorrect combination size"); exit(EXIT_FAILURE) }
-
 		if debug.contains("BestNeighborhoodSolution.decide()"){
-			print("\(pcar.city.events.now.asSeconds) BestNeighborhoodSolution.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Evaluating \(expectedSize) solutions at parked vehicle \(pcar.id)" )
+			print("\(pcar.city.events.now.asSeconds) BestNeighborhoodSolution.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Evaluating \(combinations.count) solutions at parked vehicle \(pcar.id)" )
 		}
 
-		// DEBUG
-		for combination in combinations {
-			print(combination)
-		}
+		// Combinatorial generation tested correctly
+//		// Ensure the combinations array is of length (n choose 2)+n+1
+//		func factorial(_ factorialNumber: Int) -> UInt64 {
+//			guard factorialNumber < 21 else { print("Error: Factorial too large."); exit(EXIT_FAILURE) }
+//			if factorialNumber == 0 { return 1 }
+//			else { return UInt64(factorialNumber) * factorial(factorialNumber - 1) }
+//		}
+//		let expectedSize = Int(factorial(setSize)/(2*factorial(setSize-2))) + setSize + 1
+//		guard combinations.count == expectedSize else {
+//			print("Error: Incorrect combination size.");
+//			print("\nexpectedSize \(expectedSize) combinations.count \(combinations.count) setSize \(setSize)\n")
+//			exit(EXIT_FAILURE)
+//		}
 
-		// TODO
+
 		// 4. Routine that analyzes a combination and returns its utility score
+		/* We first create an obstruction mask based on the reference coverage (the coverage from the deciding vehicle).
+		 * This is so that we can compute measurements only on cells that the deciding vehicle can directly reach
+		 * (it will receive coverage information of cells beyond its reach). This avoids calculating coverage and 
+		 * saturation beyond its range, where coverage from other RSUs might exist but we do not know about it.
+		 */
+		var localMapWithReferenceCoverageOnly = CellMap<Int>(toContainMaps: neighborhoodCoverageMaps.map( { return $0.map }), withValue: 0)
+		localMapWithReferenceCoverageOnly.keepBestSignal(fromSignalMap: pcar.selfCoverageMap)
+		let referenceVehicleObstructionMask = localMapWithReferenceCoverageOnly.expressAsObstructionMask()
+
+		// The analysis routine
 		func analyzeCombination(_ combination: Combination) -> Double {
+			// Set up a coverage and a saturation map
+			var localMapOfCoverage = CellMap<Int>(toContainMaps: neighborhoodCoverageMaps.map( { return $0.map }), withValue: 0)
+			var localMapOfSaturation = localMapOfCoverage
+
+			// Apply selected maps (in the combination) to the local maps
 			for (combinationIndex, combinationValue) in combination.enumerated() {
 				// If an entry in a combination is true, that RSU is to be left active
 				if combinationValue == true {
-					// neighborhoodCoverageMaps[combinationIndex].payload
+					localMapOfCoverage.keepBestSignal(fromSignalMap: neighborhoodCoverageMaps[combinationIndex].map)
+					localMapOfSaturation.incrementSaturation(fromSignalMap: neighborhoodCoverageMaps[combinationIndex].map)
 				}
 			}
-			return 0.0
+
+			// Get a measurement confined to the reference vehicle's view
+			let coverageData: Measurement = localMapOfCoverage.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
+			let saturationData: Measurement = localMapOfSaturation.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
+
+			// TODO
+			// Right now, return the coverage-to-saturation ratio as the score
+			return coverageData.mean/saturationData.mean
 		}
 
 
-
-		// TODO
 		// 5. Decision: run through each combination, evaluate it, store its score, and decide
 		var scoredCombinations = [(combination: Combination, score: Double)]()
 		for combination in combinations {
 			let score = analyzeCombination(combination)
-			scoredCombinations.append( (combination: combination, score: score) )
+			scoredCombinations.append( (combination: combination, score: (score.isNaN ? 0.0 : score) ) )
 		}
 
+		// Sort score array
+		scoredCombinations.sort(by: {$0.score > $1.score})
 
+		if debug.contains("BestNeighborhoodSolution.decide()"){
+			print("\(pcar.city.events.now.asSeconds) BestNeighborhoodSolution.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Combinations ordered by score:" )
+			print("".padding(toLength: 54, withPad: " ", startingAt: 0), "score\tcombination")
+			for scoredCombination in scoredCombinations {
+				print("".padding(toLength: 54, withPad: " ", startingAt: 0), "\(String(format: "%.2f", scoredCombination.score).lightGray())\t\(scoredCombination.combination)")
+			}
+		}
 
+		// Pick the best combination and execute it; send 'RSU disable' messages to RSUs disabled in the chosen solution
+		let bestCombination = scoredCombinations.first!.combination
 
+		// This flag determines whether the reference vehicle will become an RSU at the end of this process
+		var disableSelf: Bool = false
+		for (combinationIndex, combinationValue) in bestCombination.enumerated() {
+			if combinationValue == false {
+				// Entity will be disabled
+				let entityID = neighborhoodCoverageMaps[combinationIndex].id
 
-
-
-
-
-
-
-
-
-
-
-
-		// TODO
-		// Pick the best combination and execute it, sending 'RSU disable' messages as necessary
-
+				if entityID == pcar.id {
+					disableSelf = true
+				} else {
+					// Send an RSU disable message
+					let disablePayload = DisableRoadsideUnit(disableID: entityID).toPayload()
+					let disablePacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: .unicast(destinationID: entityID), payload: disablePayload)
+					pcar.broadcastPacket(disablePacket, toFeatureTypes: .roadsideUnit)
+				}
+			}
+		}
 
 		// Parked car becomes an RSU
-		pcar.city.convertEntity(pcar, to: .roadsideUnit)
-
-
+		if !disableSelf { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
 	}
 }
