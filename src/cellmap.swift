@@ -63,6 +63,13 @@ struct CellMap<T>: CustomStringConvertible where T:InitializableWithString, T:Co
 		topLeftCellCoordinate = (x: centerCellCoordinate.x - (size.x-1)/2, y: centerCellCoordinate.y + (size.y-1)/2)
 	}
 
+	/// Initialize with a cell coordinate for the top-left cell (useful for duplicating maps)
+	init(ofSize mSize:(x: Int, y: Int), withValue val: T, topLeftCellCoordinate topLeft: (x: Int, y: Int)) {
+		size = mSize
+		cells = Array(repeating: Array(repeating: val, count: size.x), count: size.y)
+		topLeftCellCoordinate = topLeft
+	}
+
 	/// Initialize with a set of other maps, creating an empty map with appropriate dimensions to contain them
 	init(toContainMaps mapList: [CellMap<T>], withValue val: T) {
 		// Get the topleft cell (lowest xx, highest yy) and bottomright cell
@@ -230,7 +237,7 @@ extension CellMap where T:IntegerArithmetic, T:SignedInteger {
 }
 
 /* Extend maps of RSU saturation (Int) with the ability to add a signal coverage map
- * and increment the cells that are covered by that map ( rhs(i,j)>0 ? lhs(i,j)+=1 ) .
+ * and increment the cells that are covered by that map ( rhs(i,j)>0 ? lhs(i,j)+=1 ).
  */
 extension CellMap where T:IntegerArithmetic, T:SignedInteger {
 	mutating func incrementSaturation(fromSignalMap inMap: CellMap<T>) {
@@ -249,5 +256,63 @@ extension CellMap where T:IntegerArithmetic, T:SignedInteger {
 				}
 			}
 		}
+	}
+}
+
+/* Extend coverage and saturation maps with the ability to return a Measurement containing
+ * all of its non-zero cells. And if a same-size obstruction map is provided, all cells
+ * that are not marked as Blocked will be considered. If 'considerNulls' is set to false,
+ * it will both ignore cells marked as "B" on the mask, and cells that equal zero.
+ */
+extension CellMap where T:IntegerArithmetic, T:SignedInteger, T:CustomStringConvertible {
+	func getMeasurement(withObstructionMask mask: CellMap<Character>? = nil, includeNulls: Bool = true) -> Measurement {
+		if mask != nil { guard mask!.size == self.size else {
+			print("Error: Obstruction mask must match map size")
+			exit(EXIT_FAILURE)
+		}}
+
+		var measure = Measurement()
+
+		for i in 0..<self.size.y {
+			for j in 0..<self.size.x {
+				// If the obstruction mask is defined, consider only cells that are 'Open'
+				if mask != nil {
+					if mask!.cells[i][j] == Character("O") {
+						// If 'includeNulls' is false, discard '0' cells
+						if includeNulls || self.cells[i][j] != 0 {
+							measure.add(Double(self.cells[i][j].description)!)
+							// (note: this doublecasting is ridiculous, but Swift doesn't seem to infer that Double(T:Integer) is okay
+						}
+					}
+				}
+				// If not, consider all cells that are not null
+				else if self.cells[i][j] != 0 {
+					measure.add(Double(self.cells[i][j].description)!)
+				}
+			}
+		}
+
+		return measure
+	}
+}
+
+/* Ability to convert a numeric map to an obstruction map. Creates a same-size
+ * character map where cells with signal >0 are marked as Open. Elsewhere, they
+ * are marked as Blocked.
+ */
+extension CellMap where T:IntegerArithmetic, T:SignedInteger {
+	func expressAsObstructionMask() -> CellMap<Character> {
+		var obstructionMap = CellMap<Character>(ofSize: self.size, withValue: Character("B"), topLeftCellCoordinate: self.topLeftCellCoordinate)
+		//(ofSize: self.size, withValue: Character("B"), geographicTopLeft: self.topLeftCellCoordinate)
+
+		for i in 0..<self.size.y {
+			for j in 0..<self.size.x {
+				if self.cells[i][j] > 0 {
+					obstructionMap.cells[i][j] = Character("O")
+				}
+			}
+		}
+
+		return obstructionMap
 	}
 }
