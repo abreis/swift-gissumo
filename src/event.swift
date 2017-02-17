@@ -55,8 +55,110 @@ func +(left: SimulationTime, right: SimulationTime) -> SimulationTime { return S
 func -(left: SimulationTime, right: SimulationTime) -> SimulationTime { return SimulationTime(nanoseconds: left.nanoseconds-right.nanoseconds) }
 func +=(left: inout SimulationTime, right: SimulationTime) { left = left + right }
 
-class EventList {
+
+/* An event list specific to this simulator.
+ * This is a custom structure that stores events in a dictionary of subarrays,
+ * i.e., [Seconds:[SimulationEvent]]. This allows us to partition the eventlist,
+ * and to quickly access a subarray by flooring the desired time, e.g.: event
+ * at time 140.012345 is stored in eventList[140].
+ */
+struct OptimizedArrayOfSimulationEvents {
 	let minTimestep = SimulationTime(microseconds: 1)
+
+	var eventDictionary: Dictionary<Int,[SimulationEvent]> = [:]
+
+	var sortedKeys = OrderedArray<Int>(array: [])
+	var count: Int = 0
+
+	mutating func add(newEvent: SimulationEvent) -> SimulationTime {
+		let indexTime = newEvent.time.seconds
+
+		// Make event mutable
+		var newEvent = newEvent
+
+		if eventDictionary[indexTime] != nil {
+			// This subarray is populated, perform ordered insertion
+			var insertionIndex: Int = 0
+
+			// Quick insertion at the edges
+			if newEvent.time > eventDictionary[indexTime]!.last!.time {
+				insertionIndex = eventDictionary[indexTime]!.count
+			} else if newEvent.time < eventDictionary[indexTime]!.first!.time {
+				insertionIndex = 0
+			} else if newEvent.time == eventDictionary[indexTime]!.last!.time {
+				newEvent.time += minTimestep
+				insertionIndex = eventDictionary[indexTime]!.count
+			} else {
+				// Bisect-ordered-add
+				var low = 0
+				var high = eventDictionary[indexTime]!.count // TODO: is this 'count' or 'count-1'?
+
+				// Bisection, adapted from python's bisect.py
+				while low < high {
+					let mid = (low+high)/2
+					if newEvent.time <= eventDictionary[indexTime]![mid].time {
+						high = mid
+					} else {
+						low = mid + 1
+					}
+				}
+				insertionIndex = low
+
+				/* Don't let two events have the same time. While events exist
+				* with the same time, push our event forward by a small timestep.
+				*/
+				while insertionIndex != eventDictionary[indexTime]!.count && eventDictionary[indexTime]![insertionIndex].time == newEvent.time {
+					newEvent.time += minTimestep
+					insertionIndex += 1
+				}
+			}
+
+			// Now insert the new event at the correct position
+			eventDictionary[indexTime]!.insert(newEvent, at: insertionIndex)
+
+		} else {
+			// Subarray not populated, create and insert
+			eventDictionary[indexTime] = [newEvent]
+
+			// Keep sortedKeys up to date
+			sortedKeys.insert(indexTime)
+		}
+
+		// Update count
+		count += 1
+
+		return newEvent.time
+	}
+
+	// Implement 'last'
+	var last: SimulationEvent? {
+		if eventDictionary.isEmpty { return nil }
+		let lastTimeGroupIndex: Int = Array(eventDictionary.keys).sorted().last!
+		return eventDictionary[lastTimeGroupIndex]!.last!
+	}
+
+	// Implement endIndex
+	var endIndex: Int { return self.count }
+
+	// Implement []
+	subscript(requestedIndex: Int) -> SimulationEvent {
+		get {
+			var requestedIndex = requestedIndex
+			for key in sortedKeys.array {
+				if requestedIndex >= eventDictionary[key]!.count {
+					requestedIndex -= eventDictionary[key]!.count
+				} else {
+					return eventDictionary[key]![requestedIndex]
+				}
+			}
+			exit(EXIT_FAILURE)
+		}
+	}
+}
+
+
+class EventList {
+	var minTimestep: SimulationTime { return list.minTimestep }
 
 	// Current simulation time
 	var now = SimulationTime(seconds: -1)
@@ -65,7 +167,7 @@ class EventList {
 	var stopTime: SimulationTime
 
 	// Array of simulation events
-	var list = [SimulationEvent]()
+	var list = OptimizedArrayOfSimulationEvents()
 
 	// Events to be executed pre-simulation
 	var initial = [SimulationEvent]()
@@ -80,97 +182,10 @@ class EventList {
 
 	// Add a new event, keeping the event list sorted
 	func add(newEvent: SimulationEvent) {
-		orderedBisectAdd(newEvent: newEvent)
-	}
+		let insertedAtTime = list.add(newEvent: newEvent)
 
-	// A bisection-based ordered-insertion algorithm
-	func orderedBisectAdd(newEvent: SimulationEvent) {
-		var insertionIndex: Int = 0
-
-		// Make event mutable
-		var newEvent = newEvent
-
-		if !list.isEmpty {
-			// Quick insertion at the edges
-			if newEvent.time > list.last!.time {
-				insertionIndex = list.count
-			} else if newEvent.time < list.first!.time {
-				insertionIndex = 0
-			} else if newEvent.time == list.last!.time {
-				newEvent.time += minTimestep
-				insertionIndex = list.count
-			} else {
-				// Locate position through bisection
-				var low = 0
-				var high = list.count
-
-				// Bisection, adapted from python's bisect.py
-				while low < high {
-					let mid = (low+high)/2
-					if newEvent.time <= list[mid].time {
-						high = mid
-					} else {
-						low = mid + 1
-					}
-				}
-				insertionIndex = low
-
-				/* Don't let two events have the same time. While events exist
-				* with the same time, push our event forward by a small timestep.
-				*/
-				while insertionIndex != list.count && list[insertionIndex].time == newEvent.time {
-					newEvent.time += minTimestep
-					insertionIndex += 1
-				}
-			}
-		}
-
-		// Now insert the new event at the correct position
-		list.insert(newEvent, at: insertionIndex)
-
-		// Debug
 		if debug.contains("EventList.add()") {
-			print("\(now.asSeconds) EventList.add():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time.asSeconds)
-		}
-	}
-
-	// A safe version of ordered event insertion
-	// Test new ordered insertion routines against this one
-	func reverseIteratorAdd(newEvent: SimulationEvent) {
-		var insertionIndex: Int = 0
-
-		// Make event mutable
-		var newEvent = newEvent
-
-		// Don't run any code for the first event
-		if !list.isEmpty {
-			/* Find the position to insert our event in. As new events are more
-			* likely to be scheduled for the end of the simulation, we run
-			* through the eventlist in reverse order.
-			*/
-			forevent: for (pos, iteratorEvent) in list.enumerated().reversed() {
-				insertionIndex = pos
-				if iteratorEvent.time < newEvent.time {
-					insertionIndex += 1
-					break forevent
-				}
-			}
-
-			/* Don't let two events have the same time. While events exist
-			* with the same time, push our event forward by a small timestep.
-			*/
-			while insertionIndex != list.count && list[insertionIndex].time == newEvent.time {
-				newEvent.time += minTimestep
-				insertionIndex += 1
-			}
-		}
-
-		// Now insert the new event at the correct position
-		list.insert(newEvent, at: insertionIndex)
-
-		// Debug
-		if debug.contains("EventList.add()") {
-			print("\(now.asSeconds) EventList.add():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Add new event of type", newEvent.type, "at time", newEvent.time)
+			print("\(now.asSeconds) EventList.add():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Add new event of type", newEvent.type, "at time", insertedAtTime.asSeconds)
 		}
 	}
 
