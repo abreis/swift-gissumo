@@ -8,6 +8,7 @@ OUTPUT = build/gissumo_fast
 
 all:
 	${XCRUN} ${CC} ${CMODE} ${OPTIMIZATION} ${INPUTS} -I ${SEARCHPATH} -o ${OUTPUT}
+	@shasum ${OUTPUT}
 
 clean:
 	rm -rf ${OUTPUT}
