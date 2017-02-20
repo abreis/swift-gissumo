@@ -427,7 +427,7 @@ extension RoadEntity: PacketReceiver {
 		switch packet.payload.type {
 		case .beacon:
 			// Track number of beacons received
-			if city.stats.hooks["beaconCounts"] != nil {
+			if city.stats.hooks["beaconCount"] != nil {
 				if var recvBeacons = city.stats.metrics["beaconsReceived"] as? UInt {
 					recvBeacons += 1
 					city.stats.metrics["beaconsReceived"] = recvBeacons
@@ -458,7 +458,7 @@ extension Vehicle {
 		self.broadcastPacket(beaconPacket)
 
 		// Track number of beacons sent
-		if city.stats.hooks["beaconCounts"] != nil {
+		if city.stats.hooks["beaconCount"] != nil {
 			if var sentBeacons = city.stats.metrics["beaconsSent"] as? UInt {
 				sentBeacons += 1
 				city.stats.metrics["beaconsSent"] = sentBeacons

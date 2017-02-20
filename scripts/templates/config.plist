@@ -39,11 +39,9 @@
 		<string>stats/</string>
 		<key>hooks</key>
 		<dict>
-			<key>activeRoadsideUnitCount</key>
+			<key>entityCount</key>
 			<true/>
-			<key>activeVehicleCount</key>
-			<true/>
-			<key>beaconCounts</key>
+			<key>beaconCount</key>
 			<false/>
 			<key>cityCoverageEvolution</key>
 			<true/>

@@ -196,25 +196,20 @@ class Statistics {
 
 	/// Periodic (intervalled) statistics collection routine
 	func collectStatistics(fromCity city: City) {
-		// activeVehicleCount
-		if hooks["activeVehicleCount"] != nil {
-			writeToHook("activeVehicleCount", data: "\(city.events.now.asSeconds)\(separator)\(city.vehicles.count)\(terminator)")
+		// entityCount
+		if hooks["entityCount"] != nil {
+			writeToHook("entityCount", data: "\(city.events.now.asSeconds)\(separator)\(city.vehicles.count)\(separator)\(city.roadsideUnits.count)\(separator)\(city.parkedCars.count)\(terminator)")
 		}
 
-		// activeRoadsideUnitCount
-		if hooks["activeRoadsideUnitCount"] != nil {
-			writeToHook("activeRoadsideUnitCount", data: "\(city.events.now.asSeconds)\(separator)\(city.roadsideUnits.count)\(terminator)")
-		}
-
-		// beaconCounts
-		if hooks["beaconCounts"] != nil {
+		// beaconCount
+		if hooks["beaconCount"] != nil {
 			guard	let beaconsSent = metrics["beaconsSent"] as? UInt,
 					let beaconsRecv = metrics["beaconsReceived"] as? UInt
 					else {
-						print("Error: Metrics unavailable for beaconCounts hook.")
+						print("Error: Metrics unavailable for beaconCount hook.")
 						exit(EXIT_FAILURE)
 			}
-			writeToHook("beaconCounts", data: "\(city.events.now.asSeconds)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\(terminator)")
+			writeToHook("beaconCount", data: "\(city.events.now.asSeconds)\(separator)\(beaconsSent)\(separator)\(beaconsRecv)\(terminator)")
 		}
 
 		// cityCoverageEvolution
@@ -365,18 +360,13 @@ class Statistics {
 
 	/// Add header lines to all registered hooks
 	func addHookHeaders() {
-		// activeVehicleCount
-		if hooks["activeVehicleCount"] != nil {
-			writeToHook("activeVehicleCount", data: "time\(separator)count\(terminator)")
+		// entityCount
+		if hooks["entityCount"] != nil {
+			writeToHook("entityCount", data: "time\(separator)vehicles\(separator)roadsideUnits\(separator)parkedCars\(terminator)")
 		}
 
-		// activeRoadsideUnitCount
-		if hooks["activeRoadsideUnitCount"] != nil {
-			writeToHook("activeRoadsideUnitCount", data: "time\(separator)count\(terminator)")
-		}
-
-		if hooks["beaconCounts"] != nil {
-			writeToHook("beaconCounts", data: "time\(separator)sent\(separator)recv\(terminator)")
+		if hooks["beaconCount"] != nil {
+			writeToHook("beaconCount", data: "time\(separator)sent\(separator)recv\(terminator)")
 		}
 
 		if hooks["cityCoverageEvolution"] != nil {

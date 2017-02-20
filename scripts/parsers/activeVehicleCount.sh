@@ -27,12 +27,12 @@ fi
 mkdir -p ${VISDIR}
 
 touch statfilelist
-for SIMULATIONLOG in $(find ${SIMDIR} -depth 3 -type f -name 'activeVehicleCount.log'); do
+for SIMULATIONLOG in $(find ${SIMDIR} -depth 3 -type f -name 'entityCount.log'); do
 	printf "${SIMULATIONLOG}\n" >> statfilelist
 done
 
 # Call swift interpreter
-swift $(dirname $0)/analyzeColumnByTime.swift statfilelist count > ${VISDIR}/${VISNAME}.data
+swift $(dirname $0)/analyzeColumnByTime.swift statfilelist vehicles > ${VISDIR}/${VISNAME}.data
 rm -rf statfilelist
 
 # Copy over gnuplot scaffold script

@@ -9,14 +9,9 @@ This is a list of available statistics hooks and what enabling each does. Four t
 
 Available hooks:
 
-* activeVehicleCount (interval)
+* entityCount (interval)
 
-  Prints how many vehicles are active. Good for verifying the density of vehicles on the road over time, as SUMO doesn't have a way of enforcing this.
-
-
-* activeRoadsideUnitCount (interval)
-
-  Prints how many roadside units are active.
+  Prints how many vehicles, roadside units and parked cars are active. Good for verifying the density of vehicles on the road over time, as SUMO doesn't have a way of enforcing this.
 
 
 * cityCoverageMapEvolution (interval) [not implemented]
@@ -29,7 +24,7 @@ Available hooks:
   Prints the number of cells covered, and signal level statistics.
 
 
-* beaconCounts (interval)
+* beaconCount (interval)
 
   Prints the number of packets with Beacon payloads being sent and received.
 
