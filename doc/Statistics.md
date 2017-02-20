@@ -1,11 +1,11 @@
 Statistics Hooks
 ================
-This is a list of available statistics hooks and what enabling each does. Three types of hooks are possible, based on their collection times:
+This is a list of available statistics hooks and what enabling each does. Four types of hooks are possible, based on their collection times:
 
 - Interval: data is collected periodically as defined by `collectionInterval`.
 - End: data is collected when the simulation ends.
 - Trigger: data is collected when a specific event occurs (e.g.: a car parks).
-
+- Immediate: same as 'Trigger', but the data is written to disk immediately. Useful for debugging and tracing.
 
 Available hooks:
 
@@ -77,3 +77,8 @@ Available hooks:
 * decisionCellCoverageEffects (trigger)
 
   Prints the intermediate and final metrics used to compute the decision score when the CellCoverageEffects decision algorithm is selected.
+
+
+* packetTrace (immediate)
+
+  Prints a trace of all packets that are broadcast in the simulation.

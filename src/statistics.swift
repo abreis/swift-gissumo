@@ -13,6 +13,10 @@ class Statistics {
 	// A dictionary containing (statisticName,statisticData) pairs
 	var hooks = [String:String]()
 
+	// Hooks that output immediately are hardcoded here:
+	let hardcodedImmediateHooks: [String] = ["packetTrace"]
+	var immediateHookHandles: [String:FileHandle] = [:]
+
 	// A dictionary of metrics for other routines to store data on
 	var metrics = [String:Any]()
 
@@ -49,6 +53,34 @@ class Statistics {
 			}
 		}
 
+		// Initialize file handles for immediate hooks
+		for immediateHook in hardcodedImmediateHooks {
+			let hookURL = URL(fileURLWithPath: "\(folder)\(immediateHook).log")
+
+			// Overwrite file if it exists
+			if FileManager.default.fileExists(atPath: hookURL.path) {
+				do {
+					try "".write(to: hookURL, atomically: true, encoding: String.Encoding.utf8)
+				} catch {
+					print("Error: Failed to overwrite existing file for hook", immediateHook)
+					exit(EXIT_FAILURE)
+				}
+			} else {
+				FileManager.default.createFile(atPath: hookURL.path, contents: nil)
+			}
+
+			// Create handle and store it in the handle dictionary
+			do {
+				let hookHandle = try FileHandle(forWritingTo: hookURL)
+				hookHandle.seekToEndOfFile()
+				immediateHookHandles[immediateHook] = hookHandle
+			} catch {
+				print("Error: Failed to initialize filehandle for", immediateHook)
+				print(error)
+				exit(EXIT_FAILURE)
+			}
+		}
+
 		// Load obstruction mask if given
 		if let maskFileConfig = config["obstructionMaskFile"] as? String {
 			let maskFileURL = URL(fileURLWithPath: maskFileConfig)
@@ -68,7 +100,7 @@ class Statistics {
 		addHookHeaders()
 	}
 
-	// Write all collected statistical data, overwriting existing files
+	/// Write all collected statistical data, overwriting existing files
 	func writeStatisticsToFiles() {
 		// Try to create the statistics folder if it doesn't exist
 		let folderURL = URL(fileURLWithPath: folder)
@@ -82,8 +114,8 @@ class Statistics {
 			exit(EXIT_FAILURE)
 		}
 
-		// Write all collected data
-		for (statName, statData) in hooks {
+		// Write all collected data (except for hardcoded hooks)
+		for (statName, statData) in hooks where !hardcodedImmediateHooks.contains(statName) {
 			let hookURL = URL(fileURLWithPath: "\(folder)\(statName).log")
 			do {
 				try statData.write(to: hookURL, atomically: true, encoding: String.Encoding.utf8)
@@ -93,19 +125,34 @@ class Statistics {
 				exit(EXIT_FAILURE)
 			}
 		}
+
+		// Close filehandles of immediate hooks
+		for handle in immediateHookHandles.values {
+			handle.closeFile()
+		}
 	}
 
-	// Add data to a specific statistic
-	func writeToHook(_ name: String, data: String) {
-		guard hooks[name] != nil else {
+	/// Add data to a specific statistic
+	func writeToHook(_ statName: String, data: String) {
+		guard hooks[statName] != nil else {
 			print("Error: Tried to write to an undeclared stat hook.")
 			exit(EXIT_FAILURE)
 		}
-		hooks[name]! += data
+
+		if hardcodedImmediateHooks.contains(statName) {
+			// 'Immediate'-type hooks write to disk immediately
+			guard immediateHookHandles.keys.contains(statName) else {
+				print("Error: Filehandle for immediate hook not found.")
+				exit(EXIT_FAILURE)
+			}
+			immediateHookHandles[statName]!.write( data.data(using: String.Encoding.utf8)! )
+		} else {
+			// Add data to hook buffer
+			hooks[statName]! += data
+		}
 	}
 
-
-	// Schedule collection events by startTime & interval until stopTime
+	/// Schedule collection events by startTime & interval until stopTime
 	// Note: If another event is scheduled to time:(stopTime-minTimestep), the collection will never occur
 	func scheduleCollectionEvents(onCity city: City) {
 		// Schedule collection events on startTime+interval*N, until city.events.stopTime is reached
@@ -338,6 +385,10 @@ class Statistics {
 
 		if hooks["decisionCellCoverageEffects"] != nil {
 			writeToHook("decisionCellCoverageEffects", data: "time\(separator)id\(separator)dNew\(separator)dBoost\(separator)dSat\(separator)dScore\(separator)kappa\(separator)lambda\(separator)mu\(terminator)")
+		}
+
+		if hooks["packetTrace"] != nil {
+			writeToHook("packetTrace", data: "id\(separator)created\(separator)l2src\(separator)l3src\(separator)l3dst\(separator)payload\(terminator)")
 		}
 	}
 

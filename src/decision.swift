@@ -369,27 +369,29 @@ class BestNeighborhoodSolution: DecisionAlgorithm {
 		}
 
 		// Pick the best combination and execute it; send 'RSU disable' messages to RSUs disabled in the chosen solution
-		let bestCombination = scoredCombinations.first!.combination
+		let bestCombination = scoredCombinations.first!
 
-		// This flag determines whether the reference vehicle will become an RSU at the end of this process
-		var disableSelf: Bool = false
-		for (combinationIndex, combinationValue) in bestCombination.enumerated() {
-			if combinationValue == false {
-				// Entity will be disabled
-				let entityID = neighborhoodCoverageMaps[combinationIndex].id
+		if bestCombination.score > 0 {
+			// This flag determines whether the reference vehicle will become an RSU at the end of this process
+			var disableSelf: Bool = false
+			for (combinationIndex, combinationValue) in bestCombination.combination.enumerated() {
+				if combinationValue == false {
+					// Entity will be disabled
+					let entityID = neighborhoodCoverageMaps[combinationIndex].id
 
-				if entityID == pcar.id {
-					disableSelf = true
-				} else {
-					// Send an RSU disable message
-					let disablePayload = DisableRoadsideUnit(disableID: entityID).toPayload()
-					let disablePacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: .unicast(destinationID: entityID), payload: disablePayload)
-					pcar.broadcastPacket(disablePacket, toFeatureTypes: .roadsideUnit)
+					if entityID == pcar.id {
+						disableSelf = true
+					} else {
+						// Send an RSU disable message
+						let disablePayload = DisableRoadsideUnit(disableID: entityID).toPayload()
+						let disablePacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: .unicast(destinationID: entityID), payload: disablePayload)
+						pcar.broadcastPacket(disablePacket, toFeatureTypes: .roadsideUnit)
+					}
 				}
 			}
-		}
 
-		// Parked car becomes an RSU
-		if !disableSelf { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
+			// Parked car becomes an RSU
+			if !disableSelf { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
+		}
 	}
 }

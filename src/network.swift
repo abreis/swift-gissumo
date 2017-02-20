@@ -112,6 +112,11 @@ struct Packet {
 
 	// The packet's payload
 	var payload: Payload
+
+	// A single-line description of the packet
+	var traceDescription: String {
+		return "\(id)\t\(created.asSeconds)\t\(l2src)\t\(l3src)\t\(l3dst)\t\(payload.type)\t\(payload.content.replacingOccurrences(of: "\n", with: "\\n"))\n"
+	}
 }
 
 
@@ -314,6 +319,9 @@ extension RoadEntity {
 			features = [.vehicle, .roadsideUnit, .parkedCar]
 		}
 
+		// Output packet trace, if enabled
+		self.city.stats.writeToHook("packetTrace", data: packet.traceDescription)
+
 		// Locate matching neighbor GIDs
 		var neighborGIDs: [UInt]
 
@@ -510,7 +518,7 @@ extension FixedRoadEntity: PayloadReceiver {
 				let disableMessage = DisableRoadsideUnit(fromPayload: packet.payload)
 				// If the disable command was directed to us, schedule an event to remove us from the network
 				if disableMessage.rsuID == self.id {
-					let removalEvent = SimulationEvent(time: self.city.events.now + self.city.events.minTimestep, type: .vehicular, action: {self.city.removeEntity(self)}, description: "RSU id \(self.id) removed by disableRSU message")
+					let removalEvent = SimulationEvent(time: self.city.events.now + self.city.events.minTimestep, type: .vehicular, action: {self.city.removeEntity(self)}, description: "Remove RSU id \(self.id) by disableRSU packet \(packet.id)")
 					self.city.events.add(newEvent: removalEvent)
 				}
 			}

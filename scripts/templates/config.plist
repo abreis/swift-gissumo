@@ -67,6 +67,8 @@
 			<false/>
 			<key>obstructionMask</key>
 			<false/>
+			<key>packetTrace</key>
+			<false/>
 		</dict>
 	</dict>
 	<key>decision</key>
