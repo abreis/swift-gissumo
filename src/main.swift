@@ -230,6 +230,10 @@ print("Running simulation events... ", terminator: "");
 if !debug.isEmpty { print("") }
 fflush(stdout)
 
+// Trap SIGQUIT (Ctrl-D)
+var sigQuit: Bool = false
+Signals.trap(signal: .int) { signal in sigQuit = true }
+
 // Implement a simple progress bar
 let maxRunTime = simCity.events.list.last!.time.nanoseconds
 let progressIncrement: Int = 10
@@ -261,9 +265,15 @@ mainEventLoop: repeat {
 	// Execute the event
 	nextEvent.action()
 
+	// Increment event counter
 	nextEventIndex += 1
-	// Stop processing events if the configuration stop time is reached
-} while nextEventIndex < simCity.events.list.endIndex || simCity.events.now > simCity.events.stopTime
+
+	/* Stop processing events when:
+	 * - The eventlist is exhausted
+	 * - Configuration stop time is reached
+	 * - SIGQUIT is trapped
+	 */
+} while nextEventIndex < simCity.events.list.endIndex && simCity.events.now < simCity.events.stopTime && !sigQuit
 print("done")
 
 /* This implementation removes the first element from the events array and executes it.

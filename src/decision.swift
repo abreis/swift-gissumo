@@ -390,8 +390,9 @@ class BestNeighborhoodSolution: DecisionAlgorithm {
 				}
 			}
 
-			// Parked car becomes an RSU
+			// Parked car becomes an RSU, or is removed
 			if !disableSelf { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
+			else { pcar.city.removeEntity(pcar) }
 		}
 	}
 }

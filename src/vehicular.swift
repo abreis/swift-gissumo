@@ -542,7 +542,7 @@ class City {
 		case .roadsideUnit:
 			guard	let rIndex = roadsideUnits.index( where: {$0.id == e_id} ),
 					let rGID = roadsideUnits[rIndex].gid else {
-						print("Warning: Trying to remove a non-existent roadside unit.")
+						if !debug.isEmpty { print("Warning: Trying to remove a non-existent roadside unit.") }
 						return
 			}
 			eGID = rGID
