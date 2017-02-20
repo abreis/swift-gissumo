@@ -542,8 +542,8 @@ class City {
 		case .roadsideUnit:
 			guard	let rIndex = roadsideUnits.index( where: {$0.id == e_id} ),
 					let rGID = roadsideUnits[rIndex].gid else {
-						print("Error: Trying to remove a non-existent vehicle.")
-						exit(EXIT_FAILURE)
+						print("Warning: Trying to remove a non-existent roadside unit.")
+						return
 			}
 			eGID = rGID
 			// Remove the roadside unit from the City
@@ -551,7 +551,7 @@ class City {
 		case .parkedCar:
 			guard	let pIndex = parkedCars.index( where: {$0.id == e_id} ),
 					let pGID = parkedCars[pIndex].gid else {
-						print("Error: Trying to remove a non-existent vehicle.")
+						print("Error: Trying to remove a non-existent parked car.")
 						exit(EXIT_FAILURE)
 			}
 			eGID = pGID
