@@ -45,6 +45,8 @@
 			<false/>
 			<key>cityCoverageEvolution</key>
 			<true/>
+			<key>signalAndSaturationEvolution</key>
+			<false/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
 			<key>decisionCellCoverageEffects</key>

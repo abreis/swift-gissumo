@@ -24,6 +24,11 @@ Available hooks:
   Prints the number of cells covered, and signal level statistics.
 
 
+* signalAndSaturationEvolution (interval)
+
+  Prints the mean signal strength, mean RSU saturation, and the signal-to-saturation ratio.
+
+
 * beaconCount (interval)
 
   Prints the number of packets with Beacon payloads being sent and received.

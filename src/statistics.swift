@@ -245,6 +245,47 @@ class Statistics {
 			let signalStdev = coveredCells.stdev.isNaN ? 0.0 : coveredCells.stdev
 			writeToHook("cityCoverageEvolution", data: "\(city.events.now.asSeconds)\(separator)\(cellCount)\(separator)\(percentCovered)\(separator)\(signalMean)\(separator)\(signalStdev)\(separator)\(coverageByStrength[0])\(separator)\(coverageByStrength[1])\(separator)\(coverageByStrength[2])\(separator)\(coverageByStrength[3])\(separator)\(coverageByStrength[4])\(separator)\(coverageByStrength[5])\(terminator)")
 		}
+
+		// coverageAndSaturationEvolution
+		if hooks["signalAndSaturationEvolution"] != nil {
+			// Data to write to the hook
+			var statData = String()
+
+			// 1. Get the obstruction mask map
+			if let maskMap = obstructionMask {
+				// Create measurements
+				var sigMeasure = Measurement()
+				var satMeasure = Measurement()
+
+				// Get the city coverage and saturation maps and crop them to the obstruction mask
+				var signalCoverageMap = city.globalMapOfCoverage.crop(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
+				var rsuSaturationMap = city.globalMapOfSaturation.crop(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
+
+				// 1.1. Push every measurement if the matching obstruction map cell is marked [O]pen
+				guard signalCoverageMap.size == rsuSaturationMap.size else {
+					print("Error: Signal and saturation maps are not the same size.")
+					exit(EXIT_FAILURE)
+				}
+
+				for i in 0..<signalCoverageMap.size.y {
+					for j in 0..<signalCoverageMap.size.x {
+						if maskMap.cells[i][j] == Character("O") {
+							sigMeasure.add(Double(signalCoverageMap.cells[i][j]))
+							satMeasure.add(Double(rsuSaturationMap.cells[i][j]))
+						}
+					}
+				}
+
+				// 1.2. Record the desired metrics
+				statData = "\(city.events.now.asSeconds)\(separator)\(separator)\(sigMeasure.mean)\(terminator)\(separator)\(sigMeasure.stdev)\(terminator)\(separator)\(satMeasure.mean)\(terminator)\(separator)\(satMeasure.stdev)\(terminator)\(separator)\(sigMeasure.mean/satMeasure.mean)\(terminator)"
+			} else {
+				// Print an error message if a mask was not provided
+				statData = "Please generate and provide an obstruction mask first."
+			}
+
+			// 2. Write data
+			writeToHook("signalAndSaturationEvolution", data: statData)
+		}
 	}
 
 
@@ -321,7 +362,7 @@ class Statistics {
 			if let maskMap = obstructionMask {
 				// Create a measurement
 				var satMeasure = Measurement()
-				// Get the city coverage map and crop it to the obstruction mask
+				// Get the city saturation map and crop it to the obstruction mask
 				var rsuSaturationMap = city.globalMapOfSaturation.crop(newTopLeftCell: maskMap.topLeftCellCoordinate, newSize: maskMap.size)
 
 				// 1.1. Push every measurement if the matching obstruction map cell is marked [O]pen
@@ -371,6 +412,10 @@ class Statistics {
 
 		if hooks["cityCoverageEvolution"] != nil {
 			writeToHook("cityCoverageEvolution", data: "time\(separator)#covered\(separator)%covered\(separator)meanSig\(separator)stdevSig\(separator)0cells\(separator)1cells\(separator)2cells\(separator)3cells\(separator)4cells\(separator)5cells\(terminator)")
+		}
+
+		if hooks["signalAndSaturationEvolution"] != nil {
+			writeToHook("signalAndSaturationEvolution", data: "time\(separator)sigMean\(separator)sigStdev\(separator)meanSig\(separator)stdevSig\(separator)sigToSat\(separator)\(terminator)")
 		}
 
 		if hooks["decisionCellCoverageEffects"] != nil {
