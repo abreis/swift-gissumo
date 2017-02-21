@@ -62,7 +62,7 @@ func +=(left: inout SimulationTime, right: SimulationTime) { left = left + right
  * and to quickly access a subarray by flooring the desired time, e.g.: event
  * at time 140.012345 is stored in eventList[140].
  */
-struct OptimizedArrayOfSimulationEvents {
+class EventArray: Sequence {
 	let minTimestep = SimulationTime(microseconds: 1)
 
 	var eventDictionary: Dictionary<Int,[SimulationEvent]> = [:]
@@ -70,7 +70,7 @@ struct OptimizedArrayOfSimulationEvents {
 	var sortedKeys = OrderedArray<Int>(array: [])
 	var count: Int = 0
 
-	mutating func add(newEvent: SimulationEvent) -> SimulationTime {
+	func add(newEvent: SimulationEvent) -> SimulationTime {
 		let indexTime = newEvent.time.seconds
 
 		// Make event mutable
@@ -144,7 +144,7 @@ struct OptimizedArrayOfSimulationEvents {
 	subscript(requestedIndex: Int) -> SimulationEvent {
 		get {
 			var requestedIndex = requestedIndex
-			for key in sortedKeys.array {
+			for key in sortedKeys {
 				if requestedIndex >= eventDictionary[key]!.count {
 					requestedIndex -= eventDictionary[key]!.count
 				} else {
@@ -153,6 +153,46 @@ struct OptimizedArrayOfSimulationEvents {
 			}
 			exit(EXIT_FAILURE)
 		}
+	}
+
+	// Conform to Sequence and IteratorProtocol
+	struct EventArrayIterator: IteratorProtocol {
+		let eventArray: EventArray
+		var dictionaryPos: Int
+		var arrayPos: Int
+
+		init(_ eventArray: EventArray) {
+			self.eventArray = eventArray
+			self.dictionaryPos = eventArray.sortedKeys.first!
+			self.arrayPos = 0
+		}
+
+		mutating func next() -> SimulationEvent? {
+			// Track current event for returning
+			let nextSimulationEvent = eventArray.eventDictionary[dictionaryPos]![arrayPos]
+
+			// Update array positions for the next iteration
+			if eventArray.eventDictionary[dictionaryPos]!.index(after: arrayPos) != eventArray.eventDictionary[dictionaryPos]!.endIndex {
+				arrayPos = eventArray.eventDictionary[dictionaryPos]!.index(after: arrayPos)
+			} else {
+				// Return nil if we're at the last time key already
+				guard dictionaryPos != eventArray.sortedKeys.last else { return nil }
+
+				// Find the next dictionary key
+				guard let currentDictionaryIndex = eventArray.sortedKeys.index(of: dictionaryPos) else { return nil }
+				dictionaryPos = eventArray.sortedKeys[eventArray.sortedKeys.index(after: currentDictionaryIndex)]
+
+				// Reset array position
+				arrayPos = eventArray.eventDictionary[dictionaryPos]!.startIndex
+			}
+
+			// Return the requested event
+			return nextSimulationEvent
+		}
+	}
+
+	func makeIterator() -> EventArrayIterator {
+		return EventArrayIterator(self)
 	}
 }
 
@@ -167,7 +207,7 @@ class EventList {
 	var stopTime: SimulationTime
 
 	// Array of simulation events
-	var list = OptimizedArrayOfSimulationEvents()
+	var list = EventArray()
 
 	// Events to be executed pre-simulation
 	var initial = [SimulationEvent]()
