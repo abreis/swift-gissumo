@@ -277,7 +277,7 @@ class Statistics {
 				}
 
 				// 1.2. Record the desired metrics
-				statData = "\(city.events.now.asSeconds)\(separator)\(separator)\(sigMeasure.mean)\(terminator)\(separator)\(sigMeasure.stdev)\(terminator)\(separator)\(satMeasure.mean)\(terminator)\(separator)\(satMeasure.stdev)\(terminator)\(separator)\(sigMeasure.mean/satMeasure.mean)\(terminator)"
+				statData = "\(city.events.now.asSeconds)\(separator)\(sigMeasure.mean)\(separator)\(sigMeasure.stdev)\(separator)\(satMeasure.mean)\(separator)\(satMeasure.stdev)\(separator)\(sigMeasure.mean/satMeasure.mean)\(terminator)"
 			} else {
 				// Print an error message if a mask was not provided
 				statData = "Please generate and provide an obstruction mask first."

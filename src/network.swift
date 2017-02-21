@@ -320,7 +320,9 @@ extension RoadEntity {
 		}
 
 		// Output packet trace, if enabled
-		self.city.stats.writeToHook("packetTrace", data: packet.traceDescription)
+		if city.stats.hooks["packetTrace"] != nil {
+			city.stats.writeToHook("packetTrace", data: packet.traceDescription)
+		}
 
 		// Locate matching neighbor GIDs
 		var neighborGIDs: [UInt]
@@ -503,7 +505,7 @@ extension FixedRoadEntity: PayloadReceiver {
 			if self is RoadsideUnit {
 				let coverageMapPayload = self.selfCoverageMap.toPayload()
 				let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: coverageMapPayload)
-				// TODO: we're only sending coverage map replies to parked cars, this might not always be true
+				// TODO: we're only sending coverage map replies to parked cars, this might not be true in the future
 				self.broadcastPacket(coverageMapReplyPacket, toFeatureTypes: .parkedCar)
 			}
 
