@@ -10,7 +10,7 @@ fi
 SIMDIR=$1
 STATDIR=stats
 VISDIR=plots
-VISNAME=actParCntW
+VISNAME=meanSatOvrTime
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -27,12 +27,12 @@ fi
 mkdir -p ${VISDIR}
 
 touch statfilelist
-for SIMULATIONLOG in $(find ${SIMDIR} -maxdepth 3 -type f -name 'entityCount.log'); do
+for SIMULATIONLOG in $(find ${SIMDIR} -maxdepth 3 -type f -name 'signalAndSaturationEvolution.log'); do
 	printf "${SIMULATIONLOG}\n" >> statfilelist
 done
 
 # Call swift interpreter
-swift $(dirname $0)/analyzeColumnByTime.swift statfilelist parkedCars > ${VISDIR}/${VISNAME}.data
+swift $(dirname $0)/analyzeColumnByTime.swift statfilelist satMean > ${VISDIR}/${VISNAME}.data
 rm -rf statfilelist
 
 # Copy over gnuplot scaffold script

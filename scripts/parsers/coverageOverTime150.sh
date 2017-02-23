@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script runs statistics on the 'count' entries in activeVehicleCount, then plots a line chart of the average number of active vehicles on each time step.
+# This script plots the metrics on cityCoverageEvolution. The number of cells covered at each specific coverage strength is binned and then plotted in stacked column bars.
 
 set -e
 
@@ -10,7 +10,8 @@ fi
 SIMDIR=$1
 STATDIR=stats
 VISDIR=plots
-VISNAME=actParCntW
+VISNAME=covOverTime
+BINNING=150	# Interval (in seconds) to group decisions
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -27,12 +28,12 @@ fi
 mkdir -p ${VISDIR}
 
 touch statfilelist
-for SIMULATIONLOG in $(find ${SIMDIR} -maxdepth 3 -type f -name 'entityCount.log'); do
+for SIMULATIONLOG in $(find ${SIMDIR} -maxdepth 3 -type f -name 'cityCoverageEvolution.log'); do
 	printf "${SIMULATIONLOG}\n" >> statfilelist
 done
 
 # Call swift interpreter
-swift $(dirname $0)/analyzeColumnByTime.swift statfilelist parkedCars > ${VISDIR}/${VISNAME}.data
+swift $(dirname $0)/binCoverageEvolution.swift statfilelist ${BINNING} > ${VISDIR}/${VISNAME}.data
 rm -rf statfilelist
 
 # Copy over gnuplot scaffold script

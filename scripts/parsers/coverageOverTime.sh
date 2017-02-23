@@ -28,7 +28,7 @@ fi
 mkdir -p ${VISDIR}
 
 touch statfilelist
-for SIMULATIONLOG in $(find ${SIMDIR} -depth 3 -type f -name 'cityCoverageEvolution.log'); do
+for SIMULATIONLOG in $(find ${SIMDIR} -maxdepth 3 -type f -name 'cityCoverageEvolution.log'); do
 	printf "${SIMULATIONLOG}\n" >> statfilelist
 done
 
