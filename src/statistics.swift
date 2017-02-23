@@ -51,35 +51,36 @@ class Statistics {
 					hooks[hook] = ""
 				}
 			}
-		}
 
-		// Initialize file handles for immediate hooks
-		for immediateHook in hardcodedImmediateHooks {
-			let hookURL = URL(fileURLWithPath: "\(folder)\(immediateHook).log")
+			// Initialize file handles for immediate hooks
+			for immediateHook in hardcodedImmediateHooks where hooks.keys.contains(immediateHook) {
+				let hookURL = URL(fileURLWithPath: "\(folder)\(immediateHook).log")
 
-			// Overwrite file if it exists
-			if FileManager.default.fileExists(atPath: hookURL.path) {
+				// Overwrite file if it exists
+				if FileManager.default.fileExists(atPath: hookURL.path) {
+					do {
+						try "".write(to: hookURL, atomically: true, encoding: String.Encoding.utf8)
+					} catch {
+						print("Error: Failed to overwrite existing file for hook", immediateHook)
+						exit(EXIT_FAILURE)
+					}
+				} else {
+					FileManager.default.createFile(atPath: hookURL.path, contents: nil)
+				}
+
+				// Create handle and store it in the handle dictionary
 				do {
-					try "".write(to: hookURL, atomically: true, encoding: String.Encoding.utf8)
+					let hookHandle = try FileHandle(forWritingTo: hookURL)
+					hookHandle.seekToEndOfFile()
+					immediateHookHandles[immediateHook] = hookHandle
 				} catch {
-					print("Error: Failed to overwrite existing file for hook", immediateHook)
+					print("Error: Failed to initialize filehandle for", immediateHook)
+					print(error)
 					exit(EXIT_FAILURE)
 				}
-			} else {
-				FileManager.default.createFile(atPath: hookURL.path, contents: nil)
-			}
-
-			// Create handle and store it in the handle dictionary
-			do {
-				let hookHandle = try FileHandle(forWritingTo: hookURL)
-				hookHandle.seekToEndOfFile()
-				immediateHookHandles[immediateHook] = hookHandle
-			} catch {
-				print("Error: Failed to initialize filehandle for", immediateHook)
-				print(error)
-				exit(EXIT_FAILURE)
 			}
 		}
+
 
 		// Load obstruction mask if given
 		if let maskFileConfig = config["obstructionMaskFile"] as? String {
@@ -424,6 +425,10 @@ class Statistics {
 
 		if hooks["packetTrace"] != nil {
 			writeToHook("packetTrace", data: "id\(separator)created\(separator)l2src\(separator)l3src\(separator)l3dst\(separator)payload\(terminator)")
+		}
+
+		if hooks["parkedRoadsideUnitLifetime"] != nil {
+			writeToHook("parkedRoadsideUnitLifetime", data: "rsuID\(separator)created\(separator)removed\(separator)lifetime\(terminator)")
 		}
 	}
 

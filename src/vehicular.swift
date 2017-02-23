@@ -546,6 +546,12 @@ class City {
 						return
 			}
 			eGID = rGID
+
+			// Track RSU lifetime for statistics
+			if stats.hooks["parkedRoadsideUnitLifetime"] != nil, roadsideUnits[rIndex].creationTime != nil {
+				stats.writeToHook("parkedRoadsideUnitLifetime", data: "\(roadsideUnits[rIndex].id)\t\(roadsideUnits[rIndex].creationTime!.asSeconds)\t\(events.now.asSeconds)\t\(events.now.seconds-roadsideUnits[rIndex].creationTime!.seconds)\n")
+			}
+
 			// Remove the roadside unit from the City
 			roadsideUnits.remove(at: rIndex)
 		case .parkedCar:

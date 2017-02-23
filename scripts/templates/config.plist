@@ -65,6 +65,8 @@
 			<true/>
 			<key>finalRoadsideUnitCoverageMaps</key>
 			<false/>
+			<key>parkedRoadsideUnitLifetime</key>
+			<true/>
 			<key>obstructionMask</key>
 			<false/>
 			<key>packetTrace</key>
