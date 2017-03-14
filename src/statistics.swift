@@ -87,7 +87,7 @@ class Statistics {
 			let maskFileURL = URL(fileURLWithPath: maskFileConfig)
 			do {
 				let maskAsString = try String(contentsOf: maskFileURL)
-				let maskAsPayload = Payload(type: .coverageMap, content: maskAsString)
+				let maskAsPayload = Payload(type: .cellMap, content: maskAsString)
 				obstructionMask = CellMap<Character>(fromPayload: maskAsPayload)
 			} catch {
 				obstructionMask = nil

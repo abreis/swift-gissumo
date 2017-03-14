@@ -29,6 +29,7 @@ class Decision {
 		switch algoInUse {
 		case "NullDecision":
 			algorithm = NullDecision()
+
 		case "CellCoverageEffects":
 			guard let cellCoverageEffectsConfig = algoConfig["CellCoverageEffects"] as? NSDictionary,
 					let kappa = cellCoverageEffectsConfig["kappa"] as? Double,
@@ -43,8 +44,21 @@ class Decision {
 
 			let satThresh = cellCoverageEffectsConfig["saturationThreshold"] as? Int
 			algorithm = CellCoverageEffects(κ: kappa, λ: lambda, μ: mu, requestReach: requestReachConfig, saturationThreshold: satThresh)
-		case "BestNeighborhoodSolution":
-			algorithm = BestNeighborhoodSolution()
+
+		case "WeightedProductModel":
+			guard let weightedProductModelConfig = algoConfig["WeightedProductModel"] as? NSDictionary,
+				let wsig = weightedProductModelConfig["wsig"] as? Double,
+				let wsat = weightedProductModelConfig["wsat"] as? Double,
+				let wcov = weightedProductModelConfig["wcov"] as? Double,
+				let wbat = weightedProductModelConfig["wbat"] as? Double,
+				let minRedundancy = weightedProductModelConfig["minRedundancy"] as? Double,
+				let mapRequestDepth = weightedProductModelConfig["mapRequestDepth"] as? UInt
+				else {
+					print("Error: Invalid parameters for WeightedProductModel algorithm.")
+					exit(EXIT_FAILURE)
+			}
+			algorithm = WeightedProductModel(weights: (wsig: wsig, wsat: wsat, wcov: wcov, wbat: wbat), minRedundancy: minRedundancy, mapRequestDepth: mapRequestDepth)
+
 		default:
 			print("Error: Invalid decision algorithm chosen.")
 			exit(EXIT_FAILURE)
@@ -82,8 +96,6 @@ class CellCoverageEffects: DecisionAlgorithm {
 
 	func trigger(_ pcar: ParkedCar) {
 		// 1. Send a request for neighbor coverage maps
-		pcar.isRequestingMaps = true
-
 		var l3requestType: Packet.Destination
 		switch(requestReach) {
 		case "1hop":
@@ -97,7 +109,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 			exit(EXIT_FAILURE)
 		}
 
-		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: l3requestType, payload: Payload(type: .coverageMapRequest, content: CoverageMapRequest().toPayload().content) )
+		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: l3requestType, payload: Payload(type: .coverageMapRequest, content: CoverageMapRequest(depth: 1).toPayload().content) )
 		pcar.broadcastPacket(covMapRequestPacket)
 
 		// 2. Schedule an event to process the coverage maps and make the decision
@@ -106,22 +118,12 @@ class CellCoverageEffects: DecisionAlgorithm {
 	}
 
 	func decide(_ pcar: ParkedCar) {
-		// 1. Stop receiving maps
-		pcar.isRequestingMaps = false
+//		let mapPayloadList = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
 
-		// 2. Run algorithm if at least 1 coverage map was received
-		let mapPayloadList = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
-
-		if mapPayloadList.count > 0 {
-			// 1. Convert the payloads to actual maps
-			var mapList = [CellMap<Int>]()
-			for mapPayload in mapPayloadList {
-				guard let newMap = CellMap<Int>(fromPayload: mapPayload.payload) else {
-					print("Error: Failed to convert coverage map payload to an actual map.")
-					exit(EXIT_FAILURE)
-				}
-				mapList.append(newMap)
-			}
+		// Run algorithm if at least 1 coverage map was received
+		if pcar.neighborMaps.count > 0 {
+			//
+			let mapList: [CellMap<Int>] = pcar.neighborMaps.map({ return $1.coverageMap })
 
 			// 2. Set up empty maps for neighborhood coverage and saturation
 			// Consider the vehicle's map as well, so these maps can encompass it
@@ -223,17 +225,21 @@ class CellCoverageEffects: DecisionAlgorithm {
 
 
 /// BestNeighborhoodSolution: a decision algorithm with the ability to shut down nearby RSUs
-class BestNeighborhoodSolution: DecisionAlgorithm {
+class WeightedProductModel: DecisionAlgorithm {
 	let mapRequestWaitingTime = SimulationTime(seconds: 1)
+	var weights: (wsig: Double, wsat: Double, wcov: Double, wbat: Double) = (1.0, 1.0, 1.0, 1.0)
+	var minRedundancy: Double = 2.0
+	var mapRequestDepth: UInt = 1
 
-	init() {}
+	init(weights: (wsig: Double, wsat: Double, wcov: Double, wbat: Double), minRedundancy: Double, mapRequestDepth: UInt) {
+		self.weights = weights
+		self.minRedundancy = minRedundancy
+		self.mapRequestDepth = mapRequestDepth
+	}
 
 	// On trigger, request 1-hop neighborhood coverage maps, and wait 1 second to receive replies before deciding
 	func trigger(_ pcar: ParkedCar) {
-		// 1. Send a request for neighbor coverage maps
-		pcar.isRequestingMaps = true
-
-		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: Payload(type: .coverageMapRequest, content: CoverageMapRequest().toPayload().content) )
+		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: Payload(type: .coverageMapRequest, content: CoverageMapRequest(depth: mapRequestDepth).toPayload().content) )
 		pcar.broadcastPacket(covMapRequestPacket)
 
 		// 2. Schedule an event to process the coverage maps and make the decision
@@ -242,9 +248,7 @@ class BestNeighborhoodSolution: DecisionAlgorithm {
 	}
 
 	func decide(_ pcar: ParkedCar) {
-		// 1. Stop receiving maps
-		pcar.isRequestingMaps = false
-
+/*
 		// 2. Prepare neighborhood coverage maps
 		// Filter out payloads that do not contain coverage maps from the buffer
 		var neighborhoodCoverageMapPayloads = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
@@ -394,5 +398,6 @@ class BestNeighborhoodSolution: DecisionAlgorithm {
 			if !disableSelf { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
 			else { pcar.city.removeEntity(pcar) }
 		}
+*/
 	}
 }

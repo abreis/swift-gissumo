@@ -44,14 +44,44 @@ class MovingRoadEntity: RoadEntity {
 // Fixed entities, e.g. parked cars, roadside units, sensors
 // Can request coverage maps and build their own from beacons
 class FixedRoadEntity: RoadEntity {
-	// Payload buffer to store coverage map request replies (a VehicleID:CoverageMap tuple array)
-	var payloadBuffer = [(id: UInt, payload: Payload)]()
-
-	// Flag to mark whether we are requesting coverage maps
-	var isRequestingMaps: Bool = false
-
 	// Initialize the local coverage map
 	lazy var selfCoverageMap: CellMap<Int> = CellMap<Int>(ofSize: (x: self.city.network.selfCoverageMapSize, y: self.city.network.selfCoverageMapSize), withValue: 0, geographicCenter: self.geo)
+
+	/* neighborMaps stores the coverage maps received from 1-hop neighbors, and tracks
+	 * the last time an update was received to a map, and the distance (hops) to a map's
+	 * owner.
+	 *
+	 * append(coverageMaps:) manages additions to this dictionary, processing coverage map arrays
+	 */
+	var neighborMaps: [UInt:(coverageMap: CellMap<Int>, lastUpdated: SimulationTime, distance: UInt)] = [:]
+	func append(coverageMaps: [SelfCoverageMap], sender: UInt, currentTime: SimulationTime) -> () {
+		var coverageMaps = coverageMaps
+
+		// Sanity check: the first map should always belong to the sender
+		guard coverageMaps.first!.ownerID == sender else {
+			print("Error: First map not owned by map sender.")
+			exit(EXIT_FAILURE)
+		}
+
+		/// Inferring distances
+		/* The first map belongs to the vehicle that sent the message. It is a 1-hop neighbor.
+		 * If the sender's map is on our neighbor maps array with a distance==2, reduce it to 1.
+		 */
+		let senderCoverageMap = coverageMaps.removeFirst()
+		neighborMaps[senderCoverageMap.ownerID] = (coverageMap: senderCoverageMap.map, lastUpdated: currentTime, distance: 1)
+
+		/* For the remaining maps, add them to the neighborMaps array with a default distance of 2,
+		 * unless we've seen them before, in which case don't change the existing distance.
+		 */
+		for senderNeighborMap in coverageMaps {
+			if neighborMaps[senderNeighborMap.ownerID] != nil {
+				neighborMaps[senderNeighborMap.ownerID]!.coverageMap = senderNeighborMap.map
+				neighborMaps[senderNeighborMap.ownerID]!.lastUpdated = currentTime
+			} else {
+				neighborMaps[senderNeighborMap.ownerID] = (coverageMap: senderNeighborMap.map, lastUpdated: currentTime, distance: 2)
+			}
+		}
+	}
 }
 
 
@@ -78,6 +108,9 @@ enum RoadsideUnitType {
 class RoadsideUnit: FixedRoadEntity {
 	override var type: RoadEntityType { return .roadsideUnit }
 	var rsuType: RoadsideUnitType = .parkedCar
+
+	// Array dictionary to hold coverage maps of neighbor RSUs and their last received update
+	// key: neighborID, value: (map, lastUpdated)
 }
 
 

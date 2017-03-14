@@ -4,6 +4,11 @@
 
 import Foundation
 
+// A self-observed coverage map is always paired with an owner ID
+struct SelfCoverageMap {
+	let ownerID: UInt
+	var map: CellMap<Int>
+}
 
 /* A cell map is a 2D map of objects, typically Int for signal strength or Char for visualization.
  * It conforms to CustomStringConvertible, i.e., it can be converted into a String for display.

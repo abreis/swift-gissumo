@@ -5,6 +5,8 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.tsv</string>
 	<key>stopTime</key>
+	<integer>3600</integer>
+	<key>roadsideUnitLifetime</key>
 	<integer>1200</integer>
 	<key>locationSRID</key>
 	<integer>27492</integer>
@@ -80,7 +82,22 @@
 		<key>algorithm</key>
 		<dict>
 			<key>inUse</key>
-			<string>CellCoverageEffects</string>
+			<string>WeightedProductModel</string>
+			<key>WeightedProductModel</key>
+			<dict>
+				<key>wsig</key>
+				<integer>1</integer>
+				<key>wsat</key>
+				<integer>1</integer>
+				<key>wcov</key>
+				<integer>1</integer>
+				<key>wbat</key>
+				<integer>1</integer>
+				<key>minRedundancy</key>
+				<integer>2</integer>
+				<key>mapRequestDepth</key>
+				<integer>2</integer>
+			</dict>
 			<key>CellCoverageEffects</key>
 			<dict>
 				<key>kappa</key>

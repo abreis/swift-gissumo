@@ -126,7 +126,8 @@ struct Packet {
 enum PayloadType: UInt {
 	case beacon = 0
 	case coverageMapRequest
-	case coverageMap
+	case coverageMaps
+	case cellMap
 	case disableRSU
 }
 
@@ -197,9 +198,62 @@ struct Beacon: PayloadConvertible {
 
 // A request for coverage maps
 struct CoverageMapRequest: PayloadConvertible {
-	func toPayload() -> Payload { return Payload(type: .coverageMapRequest, content: "")}
-	init? (fromPayload: Payload) { }
+	let depth: UInt
+	func toPayload() -> Payload { return Payload(type: .coverageMapRequest, content: "\(depth)")}
+	init? (fromPayload payload: Payload) {
+		guard let payloadDepth = UInt(payload.content) else { return nil }
+		depth = payloadDepth
+	}
+	init (depth: UInt) { self.depth = depth }
+}
+
+// A payload containing one or more coverage maps
+// Add maps to self.maps, then convert everything to a Payload, or viceversa
+struct CoverageMaps: PayloadConvertible {
+	var maps: [SelfCoverageMap] = []
+
 	init () {}
+
+	func toPayload() -> Payload {
+		guard maps.count > 0 else {
+			print("Error: attempted to convert an empty coverage map array to a Payload.")
+			exit(EXIT_FAILURE)
+		}
+
+		var payloadString: String = ""
+		for map in maps {
+			payloadString += "id" +  String(format: "%08d", map.ownerID)
+			payloadString += map.map.toPayload().content
+			payloadString += "\n"
+		}
+
+		return Payload(type: .coverageMaps, content: payloadString)
+	}
+
+	init? (fromPayload payload: Payload) {
+		guard payload.type == .coverageMaps	else { return nil }
+		let mapEntries = payload.content.components(separatedBy: .newlines).filter{!$0.isEmpty}
+
+		guard mapEntries.count > 0 else { return nil }
+		for entry in mapEntries {
+			guard entry.hasPrefix("id") else { return nil }
+
+			// Index where the map and the ID are split. We reserve 10 chars for the map ID and tag
+			let splitIdAndMapIndex = entry.index(entry.startIndex, offsetBy: 10)
+
+			// Substrings
+			let idString = entry.substring(to: splitIdAndMapIndex)
+			let mapString = entry.substring(from: splitIdAndMapIndex)
+
+			// Obtain cell map and owner ID from substrings
+			guard	let mapOwnerID = UInt(idString.substring(from: idString.index(idString.startIndex, offsetBy: 2))),
+					let cellMap = CellMap<Int>(fromString: mapString)
+				else { return nil }
+
+			// Store the coverage map
+			maps.append( SelfCoverageMap(ownerID: mapOwnerID, map: cellMap) )
+		}
+	}
 }
 
 
@@ -243,20 +297,25 @@ extension CellMap: PayloadConvertible {
 		}
 
 		// Note: Cell maps are not necessarily CoverageMaps, this can be generified
-		return Payload(type: .coverageMap, content: description)
+		return Payload(type: .cellMap, content: description)
 	}
 
 	// Initialize the map from a payload
 	init?(fromPayload payload: Payload) {
-		// Break payload into lines
-		var lines: [String] = payload.content.components(separatedBy: .newlines).filter{!$0.isEmpty}
+		self.init(fromString: payload.content)
+	}
+
+	// Initialize the map from a string
+	init?(fromString content: String) {
+		// Break string into lines
+		var lines: [String] = content.components(separatedBy: .newlines).filter{!$0.isEmpty}
 
 		// Extract the coordinates of the top-left cell from the payload header
 		guard let firstLine = lines.first, firstLine.hasPrefix("tlc") else { return nil }
 		let headerCellCoordinates = firstLine.replacingOccurrences(of: "tlc", with: "").components(separatedBy: ";")
 		guard	let xTopLeft = Int(headerCellCoordinates[0]),
 				let yTopLeft = Int(headerCellCoordinates[1])
-				else { return nil }
+			else { return nil }
 		topLeftCellCoordinate = (x: xTopLeft, y: yTopLeft)
 
 		// Remove the header and load the map
@@ -271,7 +330,7 @@ extension CellMap: PayloadConvertible {
 		for row in lines {
 			let rowItems = row.components(separatedBy: ";")
 			for rowItem in rowItems {
-				guard let item = T(string: rowItem) else {return nil}
+				guard let item = T(string: rowItem) else { return nil }
 				cells[nrow].append(item)
 			}
 			nrow += 1
@@ -503,15 +562,47 @@ extension FixedRoadEntity: PayloadReceiver {
 		case .coverageMapRequest:
 			// Only RSUs reply to requests for coverage maps
 			if self is RoadsideUnit {
-				let coverageMapPayload = self.selfCoverageMap.toPayload()
-				let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: coverageMapPayload)
+				guard let coverageRequest = CoverageMapRequest(fromPayload: packet.payload) else {
+					print("Error: Failed to convert a CoverageMapRequest payload.")
+					exit(EXIT_FAILURE)
+				}
+
+				// Array to store the maps for the payload
+				var coverageMapArray = CoverageMaps()
+
+				// Append our own map
+				coverageMapArray.maps.append( SelfCoverageMap(ownerID: self.id, map: self.selfCoverageMap) )
+
+				switch coverageRequest.depth {
+				case 1:
+					// depth 1 := only send our own map
+					// already appended earlier
+					break
+				case 2:
+					// TODO: exclude maps that haven't been updated in a certain time
+					// depth 2 := send our map and our 1-hop neighbors' maps
+					// append 1-hop neighbor maps (distance == 1)
+					coverageMapArray.maps += self.neighborMaps.filter{ $1.distance == 1 }.map{ return SelfCoverageMap(ownerID: $0, map: $1.coverageMap) }
+				default:
+					print("Error: Invalid depth on coverage map request.")
+					exit(EXIT_FAILURE)
+				}
+
+				let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: coverageMapArray.toPayload())
+
 				// TODO: we're only sending coverage map replies to parked cars, this might not be true in the future
 				self.broadcastPacket(coverageMapReplyPacket, toFeatureTypes: .parkedCar)
 			}
 
-		case .coverageMap:
-			// Store the map in a temporary buffer
-			if isRequestingMaps { payloadBuffer.append( (id: packet.l3src, payload: packet.payload) ) }
+		case .coverageMaps:
+			// Pull coverage maps from the payload
+			guard let coverageMapPayload = CoverageMaps(fromPayload: packet.payload)
+				else {
+					print("Error: failed to convert a CoverageMaps payload.")
+					exit(EXIT_FAILURE)
+			}
+			// Call the neighbor map managing routine in FixedRoadEntity
+			self.append(coverageMaps: coverageMapPayload.maps, sender: packet.l3src, currentTime: self.city.events.now)
 
 		case .disableRSU:
 			// Only RSUs can be disabled by a message
@@ -524,6 +615,9 @@ extension FixedRoadEntity: PayloadReceiver {
 					self.city.events.add(newEvent: removalEvent)
 				}
 			}
+		default:
+			print("Error: Received an unknown payload.")
+			exit(EXIT_FAILURE)
 		}
 	}
 }
