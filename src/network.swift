@@ -224,7 +224,7 @@ struct CoverageMaps: PayloadConvertible {
 		for map in maps {
 			payloadString += "id" +  String(format: "%08d", map.ownerID)
 			payloadString += map.map.toPayload().content
-			payloadString += "\n"
+			payloadString += "m"	// split maps with 'm' character; payload contains: "cdilpt-;" plus 0..9
 		}
 
 		return Payload(type: .coverageMaps, content: payloadString)
@@ -232,7 +232,7 @@ struct CoverageMaps: PayloadConvertible {
 
 	init? (fromPayload payload: Payload) {
 		guard payload.type == .coverageMaps	else { return nil }
-		let mapEntries = payload.content.components(separatedBy: .newlines).filter{!$0.isEmpty}
+		let mapEntries = payload.content.components(separatedBy: "m").filter{!$0.isEmpty}
 
 		guard mapEntries.count > 0 else { return nil }
 		for entry in mapEntries {
@@ -285,7 +285,8 @@ extension CellMap: PayloadConvertible {
 
 		// Print top-left coordinate on the first line
 		// 'tlc': top-left-cell
-		description += "tlc" + String(topLeftCellCoordinate.x) + ";" + String(topLeftCellCoordinate.y) + "\n"
+		// 'p': line separator; map contains: "clt-;" plus 0..9
+		description += "tlc" + String(topLeftCellCoordinate.x) + ";" + String(topLeftCellCoordinate.y) + "p"
 
 		for (cellIndex, row) in cells.enumerated() {
 			for (rowIndex, element) in row.enumerated() {
@@ -293,7 +294,7 @@ extension CellMap: PayloadConvertible {
 				description += stringElement
 				if rowIndex != row.count-1 { description += ";" }
 			}
-			if cellIndex != cells.count-1 { description += "\n" }
+			if cellIndex != cells.count-1 { description += "p" }
 		}
 
 		// Note: Cell maps are not necessarily CoverageMaps, this can be generified
@@ -308,7 +309,7 @@ extension CellMap: PayloadConvertible {
 	// Initialize the map from a string
 	init?(fromString content: String) {
 		// Break string into lines
-		var lines: [String] = content.components(separatedBy: .newlines).filter{!$0.isEmpty}
+		var lines: [String] = content.components(separatedBy: "p").filter{!$0.isEmpty}
 
 		// Extract the coordinates of the top-left cell from the payload header
 		guard let firstLine = lines.first, firstLine.hasPrefix("tlc") else { return nil }
@@ -567,31 +568,65 @@ extension FixedRoadEntity: PayloadReceiver {
 					exit(EXIT_FAILURE)
 				}
 
-				// Array to store the maps for the payload
-				var coverageMapArray = CoverageMaps()
-
-				// Append our own map
-				coverageMapArray.maps.append( SelfCoverageMap(ownerID: self.id, map: self.selfCoverageMap) )
 
 				switch coverageRequest.depth {
+				/* DEPTH == 1 */
 				case 1:
-					// depth 1 := only send our own map
-					// already appended earlier
-					break
+					// depth 1 -> only send our own map, already appended earlier
+					// Array to store the maps for the payload
+					var coverageMapArray = CoverageMaps()
+
+					// Append our own map
+					coverageMapArray.maps.append( SelfCoverageMap(ownerID: self.id, map: self.selfCoverageMap) )
+
+					let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: coverageMapArray.toPayload())
+
+					// We're sending coverage map replies to parked cars and roadside units, for the depth request to work
+					self.broadcastPacket(coverageMapReplyPacket, toFeatureTypes: .parkedCar, .roadsideUnit)
+
+				/* DEPTH == 2 */
 				case 2:
-					// TODO: exclude maps that haven't been updated in a certain time
-					// depth 2 := send our map and our 1-hop neighbors' maps
-					// append 1-hop neighbor maps (distance == 1)
-					coverageMapArray.maps += self.neighborMaps.filter{ $1.distance == 1 }.map{ return SelfCoverageMap(ownerID: $0, map: $1.coverageMap) }
+					/* depth 2:
+					 * -> broadcast a depth==1 request, wait for replies (0.5s)
+					 * -> send our map and our 1-hop neighbors' maps
+					 */
+					let onDemandCoverageMapRequestPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .broadcast(hopLimit: 1), payload: CoverageMapRequest(depth: 1).toPayload())
+
+					// We're only interested in maps from active roadside units here
+					self.broadcastPacket(onDemandCoverageMapRequestPacket, toFeatureTypes: .roadsideUnit)
+
+					// Create and schedule a reply to the original requester with the received maps
+					let coverageBroadcastClosure = {
+						// Array to store the maps for the payload
+						var coverageMapArray = CoverageMaps()
+
+						// Append our own map
+						coverageMapArray.maps.append( SelfCoverageMap(ownerID: self.id, map: self.selfCoverageMap) )
+
+						// Append 1-hop neighbor maps (distance == 1)
+						// Don't send maps that are not new, as they may belong to RSUs that don't exist anymore
+						// We're arbitrarily choosing 1 second since replies should have arrived in the last .5 seconds
+						coverageMapArray.maps +=
+							self.neighborMaps
+								.filter{ $1.distance == 1 }
+								.filter{ $1.lastUpdated > self.city.events.now - SimulationTime(seconds: 1) }
+								.map{ return SelfCoverageMap(ownerID: $0, map: $1.coverageMap) }
+
+						let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: coverageMapArray.toPayload())
+
+						// We're only sending coverage map replies to parked cars
+						self.broadcastPacket(coverageMapReplyPacket, toFeatureTypes: .parkedCar)
+					}
+
+					let coverageMapReplyEvent = SimulationEvent(time: self.city.events.now + SimulationTime(milliseconds: 500), type: .network, action: coverageBroadcastClosure, description: "deferred coverage map reply src \(self.id) dst \(packet.l3src)")
+
+					self.city.events.add(newEvent: coverageMapReplyEvent)
+
 				default:
 					print("Error: Invalid depth on coverage map request.")
 					exit(EXIT_FAILURE)
 				}
 
-				let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: coverageMapArray.toPayload())
-
-				// TODO: we're only sending coverage map replies to parked cars, this might not be true in the future
-				self.broadcastPacket(coverageMapReplyPacket, toFeatureTypes: .parkedCar)
 			}
 
 		case .coverageMaps:

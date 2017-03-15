@@ -495,7 +495,7 @@ class City {
 		parkedCars.append(newParkedCar)
 
 		// Schedule a decision trigger event
-		let decisionTriggerEvent = SimulationEvent(time: events.now + decision.triggerDelay, type: .decision, action: { self.decision.algorithm.trigger(newParkedCar) }, description: "decisionTrigger id\(newParkedCar.id)")
+		let decisionTriggerEvent = SimulationEvent(time: events.now + decision.triggerDelay, type: .decision, action: { self.decision.algorithm.trigger(newParkedCar) }, description: "decisionTrigger for id \(newParkedCar.id)")
 		events.add(newEvent: decisionTriggerEvent)
 
 		// Debug

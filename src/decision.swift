@@ -224,7 +224,7 @@ class CellCoverageEffects: DecisionAlgorithm {
 }
 
 
-/// BestNeighborhoodSolution: a decision algorithm with the ability to shut down nearby RSUs
+/// WeightedProductModel: a multi-criteria decision making approach
 class WeightedProductModel: DecisionAlgorithm {
 	let mapRequestWaitingTime = SimulationTime(seconds: 1)
 	var weights: (wsig: Double, wsat: Double, wcov: Double, wbat: Double) = (1.0, 1.0, 1.0, 1.0)
@@ -248,6 +248,16 @@ class WeightedProductModel: DecisionAlgorithm {
 	}
 
 	func decide(_ pcar: ParkedCar) {
+
+		// TODO removeme
+		pcar.city.convertEntity(pcar, to: .roadsideUnit)
+
+		// Now:
+		// Use entities in neighborMaps, plus ourselves
+		// decision must affect ourselves plus entities in neighborMaps.filter{ $1.distance == 1 }
+		// Map calculations must overlay entities in neighborMaps.filter{ $1.distance == 2 }
+		// Filter old maps to be certain
+
 /*
 		// 2. Prepare neighborhood coverage maps
 		// Filter out payloads that do not contain coverage maps from the buffer

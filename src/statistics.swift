@@ -52,6 +52,18 @@ class Statistics {
 				}
 			}
 
+			// Try to create the statistics folder if it doesn't exist
+			let folderURL = URL(fileURLWithPath: folder)
+			do {
+				if !(folderURL as NSURL).checkResourceIsReachableAndReturnError(nil) {
+					try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true, attributes: nil)
+				}
+			} catch let error as NSError {
+				print("Error: Failed to create collection directory", folderURL)
+				print(error)
+				exit(EXIT_FAILURE)
+			}
+
 			// Initialize file handles for immediate hooks
 			for immediateHook in hardcodedImmediateHooks where hooks.keys.contains(immediateHook) {
 				let hookURL = URL(fileURLWithPath: "\(folder)\(immediateHook).log")
@@ -103,18 +115,6 @@ class Statistics {
 
 	/// Write all collected statistical data, overwriting existing files
 	func writeStatisticsToFiles() {
-		// Try to create the statistics folder if it doesn't exist
-		let folderURL = URL(fileURLWithPath: folder)
-		do {
-			if !(folderURL as NSURL).checkResourceIsReachableAndReturnError(nil) {
-				try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true, attributes: nil)
-			}
-		} catch let error as NSError {
-			print("Error: Failed to create collection directory", folderURL)
-			print(error)
-			exit(EXIT_FAILURE)
-		}
-
 		// Write all collected data (except for hardcoded hooks)
 		for (statName, statData) in hooks where !hardcodedImmediateHooks.contains(statName) {
 			let hookURL = URL(fileURLWithPath: "\(folder)\(statName).log")
