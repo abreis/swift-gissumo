@@ -52,3 +52,40 @@ func buildObstructionMask(fromTrips trips: [FCDTimestep]) throws {
 		throw error
 	}
 }
+
+
+// Merge two strings horizontally, for better visualization
+extension String {
+	func mergeHorizontally(toTheLeftOf rstring: String) -> String {
+		let verticalDivider = " | "
+
+		var out: String = ""
+
+		let leftStringArray = self.components(separatedBy: .newlines)
+		let rightStringArray = rstring.components(separatedBy: .newlines)
+
+		let maxLeftWidth = leftStringArray.reduce(0, { if $1.characters.count > $0 { return $1.characters.count } else {return $0}} )
+
+		let maxIndex = max(leftStringArray.count, rightStringArray.count)
+
+		for index in 0..<maxIndex {
+			// Add left side if it exists
+			if index < leftStringArray.endIndex {
+				out += leftStringArray[index].padding(toLength: maxLeftWidth, withPad: " ", startingAt: 0)
+			} else {
+				out += "".padding(toLength: maxLeftWidth, withPad: " ", startingAt: 0)
+			}
+
+			out += verticalDivider
+
+			// Add right side if it exists
+			if index < rightStringArray.endIndex {
+				out += rightStringArray[index]
+			}
+
+			out += "\n"
+		}
+
+		return out
+	}
+}
