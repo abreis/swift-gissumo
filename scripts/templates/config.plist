@@ -5,9 +5,9 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.tsv</string>
 	<key>stopTime</key>
-	<integer>3600</integer>
-	<key>roadsideUnitLifetime</key>
-	<integer>1200</integer>
+	<integer>28800</integer>
+	<key>rsuLifetime</key>
+	<integer>0</integer>
 	<key>locationSRID</key>
 	<integer>27492</integer>
 	<key>useHaversine</key>
@@ -128,7 +128,9 @@
 	</dict>
 	<key>debug</key>
 	<dict>
-		<key>BestNeighborhoodSolution.decide()</key>
+		<key>WeightedProductModel.decide()</key>
+		<true/>
+		<key>WeightedProductModel.analyzeCombination() - 2</key>
 		<true/>
 		<key>CellCoverageEffects.decide()</key>
 		<false/>

@@ -223,7 +223,7 @@ struct CoverageMaps: PayloadConvertible {
 		var payloadString: String = ""
 		for map in maps {
 			payloadString += "id" +  String(format: "%08d", map.ownerID)
-			payloadString += map.map.toPayload().content
+			payloadString += map.cellMap.toPayload().content
 			payloadString += "m"	// split maps with 'm' character; payload contains: "cdilpt-;" plus 0..9
 		}
 
@@ -251,7 +251,7 @@ struct CoverageMaps: PayloadConvertible {
 				else { return nil }
 
 			// Store the coverage map
-			maps.append( SelfCoverageMap(ownerID: mapOwnerID, map: cellMap) )
+			maps.append( SelfCoverageMap(ownerID: mapOwnerID, cellMap: cellMap) )
 		}
 	}
 }
@@ -577,7 +577,7 @@ extension FixedRoadEntity: PayloadReceiver {
 					var coverageMapArray = CoverageMaps()
 
 					// Append our own map
-					coverageMapArray.maps.append( SelfCoverageMap(ownerID: self.id, map: self.selfCoverageMap) )
+					coverageMapArray.maps.append( SelfCoverageMap(ownerID: self.id, cellMap: self.selfCoverageMap) )
 
 					let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: coverageMapArray.toPayload())
 
@@ -601,7 +601,7 @@ extension FixedRoadEntity: PayloadReceiver {
 						var coverageMapArray = CoverageMaps()
 
 						// Append our own map
-						coverageMapArray.maps.append( SelfCoverageMap(ownerID: self.id, map: self.selfCoverageMap) )
+						coverageMapArray.maps.append( SelfCoverageMap(ownerID: self.id, cellMap: self.selfCoverageMap) )
 
 						// Append 1-hop neighbor maps (distance == 1)
 						// Don't send maps that are not new, as they may belong to RSUs that don't exist anymore
@@ -610,7 +610,7 @@ extension FixedRoadEntity: PayloadReceiver {
 							self.neighborMaps
 								.filter{ $1.distance == 1 }
 								.filter{ $1.lastUpdated > self.city.events.now - SimulationTime(seconds: 1) }
-								.map{ return SelfCoverageMap(ownerID: $0, map: $1.coverageMap) }
+								.map{ return SelfCoverageMap(ownerID: $0, cellMap: $1.coverageMap) }
 
 						let coverageMapReplyPacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: coverageMapArray.toPayload())
 

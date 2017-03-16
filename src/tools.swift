@@ -86,6 +86,7 @@ extension String {
 			out += "\n"
 		}
 
+		out.remove(at: out.index(before: out.endIndex))
 		return out
 	}
 }

@@ -247,39 +247,46 @@ class WeightedProductModel: DecisionAlgorithm {
 		pcar.city.events.add(newEvent: decisionEvent)
 	}
 
+
+	/// Weighted Product Model decision
 	func decide(_ pcar: ParkedCar) {
+		if debug.contains("WeightedProductModel.decide()") {
+			print("\(pcar.city.events.now.asSeconds) WeightedProductModel.decide():"
+				.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
+			      "Parked car \(pcar.id) deciding, neighborMaps: (d1: \(pcar.neighborMaps.filter({$1.distance == 1}).count), d2: \(pcar.neighborMaps.filter({$1.distance == 2}).count))") }
 
-		// TODO removeme
-		pcar.city.convertEntity(pcar, to: .roadsideUnit)
 
-		// Now:
-		// Use entities in neighborMaps, plus ourselves
-		// decision must affect ourselves plus entities in neighborMaps.filter{ $1.distance == 1 }
-		// Map calculations must overlay entities in neighborMaps.filter{ $1.distance == 2 }
-		// Filter old maps to be certain
+		/// 1. Algorithm runs if at least one 1-hop neighbor RSU is present, otherwise the vehicle becomes an RSU straight away
+		if pcar.neighborMaps.filter({$1.distance == 1}).count == 0 {
+			if debug.contains("WeightedProductModel.decide()") {
+				print("\(pcar.city.events.now.asSeconds) WeightedProductModel.decide():"
+					.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
+				      "Parked car \(pcar.id) has no 1-hop neighbors, converting to RSU") }
 
-/*
-		// 2. Prepare neighborhood coverage maps
-		// Filter out payloads that do not contain coverage maps from the buffer
-		var neighborhoodCoverageMapPayloads = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
-
-		// Algorithm runs if at least one map was received; else, the vehicle becomes an RSU straight away
-		if neighborhoodCoverageMapPayloads.count == 0 {
 			pcar.city.convertEntity(pcar, to: .roadsideUnit)
 			return
 		}
 
 
-		// 3. Combinatorials
-		// Convert the payloads to actual maps
-		var neighborhoodCoverageMaps = neighborhoodCoverageMapPayloads.map( { return (id: $0.id, map: CellMap<Int>(fromPayload: $0.payload)!) } )
+		/// 2. Prepare the coverage maps on the combination pool
+		var neighborhoodCoverageMaps: [SelfCoverageMap] = []
 
-		// Add our own map to the neighborhood
-		neighborhoodCoverageMaps.append( (id: pcar.id, map: pcar.selfCoverageMap) )
+		// Self, depth 1, and depth 2 coverage maps
+		let selfmap: SelfCoverageMap = SelfCoverageMap(ownerID: pcar.id, cellMap: pcar.selfCoverageMap)
+		let depth1maps: [SelfCoverageMap] = pcar.neighborMaps.filter{$1.distance == 1}.map{ return SelfCoverageMap(ownerID: $0, cellMap: $1.coverageMap ) }
+		let depth2maps: [SelfCoverageMap] = pcar.neighborMaps.filter{$1.distance == 2}.map{ return SelfCoverageMap(ownerID: $0, cellMap: $1.coverageMap ) }
+
+		// Add ourselves
+		neighborhoodCoverageMaps.append( selfmap )
+
+		// Add all distance == 1 neighbor maps
+		neighborhoodCoverageMaps += depth1maps
 
 		// Number of elements in each combination
 		let setSize = neighborhoodCoverageMaps.count
 
+
+		/// 3. Combinatorials
 		// A combination is an array of [Bool]
 		typealias Combination = [Bool]
 
@@ -310,61 +317,124 @@ class WeightedProductModel: DecisionAlgorithm {
 			}
 		}
 
-		if debug.contains("BestNeighborhoodSolution.decide()"){
-			print("\(pcar.city.events.now.asSeconds) BestNeighborhoodSolution.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Evaluating \(combinations.count) solutions at parked vehicle \(pcar.id)" )
-		}
+		if debug.contains("WeightedProductModel.decide()") {
+			print("\(pcar.city.events.now.asSeconds) WeightedProductModel.decide():"
+				.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
+			      "Evaluating \(combinations.count) solutions at parked car \(pcar.id)" ) }
 
 		// Combinatorial generation tested correctly
-//		// Ensure the combinations array is of length (n choose 2)+n+1
-//		func factorial(_ factorialNumber: Int) -> UInt64 {
-//			guard factorialNumber < 21 else { print("Error: Factorial too large."); exit(EXIT_FAILURE) }
-//			if factorialNumber == 0 { return 1 }
-//			else { return UInt64(factorialNumber) * factorial(factorialNumber - 1) }
-//		}
-//		let expectedSize = Int(factorial(setSize)/(2*factorial(setSize-2))) + setSize + 1
-//		guard combinations.count == expectedSize else {
-//			print("Error: Incorrect combination size.");
-//			print("\nexpectedSize \(expectedSize) combinations.count \(combinations.count) setSize \(setSize)\n")
-//			exit(EXIT_FAILURE)
-//		}
+		//		// Ensure the combinations array is of length (n choose 2)+n+1
+		//		func factorial(_ factorialNumber: Int) -> UInt64 {
+		//			guard factorialNumber < 21 else { print("Error: Factorial too large."); exit(EXIT_FAILURE) }
+		//			if factorialNumber == 0 { return 1 }
+		//			else { return UInt64(factorialNumber) * factorial(factorialNumber - 1) }
+		//		}
+		//		let expectedSize = Int(factorial(setSize)/(2*factorial(setSize-2))) + setSize + 1
+		//		guard combinations.count == expectedSize else {
+		//			print("Error: Incorrect combination size.");
+		//			print("\nexpectedSize \(expectedSize) combinations.count \(combinations.count) setSize \(setSize)\n")
+		//			exit(EXIT_FAILURE)
+		//		}
 
 
-		// 4. Routine that analyzes a combination and returns its utility score
+		/// 4. Routine that analyzes a combination and returns its utility score
 		/* We first create an obstruction mask based on the reference coverage (the coverage from the deciding vehicle).
-		 * This is so that we can compute measurements only on cells that the deciding vehicle can directly reach
-		 * (it will receive coverage information of cells beyond its reach). This avoids calculating coverage and 
-		 * saturation beyond its range, where coverage from other RSUs might exist but we do not know about it.
-		 */
-		var localMapWithReferenceCoverageOnly = CellMap<Int>(toContainMaps: neighborhoodCoverageMaps.map( { return $0.map }), withValue: 0)
+		* This is so that we can compute measurements only on cells that the deciding vehicle can directly reach
+		* (it will receive coverage information of cells beyond its reach). This avoids calculating coverage and
+		* saturation beyond its range, where coverage from other RSUs might exist but we do not know about it.
+		*/
+		var localMapWithReferenceCoverageOnly = CellMap<Int>(toContainMaps: ([selfmap] + depth1maps + depth2maps).map{$0.cellMap}, withValue: 0)
 		localMapWithReferenceCoverageOnly.keepBestSignal(fromSignalMap: pcar.selfCoverageMap)
 		let referenceVehicleObstructionMask = localMapWithReferenceCoverageOnly.expressAsObstructionMask()
 
-		// The analysis routine
+		// The scoring routine
 		func analyzeCombination(_ combination: Combination) -> Double {
 			// Set up a coverage and a saturation map
-			var localMapOfCoverage = CellMap<Int>(toContainMaps: neighborhoodCoverageMaps.map( { return $0.map }), withValue: 0)
+			var localMapOfCoverage = CellMap<Int>(toContainMaps: ([selfmap] + depth1maps + depth2maps).map{$0.cellMap}, withValue: 0)
 			var localMapOfSaturation = localMapOfCoverage
+
+			// Apply depth 2 maps (permanent for all combinations)
+			if depth2maps.count > 0 {
+				for depth2map in depth2maps {
+					localMapOfCoverage.keepBestSignal(fromSignalMap: depth2map.cellMap)
+					localMapOfSaturation.incrementSaturation(fromSignalMap: depth2map.cellMap)
+				}
+
+				if debug.contains("WeightedProductModel.analyzeCombination()") {
+					print("\(pcar.city.events.now.asSeconds) WeightedProductModel.analyzeCombination():"
+						.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
+					      "Depth 2 Signal | Saturation | Reference maps\n")
+					print(localMapOfCoverage.cleanDescription(replacing: 0).mergeHorizontally(toTheLeftOf: localMapOfSaturation.cleanDescription(replacing: 0)).mergeHorizontally(toTheLeftOf: referenceVehicleObstructionMask.cleanDescription(replacing: Character("B"))) )
+				}
+			}
 
 			// Apply selected maps (in the combination) to the local maps
 			for (combinationIndex, combinationValue) in combination.enumerated() {
 				// If an entry in a combination is true, that RSU is to be left active
 				if combinationValue == true {
-					localMapOfCoverage.keepBestSignal(fromSignalMap: neighborhoodCoverageMaps[combinationIndex].map)
-					localMapOfSaturation.incrementSaturation(fromSignalMap: neighborhoodCoverageMaps[combinationIndex].map)
+					localMapOfCoverage.keepBestSignal(fromSignalMap: neighborhoodCoverageMaps[combinationIndex].cellMap)
+					localMapOfSaturation.incrementSaturation(fromSignalMap: neighborhoodCoverageMaps[combinationIndex].cellMap)
 				}
 			}
 
-			// Get a measurement confined to the reference vehicle's view
+			if debug.contains("WeightedProductModel.analyzeCombination()") {
+				print("\(pcar.city.events.now.asSeconds) WeightedProductModel.analyzeCombination():"
+					.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
+				      "Signal | Saturation | Reference map for combination \(combination)")
+				print(localMapOfCoverage.cleanDescription(replacing: 0).mergeHorizontally(toTheLeftOf: localMapOfSaturation.cleanDescription(replacing: 0)).mergeHorizontally(toTheLeftOf: referenceVehicleObstructionMask.cleanDescription(replacing: Character("B"))) )
+			}
+
+			// Get measurements confined to the decision maker's view
 			let coverageData: Measurement = localMapOfCoverage.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
 			let saturationData: Measurement = localMapOfSaturation.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
 
-			// TODO
-			// Right now, return the coverage-to-saturation ratio as the score
-			return coverageData.mean/saturationData.mean
+			/// Attribute Scoring Functions
+			func asig(sigData: Measurement) -> Double {
+				return sigData.mean
+			}
+
+			func asat(satData: Measurement) -> Double {
+				let meanSat = satData.mean
+				if meanSat < minRedundancy {
+					return 1.0/minRedundancy
+				} else { return 1.0/meanSat }
+			}
+
+			func acov() -> Double {
+				return 1.0
+			}
+
+			func abat() -> Double {
+				return 1.0
+			}
+
+
+			// Compute weighted product score
+			let asigScore = asig(sigData: coverageData)
+			let asatScore = asat(satData: saturationData)
+			let acovScore = acov()
+			let abatScore = abat()
+
+			let wpmScore = pow(asigScore, weights.wsig)
+						 * pow(asatScore, weights.wsat)
+						 * pow(acovScore, weights.wcov)
+						 * pow(abatScore, weights.wbat)
+
+			if debug.contains("WeightedProductModel.analyzeCombination()") {
+				print("\(pcar.city.events.now.asSeconds) WeightedProductModel.analyzeCombination():"
+					.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
+				      "Combination \(combination)",
+					  "asig", String(format: "%.2f", asigScore),
+					  "asat", String(format: "%.2f", asatScore),
+					  "acov", String(format: "%.2f", acovScore),
+					  "abat", String(format: "%.2f", abatScore),
+					  "wpm",  String(format: "%.2f", wpmScore) ) }
+
+			return wpmScore
 		}
 
 
-		// 5. Decision: run through each combination, evaluate it, store its score, and decide
+		/// 5. Decision: run through each combination, evaluate it, store its score, and decide
 		var scoredCombinations = [(combination: Combination, score: Double)]()
 		for combination in combinations {
 			let score = analyzeCombination(combination)
@@ -374,24 +444,32 @@ class WeightedProductModel: DecisionAlgorithm {
 		// Sort score array
 		scoredCombinations.sort(by: {$0.score > $1.score})
 
-		if debug.contains("BestNeighborhoodSolution.decide()"){
-			print("\(pcar.city.events.now.asSeconds) BestNeighborhoodSolution.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Combinations ordered by score:" )
+		// Debug print scored combinations
+		if debug.contains("WeightedProductModel.decide()") {
+			print("\(pcar.city.events.now.asSeconds) WeightedProductModel.decide():"
+				.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
+			      "Combinations ordered by score:" )
+
 			print("".padding(toLength: 54, withPad: " ", startingAt: 0), "score\tcombination")
+
 			for scoredCombination in scoredCombinations {
-				print("".padding(toLength: 54, withPad: " ", startingAt: 0), "\(String(format: "%.2f", scoredCombination.score).lightGray())\t\(scoredCombination.combination)")
+				print(""
+					.padding(toLength: 54, withPad: " ", startingAt: 0),
+				      "\(String(format: "%.2f", scoredCombination.score).lightGray())\t\(scoredCombination.combination)")
 			}
 		}
 
-		// Pick the best combination and execute it; send 'RSU disable' messages to RSUs disabled in the chosen solution
+		// Pick the best combination and execute it: send 'RSU disable' messages to RSUs disabled in the chosen solution
 		let bestCombination = scoredCombinations.first!
 
+		// Don't apply zero-score combinations; this may happen if any of the attributes was null
 		if bestCombination.score > 0 {
 			// This flag determines whether the reference vehicle will become an RSU at the end of this process
 			var disableSelf: Bool = false
 			for (combinationIndex, combinationValue) in bestCombination.combination.enumerated() {
+				// Entity will be disabled
 				if combinationValue == false {
-					// Entity will be disabled
-					let entityID = neighborhoodCoverageMaps[combinationIndex].id
+					let entityID = neighborhoodCoverageMaps[combinationIndex].ownerID
 
 					if entityID == pcar.id {
 						disableSelf = true
@@ -402,12 +480,13 @@ class WeightedProductModel: DecisionAlgorithm {
 						pcar.broadcastPacket(disablePacket, toFeatureTypes: .roadsideUnit)
 					}
 				}
+				// Entity won't be disabled
+				else {}
 			}
 
 			// Parked car becomes an RSU, or is removed
 			if !disableSelf { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
 			else { pcar.city.removeEntity(pcar) }
 		}
-*/
 	}
 }

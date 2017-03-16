@@ -13,6 +13,11 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
   The time at which the simulation should stop. GISSUMO will also not load FCD data belonging to timesteps that occur after this time.
 
 
+* `rsuLifetime`
+
+  A maximum duration for a parked car to be active with a roadside unit role.
+
+
 * `locationSRID`
 
   The best SRID for the area of the city under simulation, for accurate distance calculations. Not required if using the Haversine formula.
@@ -55,6 +60,12 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
       - `1hop`, `2hop`: a 1-hop/2-hop request.
       - `geocast2r`: a geocast request to a circle of range 2*radioRange.
     - `saturationThreshold`: d_sat only starts to count above this value.
+
+  - `WeightedProductModel`:
+    - `wsig`, `wsat`, `wcov`, `wbat`: WPM attribute weights.
+    - `minRedundancy`: desired RSU redundancy level, for the saturation attribute.
+	- `mapRequestDepth`: how many hops to ask for coverage maps (implemented: 1, 2).
+
 
 * `gis`
 

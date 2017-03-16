@@ -68,17 +68,17 @@ class FixedRoadEntity: RoadEntity {
 		 * If the sender's map is on our neighbor maps array with a distance==2, reduce it to 1.
 		 */
 		let senderCoverageMap = coverageMaps.removeFirst()
-		neighborMaps[senderCoverageMap.ownerID] = (coverageMap: senderCoverageMap.map, lastUpdated: currentTime, distance: 1)
+		neighborMaps[senderCoverageMap.ownerID] = (coverageMap: senderCoverageMap.cellMap, lastUpdated: currentTime, distance: 1)
 
 		/* For the remaining maps, add them to the neighborMaps array with a default distance of 2,
 		 * unless we've seen them before, in which case don't change the existing distance.
 		 */
 		for senderNeighborMap in coverageMaps {
 			if neighborMaps[senderNeighborMap.ownerID] != nil {
-				neighborMaps[senderNeighborMap.ownerID]!.coverageMap = senderNeighborMap.map
+				neighborMaps[senderNeighborMap.ownerID]!.coverageMap = senderNeighborMap.cellMap
 				neighborMaps[senderNeighborMap.ownerID]!.lastUpdated = currentTime
 			} else {
-				neighborMaps[senderNeighborMap.ownerID] = (coverageMap: senderNeighborMap.map, lastUpdated: currentTime, distance: 2)
+				neighborMaps[senderNeighborMap.ownerID] = (coverageMap: senderNeighborMap.cellMap, lastUpdated: currentTime, distance: 2)
 			}
 		}
 	}

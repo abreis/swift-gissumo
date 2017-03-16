@@ -7,7 +7,7 @@ import Foundation
 // A self-observed coverage map is always paired with an owner ID
 struct SelfCoverageMap {
 	let ownerID: UInt
-	var map: CellMap<Int>
+	var cellMap: CellMap<Int>
 }
 
 /* A cell map is a 2D map of objects, typically Int for signal strength or Char for visualization.
@@ -95,7 +95,7 @@ struct CellMap<T>: CustomStringConvertible where T:InitializableWithString, T:Co
 
 	// Computed property implementing CustomStringConvertible
 	var description: String {
-		var description = String()
+		var description = ""
 
 		// Print top-left coordinate on the first line
 		// 'tlc': top-left-cell
@@ -107,9 +107,23 @@ struct CellMap<T>: CustomStringConvertible where T:InitializableWithString, T:Co
 			}
 			description += "\n"
 		}
+
+		description.remove(at: description.index(before: description.endIndex))
 		return description
 	}
 
+	// Cleans up a description, replacing a given cell with a space
+	func cleanDescription(replacing replaceItem: T) -> String {
+		var out = ""
+		for (lineIndex,line) in description.components(separatedBy: .newlines).enumerated() {
+			if lineIndex == 0 { continue } // No replacements on coordinate line
+			out += line.replacingOccurrences(of: String(describing: replaceItem), with: " ")
+			out += "\n"
+		}
+
+		out.remove(at: out.index(before: out.endIndex))
+		return out
+	}
 
 	/*** SUBSCRIPT ACCESS TO CELLS ***/
 
