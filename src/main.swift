@@ -262,6 +262,10 @@ for nextEvent in simCity.events.list where nextEvent.time <= simCity.events.stop
 	// Execute the event
 	nextEvent.action()
 
+	// Output simulation time, if enabled
+	if simCity.stats.hooks["simulationTime"] != nil {
+		simCity.stats.writeToHook("simulationTime", data: "\(simCity.events.now.asSeconds)\n")
+	}
 }
 print("done")
 
@@ -280,5 +284,5 @@ print("okay")
 
 
 // Successful exit
-print("Simulation complete.")
+print("Simulation complete at time \(simCity.events.now.asSeconds).")
 exit(EXIT_SUCCESS)

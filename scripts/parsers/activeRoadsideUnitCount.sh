@@ -7,6 +7,18 @@ if [ -z "$1" ]; then
     echo "Error: Please specify a directory with simulations."
 	exit 1
 fi
+
+if [ -z "$2" ] || [ "$2" != "full" -a "$2" != "half" ]; then
+    echo "Error: Please specify 'half' or 'full' for desired plot width."
+	exit 1
+fi
+
+if [ "$2" = "full" ]; then
+	GNUPLOTWIDTH="1.4"
+else
+	GNUPLOTWIDTH="0.7"
+fi
+
 SIMDIR=$1
 STATDIR=stats
 VISDIR=plots
@@ -43,5 +55,5 @@ sed -i '' 's|dir/datafile.name|'${VISDIR}'/'${VISNAME}'.data|g' ${VISDIR}/${VISN
 sed -i '' 's|dir/outfile.eps|'${VISDIR}'/'${VISNAME}'.eps|g' ${VISDIR}/${VISNAME}.gnuplot
 
 # Plot it
-gnuplot ${VISDIR}/${VISNAME}.gnuplot
+gnuplot -e "argwidth=${GNUPLOTWIDTH}" ${VISDIR}/${VISNAME}.gnuplot
 epstopdf ${VISDIR}/${VISNAME}.eps

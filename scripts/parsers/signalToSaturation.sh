@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script runs statistics on the 'count' entries in activeVehicleCount, then plots a line chart of the average number of active vehicles on each time step.
+# This script plots the signal to saturation ratio on 'signalAndSaturationEvolution'.
 
 set -e
 
@@ -7,10 +7,22 @@ if [ -z "$1" ]; then
     echo "Error: Please specify a directory with simulations."
 	exit 1
 fi
+
+if [ -z "$2" ] || [ "$2" != "full" -a "$2" != "half" ]; then
+    echo "Error: Please specify 'half' or 'full' for desired plot width."
+	exit 1
+fi
+
+if [ "$2" = "full" ]; then
+	GNUPLOTWIDTH="1.4"
+else
+	GNUPLOTWIDTH="0.7"
+fi
+
 SIMDIR=$1
 STATDIR=stats
 VISDIR=plots
-VISNAME=actVehCntW
+VISNAME=sigToSat
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -27,12 +39,12 @@ fi
 mkdir -p ${VISDIR}
 
 touch statfilelist
-for SIMULATIONLOG in $(find ${SIMDIR} -maxdepth 3 -type f -name 'entityCount.log'); do
+for SIMULATIONLOG in $(find ${SIMDIR} -maxdepth 3 -type f -name 'signalAndSaturationEvolution.log'); do
 	printf "${SIMULATIONLOG}\n" >> statfilelist
 done
 
 # Call swift interpreter
-swift $(dirname $0)/analyzeColumnByTime.swift statfilelist vehicles > ${VISDIR}/${VISNAME}.data
+swift $(dirname $0)/analyzeColumnByTime.swift statfilelist sigToSat > ${VISDIR}/${VISNAME}.data
 rm -rf statfilelist
 
 # Copy over gnuplot scaffold script
@@ -43,5 +55,5 @@ sed -i '' 's|dir/datafile.name|'${VISDIR}'/'${VISNAME}'.data|g' ${VISDIR}/${VISN
 sed -i '' 's|dir/outfile.eps|'${VISDIR}'/'${VISNAME}'.eps|g' ${VISDIR}/${VISNAME}.gnuplot
 
 # Plot it
-gnuplot ${VISDIR}/${VISNAME}.gnuplot
+gnuplot -e "argwidth=${GNUPLOTWIDTH}" ${VISDIR}/${VISNAME}.gnuplot
 epstopdf ${VISDIR}/${VISNAME}.eps

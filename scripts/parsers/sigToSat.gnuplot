@@ -3,8 +3,8 @@ set output "dir/outfile.eps"
 set size argwidth, 0.35
 
 set xlabel "Simulation Time [s]"
-set ylabel "Active Roadside Units" rotate by +90 center
+set ylabel "Signal/Saturation Ratio" rotate by +90 center
 unset key
 
-plot 'dir/datafile.name' using 1:2 notitle with lines linecolor 1 linewidth 2
+plot 'dir/datafile.name' using 1:2 notitle with lines linecolor 7 linewidth 2
 

@@ -5,12 +5,12 @@
 # This package is tailored towards longer simulations.
 # It will grab the following plots from the data:
 #
-# - activeVehicleCount (wide)
-# - activeRoadsideUnitCount (wide)
-# TODO (once new decision is implemented):
-# - TODO meanCoverageOverTime
-# - TODO meanSaturationOverTime
-# - TODO coverateToSaturationRatioOverTime
+# - activeVehicleCount
+# - activeRoadsideUnitCount
+# - coveredCells
+# - meanSignal
+# - meanSaturation
+# - signalToSaturation
 # - TODO distribution of active RSU time
 # - TODO decision analysis
 #
@@ -32,8 +32,12 @@ PACKAGEDIR=${SIMDIR}/${VISDIR}/${PACKAGENAME}
 LOGFILE=${PACKAGEDIR}/${PACKAGENAME}.log
 
 declare -a PARSERS=(
-"activeVehicleCount_wide"
-"activeRoadsideUnitCount_wide"
+"activeVehicleCount full"
+"activeRoadsideUnitCount full"
+"coveredCells full"
+"meanSignal full"
+"meanSaturation full"
+"signalToSaturation full"
 )
 
 # Check for the presence of a simulation folder
@@ -73,9 +77,10 @@ mkdir -p ${PACKAGEDIR}
 printf "Running parsers..."
 for PARSER in "${PARSERS[@]}"
 do
-	printf "\n\t* ${PARSER}"
-	printf "\n### Running ${SCRIPTDIR}/${PARSER}.sh\n" >> ${LOGFILE}
-	${SCRIPTDIR}/${PARSER}.sh ${SIMDIR} >> ${LOGFILE} 2>&1
+	PARSERCOMPONENTS=(${PARSER})
+	printf "\n\t* ${PARSERCOMPONENTS[0]}"
+	printf "\n### Running ${SCRIPTDIR}/${PARSERCOMPONENTS[0]}.sh\n" >> ${LOGFILE}
+	${SCRIPTDIR}/${PARSERCOMPONENTS[0]}.sh ${SIMDIR} ${PARSERCOMPONENTS[1]} >> ${LOGFILE} 2>&1
 done
 printf "\n"
 
@@ -99,6 +104,9 @@ fi
 # Compile TeX
 printf "\n### Running pdflatex\n" >> ${LOGFILE}
 ( cd ${PACKAGEDIR}/${TEXSUBDIR} ; pdflatex -interaction=nonstopmode -file-line-error -recorder ${PACKAGENAME}.tex ) >> ${LOGFILE} 2>&1
+
+# Copy PDF down
+#find ${PACKAGEDIR} -type f -name '${PACKAGENAME}.pdf' -exec cp {} ${SIMDIR}/${VISDIR}/ \;
 
 printf "done.\n"
 

@@ -14,7 +14,7 @@ class Statistics {
 	var hooks = [String:String]()
 
 	// Hooks that output immediately are hardcoded here:
-	let hardcodedImmediateHooks: [String] = ["packetTrace"]
+	let hardcodedImmediateHooks: [String] = ["packetTrace", "simulationTime"]
 	var immediateHookHandles: [String:FileHandle] = [:]
 
 	// A dictionary of metrics for other routines to store data on
@@ -99,11 +99,15 @@ class Statistics {
 			let maskFileURL = URL(fileURLWithPath: maskFileConfig)
 			do {
 				let maskAsString = try String(contentsOf: maskFileURL)
-				let maskAsPayload = Payload(type: .cellMap, content: maskAsString)
-				obstructionMask = CellMap<Character>(fromPayload: maskAsPayload)
+				obstructionMask = CellMap<Character>(fromString: maskAsString)
 			} catch {
-				obstructionMask = nil
+				print("\nWarning: Obstruction mask file failed to load.\n".red())
 			}
+		}
+		if obstructionMask == nil {
+			print("\nWarning: Obstruction mask not provided or failed to load.\n".red())
+		} else {
+			print("\tLoaded obstruction mask with size \(obstructionMask!.size), open cells \(obstructionMask!.flatCells.filter{$0=="O"}.count)")
 		}
 
 		// Initialize metrics
@@ -271,8 +275,9 @@ class Statistics {
 				for i in 0..<signalCoverageMap.size.y {
 					for j in 0..<signalCoverageMap.size.x {
 						if maskMap.cells[i][j] == Character("O") {
-							sigMeasure.add(Double(signalCoverageMap.cells[i][j]))
-							satMeasure.add(Double(rsuSaturationMap.cells[i][j]))
+							// Don't add zero cells, their effect can be extrapolated from %covered if needed
+							if signalCoverageMap.cells[i][j] != 0 { sigMeasure.add(Double(signalCoverageMap.cells[i][j])) }
+							if rsuSaturationMap.cells[i][j] != 0 { satMeasure.add(Double(rsuSaturationMap.cells[i][j])) }
 						}
 					}
 				}
@@ -416,7 +421,7 @@ class Statistics {
 		}
 
 		if hooks["signalAndSaturationEvolution"] != nil {
-			writeToHook("signalAndSaturationEvolution", data: "time\(separator)sigMean\(separator)sigStdev\(separator)meanSig\(separator)stdevSig\(separator)sigToSat\(separator)\(terminator)")
+			writeToHook("signalAndSaturationEvolution", data: "time\(separator)meanSig\(separator)stdevSig\(separator)meanSat\(separator)stdevSat\(separator)sigToSat\(separator)\(terminator)")
 		}
 
 		if hooks["decisionCellCoverageEffects"] != nil {
