@@ -429,7 +429,7 @@ class WeightedProductModel: DecisionAlgorithm {
 									  * pow(combinationStats.abat, weights.wbat)
 
 			// Possible scoring failures should be scored zero
-			if combinationStats.wpmScore.isNaN { combinationStats.wpmScore = 0.0
+			if combinationStats.wpmScore.isNaN { combinationStats.wpmScore = 0.0 }
 
 			if debug.contains("WeightedProductModel.analyzeCombination()") {
 				print("\(pcar.city.events.now.asSeconds) WeightedProductModel.analyzeCombination():"
@@ -517,6 +517,10 @@ class WeightedProductModel: DecisionAlgorithm {
 			// Parked car becomes an RSU, or is removed
 			if !disableSelf { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
 			else { pcar.city.removeEntity(pcar) }
+		}
+		// If the best combination was zero-score, disable the parked car
+		else {
+			pcar.city.removeEntity(pcar)
 		}
 	}
 }
