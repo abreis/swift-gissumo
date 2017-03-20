@@ -44,9 +44,11 @@ for COUNT in $(seq 1 ${ROUNDS}); do
 done
 echo "done"
 
+printf "Compressing... "
 # Compress the FCD
 gzip --best mobilitydata/*.fcd.xml
 # Store it
 mv mobilitydata/*.fcd.xml.gz ${FCDDATADIR}/
 # Clean up
 rm -rf mobilitydata mobility
+echo "done"

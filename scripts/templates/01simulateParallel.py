@@ -52,7 +52,7 @@ os.makedirs(simulationDir, exist_ok=True)
 fcdFiles = []
 for dirpath, dirnames, filenames in os.walk(floatingCarDataDir):
 	for file in filenames:
-		if file.endswith('fcd.xml.gz'):
+		if file.endswith('fcd.tsv'):
 			fcdFiles.append( os.path.join(dirpath, file) )
 
 
@@ -87,7 +87,7 @@ def gunzip(fileIn):
 
 # Routine to create a new simulation
 def simulate(fcdFileIn):
-	simulationName = re.sub('\.fcd.xml.gz$', '', os.path.basename(fcdFileIn))
+	simulationName = re.sub('\.fcd.tsv$', '', os.path.basename(fcdFileIn))
 
 	# Find a free worker and mark it busy
 	freeWorkerId = workers.index('free')
@@ -101,7 +101,7 @@ def simulate(fcdFileIn):
 	shutil.copyfile(fcdFileIn, fcdFile)
 
 	# Uncompress the FCD file
-	fcdFile = gunzip(fcdFile)
+	#fcdFile = gunzip(fcdFile)
 
 	# Copy the reference configuration file over
 	configFile = os.path.join(simulationDir, simulationName, 'config.plist')
@@ -149,10 +149,10 @@ while True:
 	# Run a simulation if a free worker is available
 	if (len(fcdFiles) > 0) and (workers.count('free') > 0):
 		# Pull a new simulation file
-		newGzFcdFile = fcdFiles.pop(0)
+		newFcdFile = fcdFiles.pop(0)
 
 		# Simulate it
-		simulate(newGzFcdFile)
+		simulate(newFcdFile)
 
 	# Iterate until no simulations remain, and no workers still busy
 	if (len(fcdFiles) == 0) and (workers.count('busy') == 0):
@@ -168,11 +168,11 @@ with open(os.path.join(simulationDir, simulationDescription), 'w') as descriptio
 # Simulation over
 print("Set complete, ran {:d} simulations.".format(totalSimulations))
 
-# Remove FCD files
-for dirpath, dirnames, filenames in os.walk(simulationDir):
-	for file in filenames:
-		if file.endswith('fcd.xml'):
-			os.remove(os.path.join(dirpath, file))
+# # Remove FCD files
+# for dirpath, dirnames, filenames in os.walk(simulationDir):
+# 	for file in filenames:
+# 		if file.endswith('fcd.tsv'):
+# 			os.remove(os.path.join(dirpath, file))
 
 # Clean up
 os.remove('gissumo_fast')
