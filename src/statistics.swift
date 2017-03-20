@@ -468,7 +468,7 @@ class Statistics {
 		}
 
 		if hooks["movingAverageWPM"] != nil {
-			writeToHook("decisionWPM", data: "time\(separator)meanSigEMA\(separator)meanSatEMA\(terminator)")
+			writeToHook("movingAverageWPM", data: "time\(separator)meanSigEMA\(separator)meanSatEMA\(terminator)")
 		}
 
 		if hooks["packetTrace"] != nil {
