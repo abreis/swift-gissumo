@@ -182,28 +182,28 @@ class CellCoverageEffects: DecisionAlgorithm {
 				print("\(pcar.city.events.now.asSeconds) CellCoverageEffects.decide():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "ParkedCar", pcar.id, "mapCount", mapList.count, "dNew", dNew, "dBoost", dBoost, "dSat", dSat, "dScore", dScore ) }
 
 			// Statistics
-			if pcar.city.stats.hooks["detailedDecisions"] != nil {
-				pcar.city.stats.writeToHook("detailedDecisions", data: "\n\n\n=== DECISION ON PARKED CAR ID \(pcar.id) ===\n")
-				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== Received Maps:\n")
+			if pcar.city.stats.hooks["decisionDetailCCE"] != nil {
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: "\n\n\n=== DECISION ON PARKED CAR ID \(pcar.id) ===\n")
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: "\n== Received Maps:\n")
 				for map in mapList {
-					pcar.city.stats.writeToHook("detailedDecisions", data: map.description)
+					pcar.city.stats.writeToHook("decisionDetailCCE", data: map.description)
 				}
 
-				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== Self Coverage Map\n")
-				pcar.city.stats.writeToHook("detailedDecisions", data: pcar.selfCoverageMap.description)
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: "\n== Self Coverage Map\n")
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: pcar.selfCoverageMap.description)
 
-				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== Local Map of Coverage\n")
-				pcar.city.stats.writeToHook("detailedDecisions", data: localMapOfCoverage.description)
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: "\n== Local Map of Coverage\n")
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: localMapOfCoverage.description)
 
-				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== Local Map of Saturation\n")
-				pcar.city.stats.writeToHook("detailedDecisions", data: localMapOfSaturation.description)
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: "\n== Local Map of Saturation\n")
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: localMapOfSaturation.description)
 
-				pcar.city.stats.writeToHook("detailedDecisions", data: "\n== dNew \(dNew) dBoost \(dBoost) dSat \(dSat) dScore \(dScore)\n")
+				pcar.city.stats.writeToHook("decisionDetailCCE", data: "\n== dNew \(dNew) dBoost \(dBoost) dSat \(dSat) dScore \(dScore)\n")
 			}
 
-			if pcar.city.stats.hooks["decisionCellCoverageEffects"] != nil {
+			if pcar.city.stats.hooks["decisionCCE"] != nil {
 				let separator = pcar.city.stats.separator
-				pcar.city.stats.writeToHook("decisionCellCoverageEffects", data: "\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(dNew)\(separator)\(dBoost)\(separator)\(dSat)\(separator)\(dScore)\(separator)\(kappa)\(separator)\(lambda)\(separator)\(mu)\n")
+				pcar.city.stats.writeToHook("decisionCCE", data: "\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(dNew)\(separator)\(dBoost)\(separator)\(dSat)\(separator)\(dScore)\(separator)\(kappa)\(separator)\(lambda)\(separator)\(mu)\n")
 			}
 
 			// If the parked car does not become an RSU, schedule it for removal
@@ -348,7 +348,12 @@ class WeightedProductModel: DecisionAlgorithm {
 		let referenceVehicleObstructionMask = localMapWithReferenceCoverageOnly.expressAsObstructionMask()
 
 		// The scoring routine
-		func analyzeCombination(_ combination: Combination) -> Double {
+		struct CombinationStatistics {
+			var asig: Double = 0.0, asat: Double = 0.0, acov: Double = 0.0, abat: Double = 0.0
+			var wpmScore: Double = 0.0
+			var sigMeasure = Measurement(), satMeasure = Measurement()
+		}
+		func analyzeCombination(_ combination: Combination) -> CombinationStatistics {
 			// Set up a coverage and a saturation map
 			var localMapOfCoverage = CellMap<Int>(toContainMaps: ([selfmap] + depth1maps + depth2maps).map{$0.cellMap}, withValue: 0)
 			var localMapOfSaturation = localMapOfCoverage
@@ -384,9 +389,6 @@ class WeightedProductModel: DecisionAlgorithm {
 				print(localMapOfCoverage.cleanDescription(replacing: 0).mergeHorizontally(toTheLeftOf: localMapOfSaturation.cleanDescription(replacing: 0)).mergeHorizontally(toTheLeftOf: referenceVehicleObstructionMask.cleanDescription(replacing: Character("B"))) )
 			}
 
-			// Get measurements confined to the decision maker's view
-			let coverageData: Measurement = localMapOfCoverage.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
-			let saturationData: Measurement = localMapOfSaturation.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
 
 			/// Attribute Scoring Functions
 			func asig(sigData: Measurement) -> Double {
@@ -408,41 +410,50 @@ class WeightedProductModel: DecisionAlgorithm {
 				return 1.0
 			}
 
+			// Prepare return data struct
+			var combinationStats = CombinationStatistics()
+
+			// Get measurements confined to the decision maker's view
+			combinationStats.sigMeasure = localMapOfCoverage.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
+			combinationStats.satMeasure = localMapOfSaturation.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
 
 			// Compute weighted product score
-			let asigScore = asig(sigData: coverageData)
-			let asatScore = asat(satData: saturationData)
-			let acovScore = acov()
-			let abatScore = abat()
+			combinationStats.asig = asig(sigData: combinationStats.sigMeasure)
+			combinationStats.asat = asat(satData: combinationStats.satMeasure)
+			combinationStats.acov = acov()
+			combinationStats.abat = abat()
 
-			let wpmScore = pow(asigScore, weights.wsig)
-						 * pow(asatScore, weights.wsat)
-						 * pow(acovScore, weights.wcov)
-						 * pow(abatScore, weights.wbat)
+			combinationStats.wpmScore = pow(combinationStats.asig, weights.wsig)
+									  * pow(combinationStats.asat, weights.wsat)
+									  * pow(combinationStats.acov, weights.wcov)
+									  * pow(combinationStats.abat, weights.wbat)
+
+			// Possible scoring failures should be scored zero
+			if combinationStats.wpmScore.isNaN { combinationStats.wpmScore = 0.0
 
 			if debug.contains("WeightedProductModel.analyzeCombination()") {
 				print("\(pcar.city.events.now.asSeconds) WeightedProductModel.analyzeCombination():"
 					.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
 				      "Combination \(combination)",
-					  "asig", String(format: "%.2f", asigScore),
-					  "asat", String(format: "%.2f", asatScore),
-					  "acov", String(format: "%.2f", acovScore),
-					  "abat", String(format: "%.2f", abatScore),
-					  "wpm",  String(format: "%.2f", wpmScore) ) }
+					  "asig", String(format: "%.2f", combinationStats.asig),
+					  "asat", String(format: "%.2f", combinationStats.asat),
+					  "acov", String(format: "%.2f", combinationStats.acov),
+					  "abat", String(format: "%.2f", combinationStats.abat),
+					  "wpm",  String(format: "%.2f", combinationStats.wpmScore) ) }
 
-			return wpmScore
+			return combinationStats
 		}
 
 
 		/// 5. Decision: run through each combination, evaluate it, store its score, and decide
-		var scoredCombinations = [(combination: Combination, score: Double)]()
+		var scoredCombinations = [(combination: Combination, stats: CombinationStatistics)]()
 		for combination in combinations {
-			let score = analyzeCombination(combination)
-			scoredCombinations.append( (combination: combination, score: (score.isNaN ? 0.0 : score) ) )
+			let combinationStats = analyzeCombination(combination)
+			scoredCombinations.append( (combination: combination, stats: combinationStats ) )
 		}
 
 		// Sort score array
-		scoredCombinations.sort(by: {$0.score > $1.score})
+		scoredCombinations.sort(by: {$0.stats.wpmScore > $1.stats.wpmScore})
 
 		// Debug print scored combinations
 		if debug.contains("WeightedProductModel.decide()") {
@@ -455,7 +466,7 @@ class WeightedProductModel: DecisionAlgorithm {
 			for scoredCombination in scoredCombinations {
 				print(""
 					.padding(toLength: 54, withPad: " ", startingAt: 0),
-				      "\(String(format: "%.2f", scoredCombination.score).lightGray())\t\(scoredCombination.combination)")
+				      "\(String(format: "%.2f", scoredCombination.stats.wpmScore).lightGray())\t\(scoredCombination.combination)")
 			}
 		}
 
@@ -463,7 +474,7 @@ class WeightedProductModel: DecisionAlgorithm {
 		let bestCombination = scoredCombinations.first!
 
 		// Don't apply zero-score combinations; this may happen if any of the attributes was null
-		if bestCombination.score > 0 {
+		if bestCombination.stats.wpmScore > 0 {
 			// This flag determines whether the reference vehicle will become an RSU at the end of this process
 			var disableSelf: Bool = false
 			for (combinationIndex, combinationValue) in bestCombination.combination.enumerated() {
@@ -480,8 +491,27 @@ class WeightedProductModel: DecisionAlgorithm {
 						pcar.broadcastPacket(disablePacket, toFeatureTypes: .roadsideUnit)
 					}
 				}
-				// Entity won't be disabled
+				// Entity won't be disabled, do nothing
 				else {}
+			}
+
+			// Statistics: track top decision metrics
+			if pcar.city.stats.hooks["decisionWPM"] != nil {
+				let separator = pcar.city.stats.separator
+				let terminator = pcar.city.stats.terminator
+
+				let numNeighborsDisabled: Int = bestCombination.combination.filter{ $0 == false }.count
+
+				pcar.city.stats.writeToHook("decisionWPM", data:"\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(bestCombination.stats.asig)\(separator)\(bestCombination.stats.asat)\(separator)\(bestCombination.stats.acov)\(separator)\(bestCombination.stats.abat)\(separator)\(bestCombination.stats.wpmScore)\(separator)\(numNeighborsDisabled)\(separator)\(disableSelf)\(separator)\(bestCombination.stats.sigMeasure.mean)\(separator)\(bestCombination.stats.sigMeasure.stdev)\(separator)\(bestCombination.stats.satMeasure.mean)\(separator)\(bestCombination.stats.satMeasure.stdev)\(separator)\(bestCombination.stats.sigMeasure.mean/bestCombination.stats.satMeasure.mean)\(terminator)")
+			}
+
+			// Statistics: track data for moving average
+			if pcar.city.stats.hooks["movingAverageWPM"] != nil {
+				if var scoreArray = pcar.city.stats.metrics["movingAverageWPM"] as? (sig: [Double], sat: [Double]) {
+					scoreArray.sig.append(bestCombination.stats.sigMeasure.mean)
+					scoreArray.sat.append(bestCombination.stats.satMeasure.mean)
+					pcar.city.stats.metrics["movingAverageWPM"] = scoreArray
+				}
 			}
 
 			// Parked car becomes an RSU, or is removed

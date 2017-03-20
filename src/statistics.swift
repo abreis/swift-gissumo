@@ -292,6 +292,41 @@ class Statistics {
 			// 2. Write data
 			writeToHook("signalAndSaturationEvolution", data: statData)
 		}
+
+		// movingAverageWPM
+		if hooks["movingAverageWPM"] != nil {
+			guard var decisionStats = metrics["movingAverageWPM"] as? (sig: [Double], sat: [Double])
+				else {
+					print("Error: Metrics unavailable for movingAverageWPM hook.")
+					exit(EXIT_FAILURE)
+			}
+
+			// Exponential moving average settings
+			let emaSize = 26
+			let emaMultipler = 2.0/(Double(emaSize)+1.0)	// weighting drops by half every time the moving average period doubles
+
+			// No statistics until we have enough decisions
+			guard decisionStats.sig.count >= emaSize, decisionStats.sat.count >= emaSize
+				else { return }
+
+			// Trim arrays to desired EMA size
+			let sigDropCount = decisionStats.sig.count-emaSize
+			let satDropCount = decisionStats.sat.count-emaSize
+			if sigDropCount > 0 { decisionStats.sig.removeFirst(sigDropCount) }
+			if satDropCount > 0 { decisionStats.sat.removeFirst(satDropCount) }
+
+			// Reassign trimmed arrays
+			metrics["movingAverageWPM"] = decisionStats
+
+			// Compute EMAs, starting from the SMA
+			let sigMean = decisionStats.sig.reduce(0, +)/Double(decisionStats.sig.count)
+			let satMean = decisionStats.sat.reduce(0, +)/Double(decisionStats.sat.count)
+			let sigEMA = decisionStats.sig.reduce(sigMean, {$0*(1.0-emaMultipler) + $1*emaMultipler} )
+			let satEMA = decisionStats.sat.reduce(satMean, {$0*(1.0-emaMultipler) + $1*emaMultipler} )
+
+			writeToHook("movingAverageWPM", data: "\(city.events.now.asSeconds)\(separator)\(sigEMA)\(separator)\(satEMA)\(terminator)")
+		}
+
 	}
 
 
@@ -424,8 +459,16 @@ class Statistics {
 			writeToHook("signalAndSaturationEvolution", data: "time\(separator)meanSig\(separator)stdevSig\(separator)meanSat\(separator)stdevSat\(separator)sigToSat\(separator)\(terminator)")
 		}
 
-		if hooks["decisionCellCoverageEffects"] != nil {
-			writeToHook("decisionCellCoverageEffects", data: "time\(separator)id\(separator)dNew\(separator)dBoost\(separator)dSat\(separator)dScore\(separator)kappa\(separator)lambda\(separator)mu\(terminator)")
+		if hooks["decisionCCE"] != nil {
+			writeToHook("decisionCCE", data: "time\(separator)id\(separator)dNew\(separator)dBoost\(separator)dSat\(separator)dScore\(separator)kappa\(separator)lambda\(separator)mu\(terminator)")
+		}
+
+		if hooks["decisionWPM"] != nil {
+			writeToHook("decisionWPM", data: "time\(separator)id\(separator)asig\(separator)asat\(separator)acov\(separator)abat\(separator)wpm\(separator)disabled\(separator)disableSelf\(separator)meanSig\(separator)stdevSig\(separator)meanSat\(separator)stdevSat\(separator)sigToSat\(terminator)")
+		}
+
+		if hooks["movingAverageWPM"] != nil {
+			writeToHook("decisionWPM", data: "time\(separator)meanSigEMA\(separator)meanSatEMA\(terminator)")
 		}
 
 		if hooks["packetTrace"] != nil {
@@ -443,5 +486,6 @@ class Statistics {
 	func initMetrics() {
 		metrics["beaconsSent"] = UInt(0)
 		metrics["beaconsReceived"] = UInt(0)
+		metrics["movingAverageWPM"] = (sig: [Double](), sat: [Double]())
 	}
 }

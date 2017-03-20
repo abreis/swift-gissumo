@@ -64,19 +64,29 @@ Available hooks:
   Prints statistics of cell saturation in the city.
 
 
-* detailedDecisions (trigger)
+* decisionCCE (trigger)
 
-  Prints a detailed log of all RSU election decisions, complete with all coverage maps received, resulting local maps, etcetera.
+  Prints the intermediate and final metrics used to compute the decision score when the CellCoverageEffects decision algorithm is selected.
+
+
+* decisionDetailCCE (trigger)
+
+  Prints a detailed log of all RSU election decisions, complete with all coverage maps received, resulting local maps, etcetera, for the CellCoverageEffects algorithm.
+
+
+* decisionWPM (trigger)
+
+  Prints the metrics used to compute the decision score when the WeightedProductModel decision algorithm is selected.
+
+
+* movingAverageWPM (interval)
+
+  Prints an exponential moving average of past decisions' signal and saturation stats of the winning combination.
 
 
 * obstructionMask (end)
 
   Prints the map of obstructions being used for statistics, after cropping.
-
-
-* decisionCellCoverageEffects (trigger)
-
-  Prints the intermediate and final metrics used to compute the decision score when the CellCoverageEffects decision algorithm is selected.
 
 
 * packetTrace (immediate)

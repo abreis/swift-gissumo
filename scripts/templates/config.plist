@@ -51,9 +51,13 @@
 			<false/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
-			<key>decisionCellCoverageEffects</key>
+			<key>decisionWPM</key>
 			<true/>
-			<key>detailedDecisions</key>
+			<key>movingAverageWPM</key>
+			<true/>
+			<key>decisionCCE</key>
+			<false/>
+			<key>decisionDetailCCE</key>
 			<false/>
 			<key>finalCityCoverageMap</key>
 			<true/>
