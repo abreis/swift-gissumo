@@ -348,9 +348,15 @@ class WeightedProductModel: DecisionAlgorithm {
 		* (it will receive coverage information of cells beyond its reach). This avoids calculating coverage and
 		* saturation beyond its range, where coverage from other RSUs might exist but we do not know about it.
 		*/
-		var localMapWithReferenceCoverageOnly = CellMap<Int>(toContainMaps: ([selfmap] + depth1maps + depth2maps).map{$0.cellMap}, withValue: 0)
+		let baseLocalMap = CellMap<Int>(toContainMaps: ([selfmap] + depth1maps + depth2maps).map{$0.cellMap}, withValue: 0)
+		var localMapWithReferenceCoverageOnly = baseLocalMap
 		localMapWithReferenceCoverageOnly.keepBestSignal(fromSignalMap: pcar.selfCoverageMap)
 		let referenceVehicleObstructionMask = localMapWithReferenceCoverageOnly.expressAsObstructionMask()
+
+		// Count the number of covered cells in the all-on (S0) combination (for the acov attribute)
+		var baseCombinationLMC = CellMap<Int>(toContainMaps: ([selfmap] + depth1maps + depth2maps).map{$0.cellMap}, withValue: 0)
+		for baseMap in ([selfmap] + depth1maps).map({$0.cellMap}) { baseCombinationLMC.keepBestSignal(fromSignalMap: baseMap) }
+		let baseCoveredCellCount: Int = baseCombinationLMC.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false).count
 
 		// The scoring routine
 		struct CombinationStatistics {
@@ -360,8 +366,8 @@ class WeightedProductModel: DecisionAlgorithm {
 		}
 		func analyzeCombination(_ combination: Combination) -> CombinationStatistics {
 			// Set up a coverage and a saturation map
-			var localMapOfCoverage = CellMap<Int>(toContainMaps: ([selfmap] + depth1maps + depth2maps).map{$0.cellMap}, withValue: 0)
-			var localMapOfSaturation = localMapOfCoverage
+			var localMapOfCoverage = baseLocalMap
+			var localMapOfSaturation = baseLocalMap
 
 			// Apply depth 2 maps (permanent for all combinations)
 			if depth2maps.count > 0 {
@@ -414,9 +420,9 @@ class WeightedProductModel: DecisionAlgorithm {
 //				} else { return 1.0/meanSat }
 //			}
 
-			// TODO
-			func acov() -> Double {
-				return 1.0
+			// Percentage acov
+			func acov(covCells: Int, maxCells: Int) -> Double {
+				return Double(covCells)/Double(maxCells)
 			}
 
 			// Multiplicative abat
@@ -449,7 +455,7 @@ class WeightedProductModel: DecisionAlgorithm {
 			// Compute weighted product score
 			combinationStats.asig = asig(sigData: combinationStats.sigMeasure)
 			combinationStats.asat = asat(satData: combinationStats.satMeasure)
-			combinationStats.acov = acov()
+			combinationStats.acov = acov(covCells: combinationStats.sigMeasure.count, maxCells: baseCoveredCellCount)
 			combinationStats.abat = abat()
 
 			combinationStats.wpmScore = pow(combinationStats.asig, weights.wsig)

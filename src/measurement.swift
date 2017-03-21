@@ -25,12 +25,12 @@ struct Measurement {
 	var samples = [Double]()
 	mutating func add(_ point: Double) { samples.append(point) }
 
-	var count: Double { return Double(samples.count) }
+	var count: Int { return samples.count }
 	var sum: Double { return samples.reduce(0, +) }
-	var mean: Double { return sum/count	}
+	var mean: Double { return sum/Double(count)	}
 
 	// This returns the maximum likelihood estimator(over N), not the minimum variance unbiased estimator (over N-1)
-	var variance: Double { return samples.reduce(0, {$0 + pow($1-mean,2)} )/count }
+	var variance: Double { return samples.reduce(0, {$0 + pow($1-mean,2)} )/Double(count) }
 	var stdev: Double { return sqrt(variance) }
 
 	// Specify the desired confidence level (1-significance) before requesting the intervals
