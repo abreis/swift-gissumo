@@ -96,6 +96,7 @@ class Vehicle: MovingRoadEntity {
 // A parked car
 class ParkedCar: FixedRoadEntity {
 	override var type: RoadEntityType { return .parkedCar }
+	var neighborActiveTimes: [UInt:Double] = [:]
 }
 
 // A roadside unit entity

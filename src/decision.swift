@@ -239,10 +239,15 @@ class WeightedProductModel: DecisionAlgorithm {
 
 	// On trigger, request 1-hop neighborhood coverage maps, and wait 1 second to receive replies before deciding
 	func trigger(_ pcar: ParkedCar) {
-		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: Payload(type: .coverageMapRequest, content: CoverageMapRequest(depth: mapRequestDepth).toPayload().content) )
+		// Request neighbors' coverage maps
+		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: CoverageMapRequest(depth: mapRequestDepth).toPayload() )
 		pcar.broadcastPacket(covMapRequestPacket)
 
-		// 2. Schedule an event to process the coverage maps and make the decision
+		// Request neighbors' active times
+		let actTimeRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: ActiveTimeRequest().toPayload() )
+		pcar.broadcastPacket(actTimeRequestPacket)
+
+		// Schedule an event to process the coverage maps and make the decision
 		let decisionEvent = SimulationEvent(time: pcar.city.events.now + mapRequestWaitingTime, type: .decision, action: { self.decide(pcar)}, description: "decide id \(pcar.id)")
 		pcar.city.events.add(newEvent: decisionEvent)
 	}
@@ -414,8 +419,23 @@ class WeightedProductModel: DecisionAlgorithm {
 				return 1.0
 			}
 
-			// TODO
+			// Multiplicative abat
+			// This routine assumes the new parked car has an active time of zero, so it isn't considered in the calculation.
 			func abat() -> Double {
+				// Get the IDs of the RSUs in this combination and matching active times
+				var activityInCombination: [UInt:Double] = [:]
+				for (combinationIndex, combinationValue) in combination.enumerated() {
+					if combinationValue == true {
+						let neighInCombinationID = neighborhoodCoverageMaps[combinationIndex].ownerID
+						if neighInCombinationID != pcar.id {
+							activityInCombination[neighInCombinationID] = pcar.neighborActiveTimes[neighInCombinationID]
+						}
+					}
+				}
+
+				// TODO: map all elapsed times to a [0,1] range
+				// TODO: abat is \prod on this mapping
+
 				return 1.0
 			}
 

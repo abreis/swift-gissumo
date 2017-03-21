@@ -127,6 +127,8 @@ enum PayloadType: UInt {
 	case beacon = 0
 	case coverageMapRequest
 	case coverageMaps
+	case activeTimeRequest
+	case activeTime
 	case cellMap
 	case disableRSU
 }
@@ -254,6 +256,26 @@ struct CoverageMaps: PayloadConvertible {
 			maps.append( SelfCoverageMap(ownerID: mapOwnerID, cellMap: cellMap) )
 		}
 	}
+}
+
+
+// A request for an RSU's active time
+struct ActiveTimeRequest: PayloadConvertible {
+	func toPayload() -> Payload { return Payload(type: .activeTimeRequest, content: "")}
+	init? (fromPayload payload: Payload) {}
+	init () { }
+}
+
+
+// A reply to an RSU active time request
+struct ActiveTime: PayloadConvertible {
+	let activeTime: Double
+	func toPayload() -> Payload { return Payload(type: .activeTime, content: "\(activeTime)")}
+	init? (fromPayload payload: Payload) {
+		guard let payloadActiveTime = Double(payload.content) else { return nil }
+		activeTime = payloadActiveTime
+	}
+	init (activeTime: Double) { self.activeTime = activeTime}
 }
 
 
@@ -560,6 +582,7 @@ extension FixedRoadEntity: PayloadReceiver {
 			let receivedBeacon = Beacon(fromPayload: packet.payload)
 			trackSignalStrength(fromBeacon: receivedBeacon)
 
+
 		case .coverageMapRequest:
 			// Only RSUs reply to requests for coverage maps
 			if self is RoadsideUnit {
@@ -629,6 +652,7 @@ extension FixedRoadEntity: PayloadReceiver {
 
 			}
 
+
 		case .coverageMaps:
 			// Pull coverage maps from the payload
 			guard let coverageMapPayload = CoverageMaps(fromPayload: packet.payload)
@@ -638,6 +662,32 @@ extension FixedRoadEntity: PayloadReceiver {
 			}
 			// Call the neighbor map managing routine in FixedRoadEntity
 			self.append(coverageMaps: coverageMapPayload.maps, sender: packet.l3src, currentTime: self.city.events.now)
+
+
+		case .activeTimeRequest:
+			// Only RSUs reply to requests for active time
+			if self is RoadsideUnit {
+				guard let creationTime = self.creationTime else {
+					print("Error: Creation time not set for RSU.")
+					exit(EXIT_FAILURE)
+				}
+
+				// Prepare a packet
+				let activeTime = ActiveTime(activeTime: Double(self.city.events.now.nanoseconds - creationTime.nanoseconds)/1000000000.0)
+				let activeTimePacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: activeTime.toPayload())
+
+				// Unicast the packet to the requester
+				self.broadcastPacket(activeTimePacket, toFeatureTypes: .parkedCar)
+			}
+
+
+		case .activeTime:
+			// Only parked cars in decision mode keep active times of neighbors
+			if self is ParkedCar {
+				// Track the neighbor's active time
+				(self as! ParkedCar).neighborActiveTimes[packet.l3src] = ActiveTime(fromPayload: packet.payload)!.activeTime
+			}
+
 
 		case .disableRSU:
 			// Only RSUs can be disabled by a message
@@ -650,6 +700,8 @@ extension FixedRoadEntity: PayloadReceiver {
 					self.city.events.add(newEvent: removalEvent)
 				}
 			}
+
+
 		default:
 			print("Error: Received an unknown payload.")
 			exit(EXIT_FAILURE)
