@@ -230,9 +230,9 @@ print("Running simulation events... ", terminator: "");
 if !debug.isEmpty { print("") }
 fflush(stdout)
 
-// Trap SIGQUIT (Ctrl-D)
-var sigQuit: Bool = false
-Signals.trap(signal: .int) { signal in sigQuit = true }
+// Trap SIGINT (Ctrl-C)
+var sigInt: Bool = false
+Signals.trap(signal: .int) { signal in sigInt = true }
 
 // Implement a simple progress bar
 let maxRunTime = simCity.events.list.last!.time.nanoseconds
@@ -241,7 +241,7 @@ var nextTargetPercent: Int = 0 + progressIncrement
 var nextTarget: Int { return nextTargetPercent*maxRunTime/100 }
 
 // Go through the events
-for nextEvent in simCity.events.list where nextEvent.time <= simCity.events.stopTime && !sigQuit {
+for nextEvent in simCity.events.list where nextEvent.time <= simCity.events.stopTime && !sigInt {
 	// Update current time
 	assert(nextEvent.time > simCity.events.now)
 	simCity.events.now = nextEvent.time
