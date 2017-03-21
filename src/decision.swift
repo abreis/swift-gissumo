@@ -391,21 +391,30 @@ class WeightedProductModel: DecisionAlgorithm {
 
 
 			/// Attribute Scoring Functions
+			// Linear asig
 			func asig(sigData: Measurement) -> Double {
 				return sigData.mean
 			}
 
+			// Inverse asat
 			func asat(satData: Measurement) -> Double {
-				let meanSat = satData.mean
-				if meanSat < minRedundancy {
-					return 1.0/minRedundancy
-				} else { return 1.0/meanSat }
+				return 1.0/satData.mean
 			}
 
+			// Piecewise inverse asat
+//			func asat(satData: Measurement) -> Double {
+//				let meanSat = satData.mean
+//				if meanSat < minRedundancy {
+//					return 1.0/minRedundancy
+//				} else { return 1.0/meanSat }
+//			}
+
+			// TODO
 			func acov() -> Double {
 				return 1.0
 			}
 
+			// TODO
 			func abat() -> Double {
 				return 1.0
 			}

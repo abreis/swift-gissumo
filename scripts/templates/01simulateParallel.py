@@ -168,11 +168,11 @@ with open(os.path.join(simulationDir, simulationDescription), 'w') as descriptio
 # Simulation over
 print("Set complete, ran {:d} simulations.".format(totalSimulations))
 
-# # Remove FCD files
-# for dirpath, dirnames, filenames in os.walk(simulationDir):
-# 	for file in filenames:
-# 		if file.endswith('fcd.tsv'):
-# 			os.remove(os.path.join(dirpath, file))
+# Remove FCD files and simulation timetrackers in the simulation dir
+for dirpath, dirnames, filenames in os.walk(simulationDir):
+	for file in filenames:
+		if file.endswith('fcd.tsv') or file=='simulationTime.log':
+			os.remove(os.path.join(dirpath, file))
 
 # Clean up
 os.remove('gissumo_fast')
