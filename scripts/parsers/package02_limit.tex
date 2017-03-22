@@ -1,0 +1,59 @@
+\documentclass[a4paper]{article}
+\pagestyle{empty}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage[pdftex]{graphicx}
+\graphicspath{{./figures/}}
+\DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+
+\usepackage[margin=0mm]{geometry}
+\usepackage{tikz}
+\usepackage{verbatim}
+
+\begin{document}
+
+% A4 paper size: 210 x 297 mm
+% Figure ratio is 10:7 standard, 10:3.5 / 3.5:7 half size
+
+\newcommand{\singlewidthrow}{90mm}
+\newcommand{\doublewidthrow}{190mm}
+\newcommand{\xleft}{4mm}
+\newcommand{\xright}{104mm}
+\newcommand{\yone}{-3mm}
+\newcommand{\ytwo}{-73mm}
+\newcommand{\ythree}{-143mm}
+\newcommand{\yfour}{-213mm}
+
+% Draw the following structure:
+% -1- -2-
+% ---3---
+% ---4---
+% ---5---
+
+\begin{tikzpicture}[overlay]
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=white    ] (fig1) at (\xleft,\yone) {
+		\verbatiminput{description.txt}
+	};
+
+	\node[draw, anchor=north west, text width=\singlewidthrow, color=lightgray] (fig2) at (\xright,\yone) {
+	};
+
+	\node[draw, anchor=north west, text width=\doublewidthrow, color=lightgray] (fig3) at (\xleft,\ytwo) {
+		\includegraphics[width=\textwidth]{actVehCnt}
+		\includegraphics[width=\textwidth]{actRsuCntL}
+	};
+
+	\node[draw, anchor=north west, text width=\doublewidthrow, color=lightgray] (fig4) at (\xleft,\ythree) {
+		\includegraphics[width=\textwidth]{meanSigL}
+		\includegraphics[width=\textwidth]{meanSatL}
+	};
+
+	\node[draw, anchor=north west, text width=\doublewidthrow, color=lightgray] (fig5) at (\xleft,\yfour) {
+		\includegraphics[width=\textwidth]{sigToSatL}
+		\includegraphics[width=\textwidth]{covCell}
+	};
+\end{tikzpicture}
+
+\end{document}

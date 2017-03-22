@@ -16,7 +16,7 @@ simulationDescription="description.txt"
 descriptionTemplate="description.template"
 
 # asat values to evaluate
-weightAsats = [0.1, 0.5, 1.0, 1.5]
+weightAsats = [0.4, 0.3, 0.2, 0.05]
 
 
 if os.path.isdir(simulationSetDir):

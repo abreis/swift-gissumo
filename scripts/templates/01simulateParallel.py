@@ -14,9 +14,9 @@ import time
 assert sys.version_info >= (3,5), "This script requires Python 3.5 or later."
 
 
-maxThreads = 4
+maxThreads = 5
 simulationDir = "simulations"
-simulationDescription="description.txt"
+simulationDescription = "description.txt"
 floatingCarDataDir = "fcddata"
 
 
