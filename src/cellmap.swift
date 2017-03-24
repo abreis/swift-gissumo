@@ -304,9 +304,11 @@ extension CellMap where T:IntegerArithmetic, T:SignedInteger, T:CustomStringConv
 						}
 					}
 				}
-				// If not, consider all cells that are not null
-				else if self.cells[i][j] != 0 {
-					measure.add(Double(self.cells[i][j].description)!)
+				// If not, consider all cells
+				else {
+					if includeNulls || self.cells[i][j] != 0 {
+						measure.add(Double(self.cells[i][j].description)!)
+					}
 				}
 			}
 		}

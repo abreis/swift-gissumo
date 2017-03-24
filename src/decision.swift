@@ -356,13 +356,13 @@ class WeightedProductModel: DecisionAlgorithm {
 		// Count the number of covered cells in the all-on (S0) combination (for the acov attribute)
 		var baseCombinationLMC = CellMap<Int>(toContainMaps: ([selfmap] + depth1maps + depth2maps).map{$0.cellMap}, withValue: 0)
 		for baseMap in ([selfmap] + depth1maps).map({$0.cellMap}) { baseCombinationLMC.keepBestSignal(fromSignalMap: baseMap) }
-		let baseCoveredCellCount: Int = baseCombinationLMC.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false).count
+		let baseCoveredCellCount: Int = baseCombinationLMC.getMeasurement(withObstructionMask: nil, includeNulls: false).count
 
 		// The scoring routine
 		struct CombinationStatistics {
 			var asig: Double = 0.0, asat: Double = 0.0, acov: Double = 0.0, abat: Double = 0.0
 			var wpmScore: Double = 0.0
-			var sigMeasure = Measurement(), satMeasure = Measurement()
+			var sigMeasure = Measurement(), satMeasure = Measurement(), covMeasure = Measurement()
 		}
 		func analyzeCombination(_ combination: Combination) -> CombinationStatistics {
 			// Set up a coverage and a saturation map
@@ -451,11 +451,12 @@ class WeightedProductModel: DecisionAlgorithm {
 			// Get measurements confined to the decision maker's view
 			combinationStats.sigMeasure = localMapOfCoverage.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
 			combinationStats.satMeasure = localMapOfSaturation.getMeasurement(withObstructionMask: referenceVehicleObstructionMask, includeNulls: false)
+			combinationStats.covMeasure = localMapOfCoverage.getMeasurement(withObstructionMask: nil, includeNulls: false)
 
 			// Compute weighted product score
 			combinationStats.asig = asig(sigData: combinationStats.sigMeasure)
 			combinationStats.asat = asat(satData: combinationStats.satMeasure)
-			combinationStats.acov = acov(covCells: combinationStats.sigMeasure.count, maxCells: baseCoveredCellCount)
+			combinationStats.acov = acov(covCells: combinationStats.covMeasure.count, maxCells: baseCoveredCellCount)
 			combinationStats.abat = abat()
 
 			combinationStats.wpmScore = pow(combinationStats.asig, weights.wsig)

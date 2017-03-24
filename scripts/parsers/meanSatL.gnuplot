@@ -6,7 +6,7 @@ set xlabel "Simulation Time [s]"
 set ylabel "Mean RSU Saturation" rotate by +90 center
 unset key
 
-set yrange [1:2.5]
+set yrange [1:2.8]
 
 plot 'dir/datafile.name' using 1:2 notitle with lines linecolor 4 linewidth 2
 
