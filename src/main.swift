@@ -69,6 +69,9 @@ if	let innerBoundsConfig = config["innerBounds"] as? NSDictionary,
 		cityInnerBounds = Square(x: (min: innerXmin, max: innerXmax), y: (min: innerYmin, max: innerYmax))
 }
 
+// Load RSU lifetime
+let configRsuLifetime = config["rsuLifetime"] as? Int
+
 // Load statistics configuration point
 guard let statisticsConfig = config["stats"] as? NSDictionary else {
 	print("failed", "\nError: Please provide a statistics entry in the configuration.")
@@ -180,6 +183,10 @@ print("okay")
 /* Initialize a new City, plus a new network, a new eventlist, a new statistics module, and a new decision module
  */
 var simCity = City(gis: gisdb, network: Network(), eventList: EventList(stopTime: configStopTime), statistics: Statistics(config: statisticsConfig), decision: Decision(config: decisionConfig))
+
+// Set RSU lifetime
+if configRsuLifetime != nil { simCity.rsuLifetime = configRsuLifetime }
+
 
 // Clear all points from the database
 print("Clearing old features from GIS... ", terminator: ""); fflush(stdout)

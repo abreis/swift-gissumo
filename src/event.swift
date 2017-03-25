@@ -26,6 +26,11 @@ struct SimulationTime: Equatable, Comparable, Hashable, ExpressibleByFloatLitera
 	var microseconds: Int { return nanoseconds/1000000 }
 	var seconds: Int { return nanoseconds/1000000000 }
 
+	// Floating point returns
+	var fpMilliseconds: Double { return Double(nanoseconds)/1000.0 }
+	var fpMicroseconds: Double { return Double(nanoseconds)/1000000.0 }
+	var fpSeconds: Double { return Double(nanoseconds)/1000000000.0 }
+
 	// Standard init
 	init() { nanoseconds = 0 }
 	// FloatLiteralConvertible: initialize with a Float (assumes Seconds are provided)

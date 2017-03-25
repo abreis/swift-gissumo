@@ -147,6 +147,14 @@ class City {
 	// Our decision module
 	let decision: Decision
 
+	// Maximum roadside unit lifetime
+	var rsuLifetime: Int? = nil {
+		didSet {
+			let initialExpireEvent = SimulationEvent(time: self.decision.triggerDelay, type: .mobility, action: { self.recurringExpireRoadsideUnits() }, description: "expire roadside units")
+			self.events.add(newEvent: initialExpireEvent)
+		}
+	}
+
 	// City bounds
 	var bounds = Square(x: (min: 0, max: 0), y: (min: 0, max: 0))
 	var topLeftCell: (x: Int, y: Int) {
@@ -357,6 +365,24 @@ class City {
 		} while entryPosition < fcdTSV.count
 	}
 
+	/// Remove Roadside Units in the network whose expiry time is elapsed
+	func recurringExpireRoadsideUnits() -> () {
+		if rsuLifetime != nil {
+			let currentTime = events.now
+			for rsu in roadsideUnits {
+				if (currentTime.seconds - rsu.creationTime!.seconds) >= rsuLifetime! {
+					removeEntity(rsu)
+				}
+			}
+		}
+
+		// Schedule next expiry
+		let nextEventTime = self.events.now + SimulationTime(seconds: 1.0)
+		if nextEventTime < self.events.stopTime {
+			let nextExpireEvent = SimulationEvent(time: nextEventTime, type: .mobility, action: { self.recurringExpireRoadsideUnits() }, description: "expire roadside units")
+			self.events.add(newEvent: nextExpireEvent)
+		}
+	}
 
 	/// Match a vehicle ID to a Vehicle entity
 	func get(vehicleFromID vid: UInt) -> Vehicle? {
