@@ -269,13 +269,13 @@ struct ActiveTimeRequest: PayloadConvertible {
 
 // A reply to an RSU active time request
 struct ActiveTime: PayloadConvertible {
-	let activeTime: Double
-	func toPayload() -> Payload { return Payload(type: .activeTime, content: "\(activeTime)")}
+	let activeTime: Time
+	func toPayload() -> Payload { return Payload(type: .activeTime, content: "\(activeTime.nanoseconds)")}
 	init? (fromPayload payload: Payload) {
-		guard let payloadActiveTime = Double(payload.content) else { return nil }
-		activeTime = payloadActiveTime
+		guard let payloadContentNumeric = Int(payload.content) else { return nil }
+		activeTime = Time(nanoseconds: payloadContentNumeric)
 	}
-	init (activeTime: Double) { self.activeTime = activeTime}
+	init (activeTime: Time) { self.activeTime = activeTime}
 }
 
 
@@ -673,7 +673,7 @@ extension FixedRoadEntity: PayloadReceiver {
 				}
 
 				// Prepare a packet
-				let activeTime = ActiveTime(activeTime: Double(self.city.events.now.nanoseconds - creationTime.nanoseconds)/1000000000.0)
+				let activeTime = ActiveTime(activeTime: Time(self.city.events.now - creationTime))
 				let activeTimePacket = Packet(id: self.city.network.getNextPacketID(), created: self.city.events.now, l2src: self.id, l3src: self.id, l3dst: .unicast(destinationID: packet.l3src), payload: activeTime.toPayload())
 
 				// Unicast the packet to the requester

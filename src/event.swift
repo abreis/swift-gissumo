@@ -20,7 +20,7 @@ struct SimulationEvent {
 }
 
 
-struct SimulationTime: Equatable, Comparable, Hashable, ExpressibleByFloatLiteral, CustomStringConvertible {
+struct Time: Equatable, Comparable, Hashable, ExpressibleByFloatLiteral, CustomStringConvertible {
 	var nanoseconds: Int
 	var milliseconds: Int { return nanoseconds/1000 }
 	var microseconds: Int { return nanoseconds/1000000 }
@@ -44,6 +44,8 @@ struct SimulationTime: Equatable, Comparable, Hashable, ExpressibleByFloatLitera
 	init(milliseconds msec: Double) { nanoseconds = Int(msec * 1000000) }
 	init(microseconds µsec: Double) { nanoseconds = Int(µsec * 1000) }
 	init(nanoseconds  nsec: Double) { nanoseconds = Int(nsec) }
+	// Init from equal type
+	init(_ ltime: Time) { nanoseconds = ltime.nanoseconds }
 	// Conform to Hashable
 	var hashValue: Int { return nanoseconds.hashValue }
 	// Conform to CustomStringConvertible
@@ -52,13 +54,15 @@ struct SimulationTime: Equatable, Comparable, Hashable, ExpressibleByFloatLitera
 	var asSeconds: String { return String(format: "%6f", Double(nanoseconds)/1000000000.0) }
 }
 
-// Conform SimulationTime to Equatable, Comparable
-func ==(lhs: SimulationTime, rhs: SimulationTime) -> Bool { return lhs.nanoseconds == rhs.nanoseconds }
-func <(lhs: SimulationTime, rhs: SimulationTime) -> Bool { return lhs.nanoseconds < rhs.nanoseconds }
+typealias SimulationTime = Time
+
+// Conform Time to Equatable, Comparable
+func ==(lhs: Time, rhs: Time) -> Bool { return lhs.nanoseconds == rhs.nanoseconds }
+func <(lhs: Time, rhs: Time) -> Bool { return lhs.nanoseconds < rhs.nanoseconds }
 // Overload operatos +, -, +=
-func +(left: SimulationTime, right: SimulationTime) -> SimulationTime { return SimulationTime(nanoseconds: left.nanoseconds+right.nanoseconds) }
-func -(left: SimulationTime, right: SimulationTime) -> SimulationTime { return SimulationTime(nanoseconds: left.nanoseconds-right.nanoseconds) }
-func +=(left: inout SimulationTime, right: SimulationTime) { left = left + right }
+func +(left: Time, right: Time) -> Time { return Time(nanoseconds: left.nanoseconds+right.nanoseconds) }
+func -(left: Time, right: Time) -> Time { return Time(nanoseconds: left.nanoseconds-right.nanoseconds) }
+func +=(left: inout Time, right: Time) { left = left + right }
 
 
 /* An event list specific to this simulator.

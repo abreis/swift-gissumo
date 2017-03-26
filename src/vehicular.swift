@@ -96,7 +96,9 @@ class Vehicle: MovingRoadEntity {
 // A parked car
 class ParkedCar: FixedRoadEntity {
 	override var type: RoadEntityType { return .parkedCar }
-	var neighborActiveTimes: [UInt:Double] = [:]
+
+	// Store active times of neighboring RSUs (vehicleID:activeTime)
+	var neighborActiveTimes: [UInt:Time] = [:]
 }
 
 // A roadside unit entity
@@ -148,7 +150,7 @@ class City {
 	let decision: Decision
 
 	// Maximum roadside unit lifetime
-	var rsuLifetime: Int? = nil {
+	var rsuLifetime: Int? {
 		didSet {
 			let initialExpireEvent = SimulationEvent(time: self.decision.triggerDelay, type: .mobility, action: { self.recurringExpireRoadsideUnits() }, description: "expire roadside units")
 			self.events.add(newEvent: initialExpireEvent)
