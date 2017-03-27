@@ -425,11 +425,11 @@ class WeightedProductModel: DecisionAlgorithm {
 				return Double(covCells)/Double(maxCells)
 			}
 
-			// Multiplicative abat
+			// Averaging abat
 			// This routine assumes the new parked car has an active time of zero, so it isn't considered in the calculation.
 			func abat() -> Double {
 				// Get the IDs of the RSUs in this combination and matching active times
-				var activityInCombination: [UInt:Double] = [:]
+				var activityInCombination: [UInt:Time] = [:]
 				for (combinationIndex, combinationValue) in combination.enumerated() {
 					if combinationValue == true {
 						let neighInCombinationID = neighborhoodCoverageMaps[combinationIndex].ownerID
@@ -439,10 +439,20 @@ class WeightedProductModel: DecisionAlgorithm {
 					}
 				}
 
-				// TODO: map all elapsed times to a [0,1] range
-				// TODO: abat is \prod on this mapping
+				func batteryTransform(_ elapsedTime: Time) -> Double {
+					let noImpactTime = 3600.0
+					let maxActiveTime = 7200.0
 
-				return 1.0
+					if elapsedTime.fpSeconds < noImpactTime { return 1.0 }
+
+					let m = -1.0/(maxActiveTime-noImpactTime)
+					let b = noImpactTime/(maxActiveTime-noImpactTime)+1
+
+					return m*elapsedTime.fpSeconds + b
+				}
+
+				// Sum the transforms and average to get the mean
+				return activityInCombination.values.reduce(0, {$0+batteryTransform($1)} ) / Double(activityInCombination.count )
 			}
 
 			// Prepare return data struct
