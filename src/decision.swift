@@ -548,7 +548,18 @@ class WeightedProductModel: DecisionAlgorithm {
 
 				let numNeighborsDisabled: Int = bestCombination.combination.filter{ $0 == false }.count
 
-				pcar.city.stats.writeToHook("decisionWPM", data:"\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(bestCombination.stats.asig)\(separator)\(bestCombination.stats.asat)\(separator)\(bestCombination.stats.acov)\(separator)\(bestCombination.stats.abat)\(separator)\(bestCombination.stats.wpmScore)\(separator)\(numNeighborsDisabled)\(separator)\(disableSelf)\(separator)\(bestCombination.stats.sigMeasure.mean)\(separator)\(bestCombination.stats.sigMeasure.stdev)\(separator)\(bestCombination.stats.satMeasure.mean)\(separator)\(bestCombination.stats.satMeasure.stdev)\(separator)\(bestCombination.stats.sigMeasure.mean/bestCombination.stats.satMeasure.mean)\(terminator)")
+				// Get the score of the null (no-action) decision
+				var noActionCombinationID = baseCombination
+				noActionCombinationID[0] = false	// The null combination disables the first entity only, ourselves
+				let noActionCombination = scoredCombinations.filter( {$0.combination == noActionCombinationID} )
+				guard	noActionCombination.count == 1,
+						let noAction = noActionCombination.first
+					else {
+						print("Error: Failed to find the no-action combination.")
+						exit(EXIT_FAILURE)
+				}
+
+				pcar.city.stats.writeToHook("decisionWPM", data:"\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(bestCombination.stats.asig)\(separator)\(bestCombination.stats.asat)\(separator)\(bestCombination.stats.acov)\(separator)\(bestCombination.stats.abat)\(separator)\(bestCombination.stats.wpmScore)\(separator)\(numNeighborsDisabled)\(separator)\(disableSelf)\(separator)\(bestCombination.stats.sigMeasure.mean)\(separator)\(bestCombination.stats.sigMeasure.stdev)\(separator)\(bestCombination.stats.satMeasure.mean)\(separator)\(bestCombination.stats.satMeasure.stdev)\(separator)\(bestCombination.stats.sigMeasure.mean/bestCombination.stats.satMeasure.mean)\(separator)\(noAction.stats.wpmScore)\(terminator)")
 			}
 
 			// Statistics: track data for moving average

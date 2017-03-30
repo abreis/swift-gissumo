@@ -464,7 +464,7 @@ class Statistics {
 		}
 
 		if hooks["decisionWPM"] != nil {
-			writeToHook("decisionWPM", data: "time\(separator)id\(separator)asig\(separator)asat\(separator)acov\(separator)abat\(separator)wpm\(separator)disabled\(separator)disableSelf\(separator)meanSig\(separator)stdevSig\(separator)meanSat\(separator)stdevSat\(separator)sigToSat\(terminator)")
+			writeToHook("decisionWPM", data: "time\(separator)id\(separator)asig\(separator)asat\(separator)acov\(separator)abat\(separator)wpm\(separator)disabled\(separator)disableSelf\(separator)meanSig\(separator)stdevSig\(separator)meanSat\(separator)stdevSat\(separator)sigToSat\(separator)wpmNA\(terminator)")
 		}
 
 		if hooks["movingAverageWPM"] != nil {

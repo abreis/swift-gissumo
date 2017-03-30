@@ -24,6 +24,7 @@ STATDIR=stats
 VISDIR=plots
 VISNAME=actRsuCnt
 
+
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
 	echo "Error: gnuplot version 5 is required."
