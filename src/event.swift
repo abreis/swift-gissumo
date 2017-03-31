@@ -11,6 +11,7 @@ struct SimulationEvent {
 		case statistics		// Statistics-related events
 		case decision		// Decision-related events
 		case vehicular		// Vehicular events separate from the FCD data
+		case simulation		// Simulator-related events
 	}
 
 	var time: SimulationTime
@@ -100,7 +101,7 @@ class EventArray: Sequence {
 			} else {
 				// Bisect-ordered-add
 				var low = 0
-				var high = eventDictionary[indexTime]!.count // TODO: is this 'count' or 'count-1'?
+				var high = eventDictionary[indexTime]!.count
 
 				// Bisection, adapted from python's bisect.py
 				while low < high {
@@ -202,6 +203,15 @@ class EventArray: Sequence {
 
 	func makeIterator() -> EventArrayIterator {
 		return EventArrayIterator(self)
+	}
+
+	// Dump all events in the dictionary up to a provided iterator's time
+	func flushOldEvents(upToTime endTime: SimulationTime) {
+		let rangeStart = self.sortedKeys.first!
+		let rangeEnd = endTime.seconds
+		for keyToRemove in rangeStart..<rangeEnd {
+			eventDictionary.removeValue(forKey: keyToRemove)
+		}
 	}
 }
 

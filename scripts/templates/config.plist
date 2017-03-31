@@ -12,6 +12,8 @@
 	<integer>27492</integer>
 	<key>useHaversine</key>
 	<true/>
+	<key>dataFlushInterval</key>
+	<integer>120</integer>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
@@ -103,6 +105,8 @@
 				<integer>2</integer>
 				<key>mapRequestDepth</key>
 				<integer>2</integer>
+				<key>disableThreshold</key>
+				<real>0.1</real>
 			</dict>
 			<key>CellCoverageEffects</key>
 			<dict>

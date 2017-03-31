@@ -157,6 +157,22 @@ class City {
 		}
 	}
 
+	// Periodic flushing of data
+	var dataFlushInterval: Int? {
+		didSet {
+			func periodicDataFlush(interval: Int) {
+				simCity.events.list.flushOldEvents(upToTime: simCity.events.now)
+				simCity.stats.flushStatisticsToFiles()
+
+				let newFlushEvent = SimulationEvent(time: simCity.events.now+Time(seconds: interval), type: .simulation, action: {periodicDataFlush(interval: interval)}, description: "periodic data flush")
+				simCity.events.add(newEvent: newFlushEvent)
+			}
+
+			let newFlushEvent = SimulationEvent(time: SimulationTime(seconds: configDataFlushInterval!), type: .simulation, action: {periodicDataFlush(interval: configDataFlushInterval!)}, description: "periodic data flush")
+			simCity.events.add(newEvent: newFlushEvent)
+		}
+	}
+
 	// City bounds
 	var bounds = Square(x: (min: 0, max: 0), y: (min: 0, max: 0))
 	var topLeftCell: (x: Int, y: Int) {

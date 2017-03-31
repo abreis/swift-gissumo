@@ -137,6 +137,46 @@ class Statistics {
 		}
 	}
 
+	/// Append and flush all collected statistical data
+	func flushStatisticsToFiles(closeImmediateHooks: Bool = false) {
+		for (statName, statData) in hooks where !hardcodedImmediateHooks.contains(statName) {
+			// 1. Write hook data to file
+			let hookURL = URL(fileURLWithPath: "\(folder)\(statName).log")
+
+			// Create file if it doesn't exist
+			if !FileManager.default.fileExists(atPath: hookURL.path) {
+				FileManager.default.createFile(atPath: hookURL.path, contents: nil)
+			}
+
+			// Create handle
+			var hookHandle: FileHandle
+			do {
+				hookHandle = try FileHandle(forWritingTo: hookURL)
+				hookHandle.seekToEndOfFile()
+			} catch {
+				print("Error: Failed to initialize filehandle for", statName)
+				print(error)
+				exit(EXIT_FAILURE)
+			}
+
+			// Write available hook data
+			hookHandle.write( statData.data(using: String.Encoding.utf8)! )
+
+			// Close handle
+			hookHandle.closeFile()
+
+			// 2. Flush hook
+			hooks[statName]! = ""
+		}
+
+		if closeImmediateHooks {
+			// Close filehandles of immediate hooks
+			for handle in immediateHookHandles.values {
+				handle.closeFile()
+			}
+		}
+	}
+
 	/// Add data to a specific statistic
 	func writeToHook(_ statName: String, data: String) {
 		guard hooks[statName] != nil else {
@@ -180,7 +220,12 @@ class Statistics {
 		city.events.add(cleanupEvent: finalCollectionEvent)
 
 		// Schedule a cleanup-stage event to write all statistical data to files
-		let statWriteEvent = SimulationEvent(time: SimulationTime(), type: .statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
+		let statWriteEvent: SimulationEvent
+		if city.dataFlushInterval == nil {
+			statWriteEvent = SimulationEvent(time: SimulationTime(), type: .statistics, action: {city.stats.writeStatisticsToFiles()} , description: "writeStatsToFiles")
+		} else {
+			statWriteEvent = SimulationEvent(time: SimulationTime(), type: .statistics, action: {city.stats.flushStatisticsToFiles(closeImmediateHooks: true)} , description: "flushStatsToFiles")
+		}
 		city.events.add(cleanupEvent: statWriteEvent)
 	}
 
@@ -464,7 +509,7 @@ class Statistics {
 		}
 
 		if hooks["decisionWPM"] != nil {
-			writeToHook("decisionWPM", data: "time\(separator)id\(separator)asig\(separator)asat\(separator)acov\(separator)abat\(separator)wpm\(separator)disabled\(separator)disableSelf\(separator)meanSig\(separator)stdevSig\(separator)meanSat\(separator)stdevSat\(separator)sigToSat\(separator)wpmNA\(terminator)")
+			writeToHook("decisionWPM", data: "time\(separator)id\(separator)asig\(separator)asat\(separator)acov\(separator)abat\(separator)wpm\(separator)disabled\(separator)disableSelf\(separator)meanSig\(separator)stdevSig\(separator)meanSat\(separator)stdevSat\(separator)sigToSat\(separator)wpmNA\(separator)passDisableThreshold\(terminator)")
 		}
 
 		if hooks["movingAverageWPM"] != nil {

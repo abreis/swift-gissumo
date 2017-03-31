@@ -52,12 +52,18 @@ class Decision {
 				let wcov = weightedProductModelConfig["wcov"] as? Double,
 				let wbat = weightedProductModelConfig["wbat"] as? Double,
 				let minRedundancy = weightedProductModelConfig["minRedundancy"] as? Double,
-				let mapRequestDepth = weightedProductModelConfig["mapRequestDepth"] as? UInt
+				let mapRequestDepth = weightedProductModelConfig["mapRequestDepth"] as? UInt,
+				let disableThreshold = weightedProductModelConfig["disableThreshold"] as? Double
 				else {
 					print("Error: Invalid parameters for WeightedProductModel algorithm.")
 					exit(EXIT_FAILURE)
 			}
-			algorithm = WeightedProductModel(weights: (wsig: wsig, wsat: wsat, wcov: wcov, wbat: wbat), minRedundancy: minRedundancy, mapRequestDepth: mapRequestDepth)
+			guard case 0..<1 = disableThreshold
+			else {
+				print("Error: WeightedProductModel.disableThreshold not in [0,1[.")
+				exit(EXIT_FAILURE)
+			}
+			algorithm = WeightedProductModel(weights: (wsig: wsig, wsat: wsat, wcov: wcov, wbat: wbat), minRedundancy: minRedundancy, mapRequestDepth: mapRequestDepth, disableThreshold: disableThreshold)
 
 		default:
 			print("Error: Invalid decision algorithm chosen.")
@@ -230,11 +236,13 @@ class WeightedProductModel: DecisionAlgorithm {
 	var weights: (wsig: Double, wsat: Double, wcov: Double, wbat: Double) = (1.0, 1.0, 1.0, 1.0)
 	var minRedundancy: Double = 2.0
 	var mapRequestDepth: UInt = 1
+	var disableThreshold: Double = 0.0
 
-	init(weights: (wsig: Double, wsat: Double, wcov: Double, wbat: Double), minRedundancy: Double, mapRequestDepth: UInt) {
+	init(weights: (wsig: Double, wsat: Double, wcov: Double, wbat: Double), minRedundancy: Double, mapRequestDepth: UInt, disableThreshold: Double) {
 		self.weights = weights
 		self.minRedundancy = minRedundancy
 		self.mapRequestDepth = mapRequestDepth
+		self.disableThreshold = disableThreshold
 	}
 
 	// On trigger, request 1-hop neighborhood coverage maps, and wait 1 second to receive replies before deciding
@@ -519,10 +527,37 @@ class WeightedProductModel: DecisionAlgorithm {
 		// Pick the best combination and execute it: send 'RSU disable' messages to RSUs disabled in the chosen solution
 		let bestCombination = scoredCombinations.first!
 
-		// Don't apply zero-score combinations; this may happen if any of the attributes was null
-		if bestCombination.stats.wpmScore > 0 {
-			// This flag determines whether the reference vehicle will become an RSU at the end of this process
-			var disableSelf: Bool = false
+		// Guard against zero-score or NaN combinations; this may happen if any of the attributes was null
+		guard bestCombination.stats.wpmScore > 0 else {
+			pcar.city.removeEntity(pcar)
+			return
+		}
+
+		// Get the score of the null (no-action) decision
+		var noActionCombinationID = baseCombination
+		noActionCombinationID[0] = false	// The null combination disables the first entity only, ourselves
+		let noActionCombination = scoredCombinations.filter( {$0.combination == noActionCombinationID} )
+		guard	noActionCombination.count == 1,
+			let noAction = noActionCombination.first
+			else {
+				print("Error: Failed to find the no-action combination.")
+				exit(EXIT_FAILURE)
+		}
+
+		// See if we hit the disable decision threshold
+		// Criteria: the best decision isn't the null decision
+		var passDisableThreshold: Bool = false
+		if noAction.combination != bestCombination.combination {
+			let deltaDisable = bestCombination.stats.wpmScore - noAction.stats.wpmScore
+			let deltaDisablePercentage = deltaDisable / noAction.stats.wpmScore
+			if deltaDisablePercentage > disableThreshold { passDisableThreshold = true }
+		}
+
+		// This flag determines whether the reference vehicle will become an RSU at the end of this process
+		var disableSelf: Bool = false
+
+		// If we cleared the decision threshold, apply the best combination
+		if passDisableThreshold {
 			for (combinationIndex, combinationValue) in bestCombination.combination.enumerated() {
 				// Entity will be disabled
 				if combinationValue == false {
@@ -537,47 +572,36 @@ class WeightedProductModel: DecisionAlgorithm {
 						pcar.broadcastPacket(disablePacket, toFeatureTypes: .roadsideUnit)
 					}
 				}
-				// Entity won't be disabled, do nothing
+					// Entity won't be disabled, do nothing
 				else {}
 			}
-
-			// Statistics: track top decision metrics
-			if pcar.city.stats.hooks["decisionWPM"] != nil {
-				let separator = pcar.city.stats.separator
-				let terminator = pcar.city.stats.terminator
-
-				let numNeighborsDisabled: Int = bestCombination.combination.filter{ $0 == false }.count
-
-				// Get the score of the null (no-action) decision
-				var noActionCombinationID = baseCombination
-				noActionCombinationID[0] = false	// The null combination disables the first entity only, ourselves
-				let noActionCombination = scoredCombinations.filter( {$0.combination == noActionCombinationID} )
-				guard	noActionCombination.count == 1,
-						let noAction = noActionCombination.first
-					else {
-						print("Error: Failed to find the no-action combination.")
-						exit(EXIT_FAILURE)
-				}
-
-				pcar.city.stats.writeToHook("decisionWPM", data:"\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(bestCombination.stats.asig)\(separator)\(bestCombination.stats.asat)\(separator)\(bestCombination.stats.acov)\(separator)\(bestCombination.stats.abat)\(separator)\(bestCombination.stats.wpmScore)\(separator)\(numNeighborsDisabled)\(separator)\(disableSelf)\(separator)\(bestCombination.stats.sigMeasure.mean)\(separator)\(bestCombination.stats.sigMeasure.stdev)\(separator)\(bestCombination.stats.satMeasure.mean)\(separator)\(bestCombination.stats.satMeasure.stdev)\(separator)\(bestCombination.stats.sigMeasure.mean/bestCombination.stats.satMeasure.mean)\(separator)\(noAction.stats.wpmScore)\(terminator)")
-			}
-
-			// Statistics: track data for moving average
-			if pcar.city.stats.hooks["movingAverageWPM"] != nil {
-				if var scoreArray = pcar.city.stats.metrics["movingAverageWPM"] as? (sig: [Double], sat: [Double]) {
-					scoreArray.sig.append(bestCombination.stats.sigMeasure.mean)
-					scoreArray.sat.append(bestCombination.stats.satMeasure.mean)
-					pcar.city.stats.metrics["movingAverageWPM"] = scoreArray
-				}
-			}
-
-			// Parked car becomes an RSU, or is removed
-			if !disableSelf { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
-			else { pcar.city.removeEntity(pcar) }
+		} else {
+			// If the disable threshold was hit, we fall back to the null decision, which disables this parked car only
+			disableSelf = true
 		}
-		// If the best combination was zero-score, disable the parked car
-		else {
-			pcar.city.removeEntity(pcar)
+
+		// Parked car becomes an RSU, or is removed
+		if !disableSelf && passDisableThreshold { pcar.city.convertEntity(pcar, to: .roadsideUnit) }
+		else { pcar.city.removeEntity(pcar) }
+
+
+		/// Statistics: track top decision metrics
+		if pcar.city.stats.hooks["decisionWPM"] != nil {
+			let separator = pcar.city.stats.separator
+			let terminator = pcar.city.stats.terminator
+
+			let numNeighborsDisabled: Int = bestCombination.combination.filter{ $0 == false }.count
+
+			pcar.city.stats.writeToHook("decisionWPM", data:"\(pcar.city.events.now.asSeconds)\(separator)\(pcar.id)\(separator)\(bestCombination.stats.asig)\(separator)\(bestCombination.stats.asat)\(separator)\(bestCombination.stats.acov)\(separator)\(bestCombination.stats.abat)\(separator)\(bestCombination.stats.wpmScore)\(separator)\(numNeighborsDisabled)\(separator)\(disableSelf)\(separator)\(bestCombination.stats.sigMeasure.mean)\(separator)\(bestCombination.stats.sigMeasure.stdev)\(separator)\(bestCombination.stats.satMeasure.mean)\(separator)\(bestCombination.stats.satMeasure.stdev)\(separator)\(bestCombination.stats.sigMeasure.mean/bestCombination.stats.satMeasure.mean)\(separator)\(noAction.stats.wpmScore)\(separator)\(passDisableThreshold)\(terminator)")
+		}
+
+		/// Statistics: track data for moving average
+		if pcar.city.stats.hooks["movingAverageWPM"] != nil {
+			if var scoreArray = pcar.city.stats.metrics["movingAverageWPM"] as? (sig: [Double], sat: [Double]) {
+				scoreArray.sig.append(bestCombination.stats.sigMeasure.mean)
+				scoreArray.sat.append(bestCombination.stats.satMeasure.mean)
+				pcar.city.stats.metrics["movingAverageWPM"] = scoreArray
+			}
 		}
 	}
 }

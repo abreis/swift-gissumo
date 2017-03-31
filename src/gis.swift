@@ -215,7 +215,8 @@ class GIS {
 
 		let dLat = lat2rad - lat1rad
 		let dLon = lon2rad - lon1rad
-		let a = sin(dLat/2) * sin(dLat/2) + sin(dLon/2) * sin(dLon/2) * cos(lat1rad) * cos(lat2rad)
+		var a = sin(dLat/2) * sin(dLat/2)
+			a += sin(dLon/2) * sin(dLon/2) * cos(lat1rad) * cos(lat2rad)
 		let c = 2 * asin(sqrt(a))
 		let R = 6372.8
 

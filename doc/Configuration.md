@@ -33,6 +33,11 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
   An inner square area on which to collect statistics from. This helps the statistics module avoid fringe effects where the data might be suboptimal.
 
 
+* `dataFlushInterval`
+
+  For longer simulations, setting a time (in simulation seconds) in this parameter causes the simulator to flush data to all files periodically, and to flush old simulation events, thereby keeping memory usage in check.
+
+
 * `stats`
 
   Statistics module configuration.
@@ -65,7 +70,7 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
     - `wsig`, `wsat`, `wcov`, `wbat`: WPM attribute weights.
     - `minRedundancy`: desired RSU redundancy level, for the saturation attribute.
 	- `mapRequestDepth`: how many hops to ask for coverage maps (implemented: 1, 2).
-
+	- `disableThreshold`: decisions that disable RSUs must exceed this specified percentage over the null decision.
 
 * `gis`
 

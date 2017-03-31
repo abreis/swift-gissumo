@@ -72,6 +72,10 @@ if	let innerBoundsConfig = config["innerBounds"] as? NSDictionary,
 // Load RSU lifetime
 let configRsuLifetime = config["rsuLifetime"] as? Int
 
+// Load data flush interval
+var configDataFlushInterval = config["dataFlushInterval"] as? Int
+if configDataFlushInterval == 0 { configDataFlushInterval = nil }
+
 // Load statistics configuration point
 guard let statisticsConfig = config["stats"] as? NSDictionary else {
 	print("failed", "\nError: Please provide a statistics entry in the configuration.")
@@ -187,6 +191,8 @@ var simCity = City(gis: gisdb, network: Network(), eventList: EventList(stopTime
 // Set RSU lifetime
 if configRsuLifetime != nil { simCity.rsuLifetime = configRsuLifetime }
 
+// Set periodic data flush
+if configDataFlushInterval != nil { simCity.dataFlushInterval = configDataFlushInterval }
 
 // Clear all points from the database
 print("Clearing old features from GIS... ", terminator: ""); fflush(stdout)
