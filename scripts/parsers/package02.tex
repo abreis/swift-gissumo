@@ -34,7 +34,11 @@
 
 \begin{tikzpicture}[overlay]
 	\node[draw, anchor=north west, text width=\singlewidthrow, color=white    ] (fig1) at (\xleft,\yone) {
-		\verbatiminput{description.txt}
+	 \begin{minipage}[t][70mm][t]{\textwidth}
+		\begin{multicols}{2}
+			\verbatiminput{description.txt}
+		\end{multicols}
+	\end{minipage}
 	};
 
 	\node[draw, anchor=north west, text width=\singlewidthrow, color=lightgray] (fig2) at (\xright,\yone) {

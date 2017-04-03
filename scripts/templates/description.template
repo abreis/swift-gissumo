@@ -7,3 +7,4 @@ decision.algorithm.WeightedProductModel.wcov
 decision.algorithm.WeightedProductModel.wbat
 decision.algorithm.WeightedProductModel.minRedundancy
 decision.algorithm.WeightedProductModel.mapRequestDepth
+decision.algorithm.WeightedProductModel.disableThreshold

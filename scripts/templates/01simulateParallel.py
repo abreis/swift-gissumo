@@ -163,7 +163,7 @@ while True:
 
 # Create a file with a description of the simulation set (overwriting)
 with open(os.path.join(simulationDir, simulationDescription), 'w') as descriptionFp:
-	descriptionFp.write("{:d} simulations\n".format(totalSimulations))
+	descriptionFp.write("simulations: {:d}\n".format(totalSimulations))
 
 # Simulation over
 print("Set complete, ran {:d} simulations.".format(totalSimulations))

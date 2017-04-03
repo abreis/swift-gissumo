@@ -38,6 +38,7 @@ declare -a PARSERS=(
 "meanSignal_limit full"
 "meanSaturation_limit full"
 "signalToSaturation_limit full"
+"roadsideUnitLifetime"
 )
 
 # Check for the presence of a simulation folder

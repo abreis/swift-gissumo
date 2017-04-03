@@ -7,8 +7,9 @@ set ylabel "Frequency" rotate by +90 center
 unset key
 set key autotitle columnhead
 
-unset xtics
+set xtics out nomirror
 unset ytics
+set style fill solid border lc rgb "white"
 
 # binning limits
 binmin = 0
@@ -21,4 +22,4 @@ bincount = 40
 binwidth = (binmax-binmin)/bincount
 bin(x) = binwidth*(floor((x-binmin)/binwidth)+0.5) + binmin
 
-plot 'dir/datafile.name' using (bin($1)):(1.0) smooth freq with boxes
+plot 'dir/datafile.name' using (bin($1)):(1.0) smooth freq with boxes lc rgb "#0074D9"
