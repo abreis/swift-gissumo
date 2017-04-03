@@ -161,15 +161,15 @@ class City {
 	var dataFlushInterval: Int? {
 		didSet {
 			func periodicDataFlush(interval: Int) {
-				simCity.events.list.flushOldEvents(upToTime: simCity.events.now)
-				simCity.stats.flushStatisticsToFiles()
+				events.list.flushOldEvents(upToTime: events.now)
+				stats.flushStatisticsToFiles()
 
-				let newFlushEvent = SimulationEvent(time: simCity.events.now+Time(seconds: interval), type: .simulation, action: {periodicDataFlush(interval: interval)}, description: "periodic data flush")
-				simCity.events.add(newEvent: newFlushEvent)
+				let newFlushEvent = SimulationEvent(time: events.now+Time(seconds: interval), type: .simulation, action: { periodicDataFlush(interval: interval) }, description: "periodic data flush")
+				events.add(newEvent: newFlushEvent)
 			}
 
-			let newFlushEvent = SimulationEvent(time: SimulationTime(seconds: configDataFlushInterval!), type: .simulation, action: {periodicDataFlush(interval: configDataFlushInterval!)}, description: "periodic data flush")
-			simCity.events.add(newEvent: newFlushEvent)
+			let newFlushEvent = SimulationEvent(time: SimulationTime(seconds: dataFlushInterval!), type: .simulation, action: { periodicDataFlush(interval: self.dataFlushInterval!) }, description: "periodic data flush")
+			events.add(newEvent: newFlushEvent)
 		}
 	}
 
@@ -242,6 +242,8 @@ class City {
 		if debug.contains("City.determineBounds()"){
 			print("\(events.now.asSeconds) City.determineBounds():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell) }
 	}
+
+	/// Periodically flush old events and push stat data to files
 
 	/// Schedule mobility events and determine bounds from the FCD data
 	func scheduleMobilityAndDetermineBounds(fromTSV fcdTSV: inout [String], stopTime configStopTime: Double = 0.0) {
