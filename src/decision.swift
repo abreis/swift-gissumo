@@ -53,7 +53,9 @@ class Decision {
 				let wbat = weightedProductModelConfig["wbat"] as? Double,
 				let minRedundancy = weightedProductModelConfig["minRedundancy"] as? Double,
 				let mapRequestDepth = weightedProductModelConfig["mapRequestDepth"] as? UInt,
-				let disableThreshold = weightedProductModelConfig["disableThreshold"] as? Double
+				let disableThreshold = weightedProductModelConfig["disableThreshold"] as? Double,
+				let abatNoImpactTime = weightedProductModelConfig["abatNoImpactTime"] as? Double,
+				let abatMaxActiveTime = weightedProductModelConfig["abatMaxActiveTime"] as? Double
 				else {
 					print("Error: Invalid parameters for WeightedProductModel algorithm.")
 					exit(EXIT_FAILURE)
@@ -63,7 +65,7 @@ class Decision {
 				print("Error: WeightedProductModel.disableThreshold not in [0,1[.")
 				exit(EXIT_FAILURE)
 			}
-			algorithm = WeightedProductModel(weights: (wsig: wsig, wsat: wsat, wcov: wcov, wbat: wbat), minRedundancy: minRedundancy, mapRequestDepth: mapRequestDepth, disableThreshold: disableThreshold)
+			algorithm = WeightedProductModel(weights: (wsig: wsig, wsat: wsat, wcov: wcov, wbat: wbat), minRedundancy: minRedundancy, mapRequestDepth: mapRequestDepth, disableThreshold: disableThreshold, abatSettings: (abatNoImpactTime, abatMaxActiveTime))
 
 		default:
 			print("Error: Invalid decision algorithm chosen.")
@@ -237,12 +239,14 @@ class WeightedProductModel: DecisionAlgorithm {
 	var minRedundancy: Double = 2.0
 	var mapRequestDepth: UInt = 1
 	var disableThreshold: Double = 0.0
+	var abatSettings: (noImpactTime: Double, maxActiveTime: Double) = (3600.0, 7200.0)
 
-	init(weights: (wsig: Double, wsat: Double, wcov: Double, wbat: Double), minRedundancy: Double, mapRequestDepth: UInt, disableThreshold: Double) {
+	init(weights: (wsig: Double, wsat: Double, wcov: Double, wbat: Double), minRedundancy: Double, mapRequestDepth: UInt, disableThreshold: Double, abatSettings: (Double, Double)) {
 		self.weights = weights
 		self.minRedundancy = minRedundancy
 		self.mapRequestDepth = mapRequestDepth
 		self.disableThreshold = disableThreshold
+		self.abatSettings = abatSettings
 	}
 
 	// On trigger, request 1-hop neighborhood coverage maps, and wait 1 second to receive replies before deciding
@@ -448,8 +452,8 @@ class WeightedProductModel: DecisionAlgorithm {
 				}
 
 				func batteryTransform(_ elapsedTime: Time) -> Double {
-					let noImpactTime = 3600.0
-					let maxActiveTime = 7200.0
+					let noImpactTime = abatSettings.noImpactTime
+					let maxActiveTime = abatSettings.maxActiveTime
 
 					if elapsedTime.fpSeconds < noImpactTime { return 1.0 }
 

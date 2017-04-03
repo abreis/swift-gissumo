@@ -107,6 +107,10 @@
 				<integer>2</integer>
 				<key>disableThreshold</key>
 				<real>0.1</real>
+				<key>abatNoImpactTime</key>
+				<integer>1800</integer>
+				<key>abatMaxActiveTime</key>
+				<integer>3600</integer>
 			</dict>
 			<key>CellCoverageEffects</key>
 			<dict>
