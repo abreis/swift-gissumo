@@ -1,5 +1,11 @@
 /* This script takes a list of statistical data files containing tab-separated values,
  * and aggregates a specifed column so that it can be used for generating histograms.
+ *
+ * If a time, in seconds, is specified in as the third argument, only samples collected
+ * after that (simulation) time will be included. This is helpful to exclude impulse stages.
+ *
+ * The fourth argument specifies the name or number of the column with the time data. 
+ * Assumed to be the first column, if not provided.
  */
 
 import Foundation
@@ -30,10 +36,11 @@ struct Measurement {
 /*** ***/
 
 
-guard CommandLine.arguments.count == 3 else {
-	print("usage: \(CommandLine.arguments[0]) [list of data files] [column name or number]")
+guard 3...5 ~= CommandLine.arguments.count else {
+	print("usage: \(CommandLine.arguments[0]) [list of data files] [column name or number] [minimum time] [column name or number of time entry]")
 	exit(EXIT_FAILURE)
 }
+
 
 var columnNumber: Int? = nil
 var cliColName: String? = nil
@@ -41,6 +48,23 @@ if let cliColNum = UInt(CommandLine.arguments[2]) {
 	columnNumber = Int(cliColNum)-1
 } else {
 	cliColName = CommandLine.arguments[2]
+}
+
+
+// Load minimum sample time
+var minTime: Double? = nil
+if CommandLine.arguments.count > 3 {
+	minTime = Double(CommandLine.arguments[3])
+}
+
+var timeColumnNumber: Int? = nil
+var timeCliColName: String? = nil
+if CommandLine.arguments.count > 4 {
+	if let timeCliColNum = UInt(CommandLine.arguments[4]) {
+		timeColumnNumber = Int(timeCliColNum)-1
+	} else {
+		timeCliColName = CommandLine.arguments[4]
+	}
 }
 
 var statFiles: String
@@ -82,18 +106,32 @@ for statFile in statFiles.components(separatedBy: .newlines).filter({!$0.isEmpty
 		columnNumber = colIndex
 	}
 
+	if timeColumnNumber == nil {
+		let header = statFileLines.first!
+		let colNames = header.components(separatedBy: "\t").filter({!$0.isEmpty})
+		if let timeColIndex = colNames.index(where: {$0 == timeCliColName}) {
+			timeColumnNumber = timeColIndex
+		} else {
+			timeColumnNumber = 0
+		}
+	}
+
 	// 3. Drop the first line (header)
 	statFileLines.removeFirst()
 
 	// 4. Run through the statFile lines
-	for statFileLine in statFileLines {
+	statFileLoop: for statFileLine in statFileLines {
 		// Split each line by tabs
 		let statFileLineColumns = statFileLine.components(separatedBy: "\t").filter({!$0.isEmpty})
-		// First column is time index for the dictionary
 		// 'columnNumber' column is the data we want
-		guard let dataEntry = Double(statFileLineColumns[columnNumber!]) else {
+		guard	let timeEntry = Double(statFileLineColumns[timeColumnNumber!]),
+				let dataEntry = Double(statFileLineColumns[columnNumber!]) else {
 					print("ERROR: Can't interpret data.")
 					exit(EXIT_FAILURE)
+		}
+
+		if minTime != nil && timeEntry < minTime! {
+			continue statFileLoop
 		}
 
 		// Push the data into the measurement's samples
