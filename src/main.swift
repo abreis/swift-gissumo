@@ -268,29 +268,31 @@ let main = {
 
 	// Go through the events
 	for nextEvent in simCity.events.list where nextEvent.time <= simCity.events.stopTime && !sigInt {
-		// Update current time
-		assert(nextEvent.time > simCity.events.now)
-		simCity.events.now = nextEvent.time
+		autoreleasepool {
+			// Update current time
+			assert(nextEvent.time > simCity.events.now)
+			simCity.events.now = nextEvent.time
 
-		// Print progress bar
-		if simCity.events.now.nanoseconds > nextTarget {
-			print(nextTargetPercent, terminator: "% ")
-			// If debug is being printed, don't single-line the progress bar
-			if !debug.isEmpty { print("") }
-			fflush(stdout)
-			nextTargetPercent += progressIncrement
-		}
+			// Print progress bar
+			if simCity.events.now.nanoseconds > nextTarget {
+				print(nextTargetPercent, terminator: "% ")
+				// If debug is being printed, don't single-line the progress bar
+				if !debug.isEmpty { print("") }
+				fflush(stdout)
+				nextTargetPercent += progressIncrement
+			}
 
-		if debug.contains("main().events"){
-			print("\(simCity.events.now.asSeconds) main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
-		}
+			if debug.contains("main().events"){
+				print("\(simCity.events.now.asSeconds) main():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Executing", nextEvent.type, "event\t", nextEvent.description.darkGray())
+			}
 
-		// Execute the event
-		nextEvent.action()
+			// Execute the event
+			nextEvent.action()
 
-		// Output simulation time, if enabled
-		if simCity.stats.hooks["simulationTime"] != nil {
-			simCity.stats.writeToHook("simulationTime", data: "\(simCity.events.now.asSeconds)\n")
+			// Output simulation time, if enabled
+			if simCity.stats.hooks["simulationTime"] != nil {
+				simCity.stats.writeToHook("simulationTime", data: "\(simCity.events.now.asSeconds)\n")
+			}
 		}
 	}
 	print("done")

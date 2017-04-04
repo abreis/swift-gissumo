@@ -280,107 +280,109 @@ class City {
 			// Don't load timesteps that occur later than the simulation stopTime
 			if configStopTime > 0, timestepTime > configStopTime { break tsvLoop }
 
+			autoreleasepool {
 			// Create an array for storing FCDVehicles
-			var timestepVehicles = [FCDVehicle]()
-			timestepLoop: repeat {
-				// Pull an entry
-				let fcdEntry = fcdTSV[entryPosition].components(separatedBy: "\t")
+				var timestepVehicles = [FCDVehicle]()
+				timestepLoop: repeat {
+					// Pull an entry
+					let fcdEntry = fcdTSV[entryPosition].components(separatedBy: "\t")
 
-				// Get the entry's timestep time, and continue if it belongs to the next timestep
-				guard	let v_time = Double(fcdEntry[0]),
-						v_time == timestepTime
-				else {
-					break timestepLoop
+					// Get the entry's timestep time, and continue if it belongs to the next timestep
+					guard	let v_time = Double(fcdEntry[0]),
+							v_time == timestepTime
+					else {
+						break timestepLoop
+					}
+
+					// Process the entry
+					guard	let v_id = UInt(fcdEntry[1]),
+							let v_xgeo = Double(fcdEntry[2]),
+							let v_ygeo = Double(fcdEntry[3])
+					else {
+							print("Error: Unable to convert vehicle properties.")
+							exit(EXIT_FAILURE)
+					}
+
+					// Append a new FCDVehicle entry
+					timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo)) )
+
+					// Increment our position on the TSV array
+					entryPosition += 1
+				} while entryPosition < fcdTSV.count
+
+				// Create an FCDTimestep object
+				let timestep = FCDTimestep(time: timestepTime, vehicles: timestepVehicles)
+
+
+				// Schedule mobility and determine bounds
+				// [bounds]
+				for vehicle in timestep.vehicles {
+					if vehicle.geo.x < bounds.x.min { bounds.x.min = vehicle.geo.x }
+					if vehicle.geo.x > bounds.x.max { bounds.x.max = vehicle.geo.x }
+					if vehicle.geo.y < bounds.y.min { bounds.y.min = vehicle.geo.y }
+					if vehicle.geo.y > bounds.y.max { bounds.y.max = vehicle.geo.y }
 				}
 
-				// Process the entry
-				guard	let v_id = UInt(fcdEntry[1]),
-						let v_xgeo = Double(fcdEntry[2]),
-						let v_ygeo = Double(fcdEntry[3])
-				else {
-						print("Error: Unable to convert vehicle properties.")
-						exit(EXIT_FAILURE)
+				// [mobility]
+				/* Create a set of vehicle IDs in this timestep
+				* This is done by mapping the timestep's array of FCDVehicles into an array of
+				* the vehicle's IDs, and then initializing the Set<UInt> with that array.
+				*/
+				let fcdVehicleIDs = Set<UInt>( timestep.vehicles.map({$0.id}) )
+
+				// Through set relations we can now get the IDs of all new, existing and removed vehicles
+				let newVehicleIDs = fcdVehicleIDs.subtracting(cityVehicleIDs)
+				let existingVehicleIDs = fcdVehicleIDs.intersection(cityVehicleIDs)
+				let missingVehicleIDs = cityVehicleIDs.subtracting(fcdVehicleIDs)
+
+				// Debug
+				if debug.contains("EventList.scheduleMobilityEvents()"){
+					print("\(events.now.asSeconds) EventList.scheduleMobilityEvents():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Timestep", timestep.time, "sees:" )
+					print("\t\tFCD vehicles:", fcdVehicleIDs)
+					print("\t\tCity vehicles:", cityVehicleIDs)
+					print("\t\tNew vehicles:", newVehicleIDs)
+					print("\t\tExisting vehicles:", existingVehicleIDs)
+					print("\t\tMissing vehicles:", missingVehicleIDs)
 				}
 
-				// Append a new FCDVehicle entry
-				timestepVehicles.append( FCDVehicle(id: v_id, geo: (x: v_xgeo, y: v_ygeo)) )
+				// Insert and remove vehicles into our temporary array
+				cityVehicleIDs.formUnion(newVehicleIDs)
+				cityVehicleIDs.subtract(missingVehicleIDs)
 
-				// Increment our position on the TSV array
-				entryPosition += 1
-			} while entryPosition < fcdTSV.count
+				// Schedule events to create new vehicles
+				for newFCDvehicleID in newVehicleIDs {
+					let newFCDvehicle = timestep.vehicles[ timestep.vehicles.index( where: {$0.id == newFCDvehicleID} )! ]
+					// (note: the IDs came from timestep.vehicles, so an .indexOf on the array can be force-unwrapped safely)
 
-			// Create an FCDTimestep object
-			let timestep = FCDTimestep(time: timestepTime, vehicles: timestepVehicles)
+					let newVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {_ = self.addNew(vehicleWithID: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
 
+					events.add(newEvent: newVehicleEvent)
+				}
 
-			// Schedule mobility and determine bounds
-			// [bounds]
-			for vehicle in timestep.vehicles {
-				if vehicle.geo.x < bounds.x.min { bounds.x.min = vehicle.geo.x }
-				if vehicle.geo.x > bounds.x.max { bounds.x.max = vehicle.geo.x }
-				if vehicle.geo.y < bounds.y.min { bounds.y.min = vehicle.geo.y }
-				if vehicle.geo.y > bounds.y.max { bounds.y.max = vehicle.geo.y }
-			}
+				// Schedule events to update existing vehicles
+				for existingFDCvehicleID in existingVehicleIDs {
+					let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.index( where: {$0.id == existingFDCvehicleID} )! ]
 
-			// [mobility]
-			/* Create a set of vehicle IDs in this timestep
-			* This is done by mapping the timestep's array of FCDVehicles into an array of
-			* the vehicle's IDs, and then initializing the Set<UInt> with that array.
-			*/
-			let fcdVehicleIDs = Set<UInt>( timestep.vehicles.map({$0.id}) )
+					let updateVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {self.updateLocation(entityType: .vehicle, id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
 
-			// Through set relations we can now get the IDs of all new, existing and removed vehicles
-			let newVehicleIDs = fcdVehicleIDs.subtracting(cityVehicleIDs)
-			let existingVehicleIDs = fcdVehicleIDs.intersection(cityVehicleIDs)
-			let missingVehicleIDs = cityVehicleIDs.subtracting(fcdVehicleIDs)
+					events.add(newEvent: updateVehicleEvent)
+				}
 
-			// Debug
-			if debug.contains("EventList.scheduleMobilityEvents()"){
-				print("\(events.now.asSeconds) EventList.scheduleMobilityEvents():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Timestep", timestep.time, "sees:" )
-				print("\t\tFCD vehicles:", fcdVehicleIDs)
-				print("\t\tCity vehicles:", cityVehicleIDs)
-				print("\t\tNew vehicles:", newVehicleIDs)
-				print("\t\tExisting vehicles:", existingVehicleIDs)
-				print("\t\tMissing vehicles:", missingVehicleIDs)
-			}
+				// Schedule events to act on vehicles ending their trips
+				for missingFDCvehicleID in missingVehicleIDs {
+					let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {self.endTripConvertToParkedCar(vehicleID: missingFDCvehicleID)}, description: "endTripConvertToParkedCar vehicle \(missingFDCvehicleID)")
 
-			// Insert and remove vehicles into our temporary array
-			cityVehicleIDs.formUnion(newVehicleIDs)
-			cityVehicleIDs.subtract(missingVehicleIDs)
-
-			// Schedule events to create new vehicles
-			for newFCDvehicleID in newVehicleIDs {
-				let newFCDvehicle = timestep.vehicles[ timestep.vehicles.index( where: {$0.id == newFCDvehicleID} )! ]
-				// (note: the IDs came from timestep.vehicles, so an .indexOf on the array can be force-unwrapped safely)
-
-				let newVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {_ = self.addNew(vehicleWithID: newFCDvehicle.id, geo: newFCDvehicle.geo)}, description: "newVehicle id \(newFCDvehicle.id)")
-
-				events.add(newEvent: newVehicleEvent)
-			}
-
-			// Schedule events to update existing vehicles
-			for existingFDCvehicleID in existingVehicleIDs {
-				let existingFCDvehicle = timestep.vehicles[ timestep.vehicles.index( where: {$0.id == existingFDCvehicleID} )! ]
-
-				let updateVehicleEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {self.updateLocation(entityType: .vehicle, id: existingFDCvehicleID, geo: existingFCDvehicle.geo)}, description: "updateVehicle id \(existingFCDvehicle.id)")
-
-				events.add(newEvent: updateVehicleEvent)
-			}
-
-			// Schedule events to act on vehicles ending their trips
-			for missingFDCvehicleID in missingVehicleIDs {
-				let endTripEvent = SimulationEvent(time: SimulationTime(seconds: timestep.time), type: .mobility, action: {self.endTripConvertToParkedCar(vehicleID: missingFDCvehicleID)}, description: "endTripConvertToParkedCar vehicle \(missingFDCvehicleID)")
-
-				events.add(newEvent: endTripEvent)
-			}
+					events.add(newEvent: endTripEvent)
+				}
 
 
-			// Print progress bar
-			if Int(timestep.time) > nextTarget {
-				print(nextTargetPercent, terminator: "% ")
-				fflush(stdout)
-				nextTargetPercent += progressIncrement
-			}
+				// Print progress bar
+				if Int(timestep.time) > nextTarget {
+					print(nextTargetPercent, terminator: "% ")
+					fflush(stdout)
+					nextTargetPercent += progressIncrement
+				}
+			} // autoreleasepool
 
 		} while entryPosition < fcdTSV.count
 	}
