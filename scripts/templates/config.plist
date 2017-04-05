@@ -143,9 +143,9 @@
 	<key>debug</key>
 	<dict>
 		<key>WeightedProductModel.decide()</key>
-		<true/>
-		<key>WeightedProductModel.analyzeCombination() - 2</key>
-		<true/>
+		<false/>
+		<key>WeightedProductModel.analyzeCombination()</key>
+		<false/>
 		<key>CellCoverageEffects.decide()</key>
 		<false/>
 		<key>City.addNew(parkedCar)</key>

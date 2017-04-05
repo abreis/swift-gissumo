@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import time
+import datetime
 
 # Requires Python >3.5
 assert sys.version_info >= (3,5), "This script requires Python 3.5 or later."
@@ -144,7 +145,7 @@ while True:
 				# Print some statistics if a simulation finished
 				meanSimulationTime = sum(simulationTimes)/len(simulationTimes)/maxThreads
 				remainingTime = meanSimulationTime*(totalSimulations-simulationCount)
-				print("{:d}/{:d} simulations complete, ETA {:d}h{:02d}m{:02d}s".format(simulationCount, totalSimulations, int(remainingTime/3600), int(remainingTime%3600/60), int(remainingTime%60)), flush=True)
+				print("{:s}  {:d}/{:d} simulations complete, ETA {:d}h{:02d}m{:02d}s".format(str(datetime.datetime.now().time()), simulationCount, totalSimulations, int(remainingTime/3600), int(remainingTime%3600/60), int(remainingTime%60)), flush=True)
 
 	# Run a simulation if a free worker is available
 	if (len(fcdFiles) > 0) and (workers.count('free') > 0):
