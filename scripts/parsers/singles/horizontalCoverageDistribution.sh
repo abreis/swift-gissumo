@@ -1,5 +1,4 @@
 #!/bin/bash
-# This script plots the mean signal strength on 'signalAndSaturationEvolution'.
 
 set -e
 
@@ -9,18 +8,16 @@ if [ -z "$1" ]; then
 fi
 
 STARTATTIME=0
-if [[ "$2" =~ ^[0-9]+$ ]]; then
+if [[ "$2" =~ ^[0-9]+$ ]]; then 
 	STARTATTIME=$2
 else
 	printf "\nWarning: No start time provided, assuming zero.\n\n"
 fi
 
-GNUPLOTWIDTH="0.7"
-
 SIMDIR=$1
 STATDIR=stats
 VISDIR=plots
-VISNAME=rsuLife
+VISNAME=horizCovDist
 
 # Ensure we're working with gnuplot version 5
 if [[ ! $(gnuplot --version) =~ "gnuplot 5" ]]; then
@@ -36,14 +33,12 @@ if [ -d ${VISDIR} ]; then
 fi
 mkdir -p ${VISDIR}
 
-touch statfilelist
-for SIMULATIONLOG in $(find ${SIMDIR} -maxdepth 3 -type f -name 'parkedRoadsideUnitLifetime.log'); do
-	printf "${SIMULATIONLOG}\n" >> statfilelist
-done
+find ${SIMDIR} -maxdepth 3 -type f -name 'cityCoverageEvolution.log' > statfilelist
 
 # Call swift interpreter
-swift $(dirname $0)/aggregateColumnForHistogram.swift statfilelist lifetime ${STARTATTIME} removed > ${VISDIR}/${VISNAME}.data
+swift $(dirname $0)/averageCoverageDistribution.swift statfilelist ${STARTATTIME} > ${VISDIR}/${VISNAME}.data
 rm -rf statfilelist
+
 
 # Copy over gnuplot scaffold script
 cp $(dirname $0)/${VISNAME}.gnuplot ${VISDIR}/
@@ -53,5 +48,6 @@ sed -i '' 's|dir/datafile.name|'${VISDIR}'/'${VISNAME}'.data|g' ${VISDIR}/${VISN
 sed -i '' 's|dir/outfile.eps|'${VISDIR}'/'${VISNAME}'.eps|g' ${VISDIR}/${VISNAME}.gnuplot
 
 # Plot it
-gnuplot -e "argwidth=${GNUPLOTWIDTH}" ${VISDIR}/${VISNAME}.gnuplot
+gnuplot ${VISDIR}/${VISNAME}.gnuplot
 epstopdf ${VISDIR}/${VISNAME}.eps
+pdfjam ${VISDIR}/${VISNAME}.pdf --quiet --angle '-90' --fitpaper 'true' --rotateoversize 'true' --outfile ${VISDIR}/${VISNAME}_horiz.pdf

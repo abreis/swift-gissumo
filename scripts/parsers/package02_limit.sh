@@ -11,7 +11,7 @@
 # - meanSignal
 # - meanSaturation
 # - signalToSaturation
-# - TODO distribution of active RSU time
+# - distribution of active RSU time
 # - TODO decision analysis
 #
 # Run from the location where the 'simulations' folder is present.
@@ -39,6 +39,7 @@ declare -a PARSERS=(
 "meanSaturation_limit full"
 "signalToSaturation_limit full"
 "roadsideUnitLifetime"
+"singles/horizontalCoverageDistribution 3000"
 )
 
 # Check for the presence of a simulation folder

@@ -1,5 +1,5 @@
 /* This script takes a list of statistical data files containing tab-separated values,
- * and aggregates a specifed column so that it can be used for generating histograms.
+ * and bins the data for presenting as a histogram.
  *
  * If a time, in seconds, is specified in as the third argument, only samples collected
  * after that (simulation) time will be included. This is helpful to exclude impulse stages.
@@ -139,8 +139,37 @@ for statFile in statFiles.components(separatedBy: .newlines).filter({!$0.isEmpty
 	}
 }
 
-// For each sorted entry in the dictionary, print out the mean, median, min, max, std, var, etcetera
-print("data")
-for value in dataMeasurement.samples.sorted(by: {$0<$1}) {
-	print(value)
+// Bin data
+let binWidth = 80
+let binStart = 0
+// binCenter:density
+var binDict: [Int:Double] = [:]
+
+var dataPoints = dataMeasurement.samples
+dataPoints.sort(by: {$0<$1})
+
+var currentBin = binStart+binWidth/2
+for point in dataPoints {
+	if point < Double(currentBin+binWidth/2) {
+		if binDict[currentBin] != nil {
+			binDict[currentBin]! += 1
+		} else {
+			binDict[currentBin] = 1
+		}
+	} else {
+		currentBin+=binWidth
+	}
+}
+
+
+// Normalize
+for key in binDict.keys {
+	binDict[key] = Double(binDict[key]!)/dataMeasurement.count
+}
+
+
+// Print
+print("binCenter", "density", separator: "\t")
+for entry in binDict.sorted(by: {$0.key < $1.key}) {
+	print(entry.key, entry.value, separator: "\t")
 }
