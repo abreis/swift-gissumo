@@ -38,6 +38,11 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
   For longer simulations, setting a time (in simulation seconds) in this parameter causes the simulator to flush data to all files periodically, and to flush old simulation events, thereby keeping memory usage in check.
 
 
+* `rangeMultiplier`
+
+  A multiplier that scales the range of the propagation models used in the simulator. It affects the maximum range and coverage map cell size.
+
+
 * `stats`
 
   Statistics module configuration.

@@ -11,16 +11,21 @@ class Network {
 	// Delay between beacon broadcasts (1 sec)
 	let beaconingInterval = SimulationTime(seconds: 1)
 
+	// Multiplier, to be able to extend the radio range at will
+	var propagationMultiplier: Double = 1.0
+
 	// Maximum radio range (for GIS queries)
 	// Match with the chosen propagation algorithm
-	let maxRange: Double = 155
+	var maxRange: Double { get { return 155*propagationMultiplier } }
 
 	// The size, in cells, of a local coverage map
 	// Our coverage maps are 13x13, or ~390m wide (enough for a 155m radio range + margin of error)
-	lazy var selfCoverageMapSize: Int = 13
+	var selfCoverageMapSize: Int { get { return Int(ceil(maxRange*2.0*1.25/30.0)) } }
 
 	// Propagation algorithm
-	let getSignalStrength: (_ distance: Double, _ lineOfSight: Bool) -> Double = portoEmpiricalDataModel
+	func getSignalStrength(_ distance: Double, _ lineOfSight: Bool) -> Double {
+		return portoEmpiricalDataModel(distance: distance, lineOfSight: lineOfSight, multiplier: propagationMultiplier)
+	}
 
 	// Packet ID generator (can also be made to create random IDs)
 	var nextPacketID: UInt = 0
@@ -368,7 +373,10 @@ extension CellMap: PayloadConvertible {
 /*** SIGNAL STRENGTH ALGORITHMS ***/
 
 // A discrete propagation model built with empirical data from the city of Porto
-func portoEmpiricalDataModel(_ distance: Double, lineOfSight: Bool) -> Double {
+func portoEmpiricalDataModel(distance: Double, lineOfSight: Bool, multiplier: Double = 1.0) -> Double {
+	// Instead of increasing the ranges, we decrease the received distance, same outcome, less code (but less readability)
+	let distance = distance/multiplier
+
 	if lineOfSight {
 		switch distance {
 		case   0..<70	: return 5

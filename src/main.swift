@@ -93,6 +93,9 @@ let main = {
 	var configDataFlushInterval = config["dataFlushInterval"] as? Int
 	if configDataFlushInterval == 0 { configDataFlushInterval = nil }
 
+	// Load radio range multiplier
+	var configRangeMultiplier = config["rangeMultiplier"] as? Double
+
 	// Load statistics configuration point
 	guard let statisticsConfig = config["stats"] as? NSDictionary else {
 		print("failed", "\nError: Please provide a statistics entry in the configuration.")
@@ -210,6 +213,9 @@ let main = {
 
 	// Set periodic data flush
 	if configDataFlushInterval != nil { simCity.dataFlushInterval = configDataFlushInterval }
+
+	// Set range multiplier
+	if configRangeMultiplier != nil { simCity.network.propagationMultiplier = configRangeMultiplier! }
 
 	// Clear all points from the database
 	print("Clearing old features from GIS... ", terminator: ""); fflush(stdout)

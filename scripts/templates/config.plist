@@ -14,6 +14,8 @@
 	<true/>
 	<key>dataFlushInterval</key>
 	<integer>120</integer>
+	<key>rangeMultiplier</key>
+	<real>1</real>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
