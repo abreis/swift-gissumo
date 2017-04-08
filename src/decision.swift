@@ -256,8 +256,10 @@ class WeightedProductModel: DecisionAlgorithm {
 		pcar.broadcastPacket(covMapRequestPacket)
 
 		// Request neighbors' active times
-		let actTimeRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: ActiveTimeRequest().toPayload() )
-		pcar.broadcastPacket(actTimeRequestPacket)
+		if weights.wbat != 0 {
+			let actTimeRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: ActiveTimeRequest().toPayload() )
+			pcar.broadcastPacket(actTimeRequestPacket)
+		}
 
 		// Schedule an event to process the coverage maps and make the decision
 		let decisionEvent = SimulationEvent(time: pcar.city.events.now + mapRequestWaitingTime, type: .decision, action: { self.decide(pcar)}, description: "decide id \(pcar.id)")
@@ -473,7 +475,7 @@ class WeightedProductModel: DecisionAlgorithm {
 			combinationStats.asig = asig(sigData: combinationStats.sigMeasure)
 			combinationStats.asat = asat(satData: combinationStats.satMeasure)
 			combinationStats.acov = acov(covCells: combinationStats.covMeasure.count, maxCells: baseCoveredCellCount)
-			combinationStats.abat = abat()
+			combinationStats.abat = (weights.wbat != 0) ? abat() : 1.0
 
 			combinationStats.wpmScore = pow(combinationStats.asig, weights.wsig)
 									  * pow(combinationStats.asat, weights.wsat)
