@@ -100,7 +100,7 @@
 				<key>wbat</key>
 				<integer>0</integer>
 				<key>minRedundancy</key>
-				<integer>2</integer>
+				<integer>1</integer>
 				<key>mapRequestDepth</key>
 				<integer>2</integer>
 			</dict>

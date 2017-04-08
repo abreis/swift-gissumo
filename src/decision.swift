@@ -419,18 +419,12 @@ class WeightedProductModel: DecisionAlgorithm {
 				return sigData.mean
 			}
 
-			// Inverse asat
-			func asat(satData: Measurement) -> Double {
-				return 1.0/satData.mean
-			}
-
 			// Piecewise inverse asat
-//			func asat(satData: Measurement) -> Double {
-//				let meanSat = satData.mean
-//				if meanSat < minRedundancy {
-//					return 1.0/minRedundancy
-//				} else { return 1.0/meanSat }
-//			}
+			func asat(satData: Measurement) -> Double {
+				if satData.mean < minRedundancy {
+					return 1.0/minRedundancy
+				} else { return 1.0/satData.mean }
+			}
 
 			// Percentage acov
 			func acov(covCells: Int, maxCells: Int) -> Double {

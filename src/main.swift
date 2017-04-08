@@ -86,7 +86,8 @@ let main = {
 	}
 
 	// Load RSU lifetime
-	let configRsuLifetime = config["rsuLifetime"] as? Int
+	var configRsuLifetime = config["rsuLifetime"] as? Int
+	if configRsuLifetime == 0 { configRsuLifetime = nil }
 
 	// Load data flush interval
 	var configDataFlushInterval = config["dataFlushInterval"] as? Int

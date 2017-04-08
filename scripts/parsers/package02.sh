@@ -11,8 +11,6 @@
 # - meanSignal
 # - meanSaturation
 # - signalToSaturation
-# - TODO distribution of active RSU time
-# - TODO decision analysis
 #
 # Run from the location where the 'simulations' folder is present.
 
