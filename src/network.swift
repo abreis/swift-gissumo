@@ -20,7 +20,16 @@ class Network {
 
 	// The size, in cells, of a local coverage map
 	// Our coverage maps are 13x13, or ~390m wide (enough for a 155m radio range + margin of error)
-	var selfCoverageMapSize: Int { get { return Int(ceil(maxRange*2.0*1.25/30.0)) } }
+	var selfCoverageMapSize: Int {
+		get {
+			let errorMargin = 1.25
+			let cellSize = 30.0 // Note: adjust this for other SRIDs
+			let mapCellSize = Int(ceil(maxRange*2.0*errorMargin/cellSize))
+
+			// Ensure odd-sized maps (with a center cell to locate the RSU at)
+			return (mapCellSize % 2 == 0) ? mapCellSize+1 : mapCellSize
+		}
+	}
 
 	// Propagation algorithm
 	func getSignalStrength(_ distance: Double, _ lineOfSight: Bool) -> Double {
