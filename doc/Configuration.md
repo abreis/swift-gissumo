@@ -13,11 +13,6 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
   The time at which the simulation should stop. GISSUMO will also not load FCD data belonging to timesteps that occur after this time.
 
 
-* `rsuLifetime`
-
-  A maximum duration for a parked car to be active with a roadside unit role.
-
-
 * `locationSRID`
 
   The best SRID for the area of the city under simulation, for accurate distance calculations. Not required if using the Haversine formula.
@@ -28,11 +23,6 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
   Instead of querying the GIS database, use the Haversine formula to approximate the distance between two points. This formula typically shows 0.5% error, but it can reduce the simulation time in ~20%-30%.
 
 
-* `innerBounds` (x(min,max), y(min,max))
-
-  An inner square area on which to collect statistics from. This helps the statistics module avoid fringe effects where the data might be suboptimal.
-
-
 * `dataFlushInterval`
 
   For longer simulations, setting a time (in simulation seconds) in this parameter causes the simulator to flush data to all files periodically, and to flush old simulation events, thereby keeping memory usage in check.
@@ -41,6 +31,20 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
 * `rangeMultiplier`
 
   A multiplier that scales the range of the propagation models used in the simulator. It affects the maximum range and coverage map cell size.
+
+
+* `innerBounds` (x(min,max), y(min,max))
+
+  An inner square area on which to collect statistics from. This helps the statistics module avoid fringe effects where the data might be suboptimal.
+
+
+* `parking`
+
+  Parking model configuration.
+
+  - `seed`: a random seed to initialize random parking duration generators.
+  - `inUse`: select a parking model to use, by name.
+  - `<modelName>`: the parameters of a given model.
 
 
 * `stats`

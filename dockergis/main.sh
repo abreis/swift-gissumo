@@ -6,14 +6,14 @@ SCRIPTDIR='scripts'
 
 unset REPLY
 echo ''
-for SCRIPTGROUP in $( find ${SCRIPTDIR} -maxdepth 1 -type d ! -path ${SCRIPTDIR} | sed 's!.*/!!' | sort ); do
+for SCRIPTGROUP in $( find ${SCRIPTDIR} -maxdepth 1 -type d ! -path ${SCRIPTDIR} | sed 's!.*/!!' | grep '^[0-9][0-9]' | sort ); do
 
 	while [ -z $REPLY ]; do
 		read -p "Run ${SCRIPTGROUP}? [y/N] " 
 	done
 
 	if [[ $REPLY =~ ^[Yy]$ ]]; then
-		for SCRIPT in $( find ${SCRIPTDIR}/${SCRIPTGROUP} -type f -iname '*.sh' | sed 's!.*/!!' | sort ); do
+		for SCRIPT in $( find ${SCRIPTDIR}/${SCRIPTGROUP} -type f -iregex '.*/[0-9][0-9][a-z]+\.sh' | sed 's!.*/!!' | sort ); do
 			echo -e -n "\t $(basename ${SCRIPT} .sh ) ... \t"
 			echo -e "\n### Script ${SCRIPTDIR}/${SCRIPTGROUP}/${SCRIPT} at $(date) ###" >> main.log
 			${SCRIPTDIR}/${SCRIPTGROUP}/${SCRIPT} >> main.log 2>&1

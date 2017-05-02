@@ -82,6 +82,9 @@ class FixedRoadEntity: RoadEntity {
 			}
 		}
 	}
+
+	// Lifetime of an entity, used for parked cars and RSUs from parked cars
+	var lifetime: Time = Time(seconds: 0)
 }
 
 
@@ -117,6 +120,7 @@ class RoadsideUnit: FixedRoadEntity {
 }
 
 
+
 /* The city is our primary class. It keeps references to:
  * - the list of vehicles
  * - the list of roadside units
@@ -149,10 +153,10 @@ class City {
 	// Our decision module
 	let decision: Decision
 
-	// Maximum roadside unit lifetime
-	var rsuLifetime: Int? {
+	// Vehicle parking duration model
+	var parkingDurationModelInUse: ParkDurationModel? {
 		didSet {
-			let initialExpireEvent = SimulationEvent(time: self.decision.triggerDelay, type: .mobility, action: { self.recurringExpireRoadsideUnits() }, description: "expire roadside units")
+			let initialExpireEvent = SimulationEvent(time: self.decision.triggerDelay, type: .mobility, action: { self.recurringExpireFixedRoadEntities() }, description: "expire roadside units")
 			self.events.add(newEvent: initialExpireEvent)
 		}
 	}
@@ -388,20 +392,24 @@ class City {
 	}
 
 	/// Remove Roadside Units in the network whose expiry time is elapsed
-	func recurringExpireRoadsideUnits() -> () {
-		if rsuLifetime != nil {
-			let currentTime = events.now
-			for rsu in roadsideUnits {
-				if (currentTime.seconds - rsu.creationTime!.seconds) >= rsuLifetime! {
-					removeEntity(rsu)
-				}
+	func recurringExpireFixedRoadEntities() -> () {
+		let currentTime = events.now
+		for rsu in roadsideUnits {
+			if (currentTime - rsu.creationTime!) >= rsu.lifetime {
+				removeEntity(rsu)
+			}
+		}
+
+		for parkedCar in parkedCars {
+			if (currentTime - parkedCar.creationTime!) >= parkedCar.lifetime {
+				removeEntity(parkedCar)
 			}
 		}
 
 		// Schedule next expiry
 		let nextEventTime = self.events.now + SimulationTime(seconds: 1.0)
 		if nextEventTime < self.events.stopTime {
-			let nextExpireEvent = SimulationEvent(time: nextEventTime, type: .mobility, action: { self.recurringExpireRoadsideUnits() }, description: "expire roadside units")
+			let nextExpireEvent = SimulationEvent(time: nextEventTime, type: .mobility, action: { self.recurringExpireFixedRoadEntities() }, description: "expire fixedroadentities")
 			self.events.add(newEvent: nextExpireEvent)
 		}
 	}
@@ -539,6 +547,11 @@ class City {
 
 		// Add the new Parked Car to GIS and record its GIS ID
 		newParkedCar.gid = gis.addPoint(ofType: .parkedCar, geo: newParkedCar.geo, id: newParkedCar.id)
+
+		// Get the car's lifetime (if available)
+		if (parkingDurationModelInUse != nil) {
+			newParkedCar.lifetime = parkingDurationModelInUse!.getParkingDuration(timeOfParking: events.now)
+		}
 
 		// Append the new vehicle to the city's vehicle list
 		parkedCars.append(newParkedCar)
@@ -697,6 +710,11 @@ class City {
 				newEntity = addNew(roadsideUnitWithID: entity.id, geo: entity.geo, type: .parkedCar)
 				// Copy the coverage map over to the new RSU
 				(newEntity as! RoadsideUnit).selfCoverageMap = (entity as! ParkedCar).selfCoverageMap
+				// Copy the lifetime (parking duration) to the new RSU, removing already elapsed time
+				var parkedCarLifetime = (entity as! ParkedCar).lifetime
+				let parkedCarElapsedLife = entity.creationTime! - events.now
+				parkedCarLifetime -= parkedCarElapsedLife
+				(newEntity as! RoadsideUnit).lifetime = parkedCarLifetime
 			default:
 				print("Error: Invalid entity conversion.")
 				exit(EXIT_FAILURE)

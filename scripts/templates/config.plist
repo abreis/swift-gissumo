@@ -6,8 +6,6 @@
 	<string>work/fcdout.tsv</string>
 	<key>stopTime</key>
 	<integer>28800</integer>
-	<key>rsuLifetime</key>
-	<integer>0</integer>
 	<key>locationSRID</key>
 	<integer>27492</integer>
 	<key>useHaversine</key>
@@ -31,6 +29,18 @@
 			<real>41.1679</real>
 			<key>min</key>
 			<real>41.1598</real>
+		</dict>
+	</dict>
+	<key>parking</key>
+	<dict>
+		<key>seed</key>
+		<integer>31338</integer>
+		<key>inUse</key>
+		<string>DualGammaParkingModel</string>
+		<key>FixedLifetimeModel</key>
+		<dict>
+			<key>maxDuration</key>
+			<integer>0</integer>
 		</dict>
 	</dict>
 	<key>stats</key>

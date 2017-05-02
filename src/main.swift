@@ -85,10 +85,6 @@ let main = {
 			cityInnerBounds = Square(x: (min: innerXmin, max: innerXmax), y: (min: innerYmin, max: innerYmax))
 	}
 
-	// Load RSU lifetime
-	var configRsuLifetime = config["rsuLifetime"] as? Int
-	if configRsuLifetime == 0 { configRsuLifetime = nil }
-
 	// Load data flush interval
 	var configDataFlushInterval = config["dataFlushInterval"] as? Int
 	if configDataFlushInterval == 0 { configDataFlushInterval = nil }
@@ -99,6 +95,12 @@ let main = {
 	// Load statistics configuration point
 	guard let statisticsConfig = config["stats"] as? NSDictionary else {
 		print("failed", "\nError: Please provide a statistics entry in the configuration.")
+		exit(EXIT_FAILURE)
+	}
+
+	// Load parking configuration point
+	guard let parkingConfig = config["parking"] as? NSDictionary else {
+		print("failed", "\nError: Please provide a parking entry in the configuration.")
 		exit(EXIT_FAILURE)
 	}
 
@@ -208,14 +210,39 @@ let main = {
 	 */
 	var simCity = City(gis: gisdb, network: Network(), eventList: EventList(stopTime: configStopTime), statistics: Statistics(config: statisticsConfig), decision: Decision(config: decisionConfig))
 
-	// Set RSU lifetime
-	if configRsuLifetime != nil { simCity.rsuLifetime = configRsuLifetime }
-
 	// Set periodic data flush
 	if configDataFlushInterval != nil { simCity.dataFlushInterval = configDataFlushInterval }
 
 	// Set range multiplier
 	if configRangeMultiplier != nil { simCity.network.propagationMultiplier = configRangeMultiplier! }
+
+	// Set parking model
+	guard let parkingModelInUse = parkingConfig["inUse"] as? String else {
+		print("Error: Please specify a parking model to use.")
+		exit(EXIT_FAILURE)
+	}
+	guard let parkingModelSeed = parkingConfig["seed"] as? Int else {
+		print("Error: Please provide a random seed.")
+		exit(EXIT_FAILURE)
+	}
+
+	switch parkingModelInUse {
+	case "DualGammaParkingModel":
+		simCity.parkingDurationModelInUse = DualGammaParkingModel(withSeed: parkingModelSeed)
+	case "NakagamiParkingModel":
+		simCity.parkingDurationModelInUse = NakagamiParkingModel()
+	case "FixedLifetimeModel":
+		guard let fixedLifetimeConfig = parkingConfig["FixedLifetimeModel"] as? NSDictionary,
+				let configMaxDuration = fixedLifetimeConfig["maxDuration"] as? Int
+			else {
+				print("Error: Please provide a maximum parking duration for the FixedLifetimeModel.")
+				exit(EXIT_FAILURE)
+		}
+		simCity.parkingDurationModelInUse = FixedLifetimeModel(lifetime: configMaxDuration)
+	default:
+		print("Error: Invalid parking model provided.")
+		exit(EXIT_FAILURE)
+	}
 
 	// Clear all points from the database
 	print("Clearing old features from GIS... ", terminator: ""); fflush(stdout)

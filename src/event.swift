@@ -64,6 +64,7 @@ func <(lhs: Time, rhs: Time) -> Bool { return lhs.nanoseconds < rhs.nanoseconds 
 func +(left: Time, right: Time) -> Time { return Time(nanoseconds: left.nanoseconds+right.nanoseconds) }
 func -(left: Time, right: Time) -> Time { return Time(nanoseconds: left.nanoseconds-right.nanoseconds) }
 func +=(left: inout Time, right: Time) { left = left + right }
+func -=(left: inout Time, right: Time) { left = left - right }
 
 
 /* An event list specific to this simulator.
