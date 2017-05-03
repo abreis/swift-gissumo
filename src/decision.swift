@@ -82,6 +82,8 @@ protocol DecisionAlgorithm {
 /// NullDecision: a null decision algorithm that simply removes the parked car from the network
 class NullDecision: DecisionAlgorithm {
 	func trigger(_ pcar: ParkedCar) {
+		guard pcar.city.parkedCars.contains(pcar) && pcar.active else { return }
+
 		let removalEvent = SimulationEvent(time: pcar.city.events.now + pcar.city.events.minTimestep, type: .decision, action: {pcar.city.removeEntity(pcar)}, description: "Parked car id \(pcar.id) removed by negative dScore")
 		pcar.city.events.add(newEvent: removalEvent)
 	}
@@ -103,6 +105,8 @@ class CellCoverageEffects: DecisionAlgorithm {
 	}
 
 	func trigger(_ pcar: ParkedCar) {
+		guard pcar.city.parkedCars.contains(pcar) && pcar.active else { return }
+
 		// 1. Send a request for neighbor coverage maps
 		var l3requestType: Packet.Destination
 		switch(requestReach) {
@@ -251,6 +255,8 @@ class WeightedProductModel: DecisionAlgorithm {
 
 	// On trigger, request 1-hop neighborhood coverage maps, and wait 1 second to receive replies before deciding
 	func trigger(_ pcar: ParkedCar) {
+		guard pcar.city.parkedCars.contains(pcar) && pcar.active else { return }
+
 		// Request neighbors' coverage maps
 		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: CoverageMapRequest(depth: mapRequestDepth).toPayload() )
 		pcar.broadcastPacket(covMapRequestPacket)

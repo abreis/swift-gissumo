@@ -15,7 +15,7 @@ enum RoadEntityType: UInt {
 /*** SUPERCLASS ***/
 
 // A basic road entity, with an ID, GIS ID, geographic location, time of creation, and the city it belongs to
-class RoadEntity {
+class RoadEntity: Equatable {
 	var id: UInt
 	var city: City
 	var geo: (x: Double, y: Double)
@@ -23,6 +23,7 @@ class RoadEntity {
 
 	var gid: UInt?
 	var creationTime: SimulationTime?
+	var active: Bool = true
 
 	var receivedPacketIDs = [UInt]()
 
@@ -31,7 +32,9 @@ class RoadEntity {
 		if let time = ctime { creationTime = time }
 	}
 }
-
+func ==(lhs: RoadEntity, rhs: RoadEntity) -> Bool {
+	return lhs.id == rhs.id
+}
 
 /*** L1 SUBCLASSES ***/
 
@@ -93,7 +96,6 @@ class FixedRoadEntity: RoadEntity {
 // A vehicle entity
 class Vehicle: MovingRoadEntity {
 	override var type: RoadEntityType { return .vehicle }
-	var active: Bool = true
 }
 
 // A parked car
@@ -641,7 +643,8 @@ class City {
 						return
 			}
 			eGID = rGID
-
+			// Mark the roadside unit as inactive
+			roadsideUnits[rIndex].active = false
 			// Track RSU lifetime for statistics
 			if stats.hooks["parkedRoadsideUnitLifetime"] != nil, roadsideUnits[rIndex].creationTime != nil {
 				stats.writeToHook("parkedRoadsideUnitLifetime", data: "\(roadsideUnits[rIndex].id)\t\(roadsideUnits[rIndex].creationTime!.asSeconds)\t\(events.now.asSeconds)\t\(events.now.seconds-roadsideUnits[rIndex].creationTime!.seconds)\n")
@@ -656,6 +659,8 @@ class City {
 						exit(EXIT_FAILURE)
 			}
 			eGID = pGID
+			// Mark the parked car as inactive
+			parkedCars[pIndex].active = false
 			// Remove the parked car from the City
 			parkedCars.remove(at: pIndex)
 		default:
