@@ -42,6 +42,11 @@
 			<key>maxDuration</key>
 			<integer>0</integer>
 		</dict>
+		<key>DualGammaParkingModel</key>
+		<dict>
+			<key>dayTimeDelta</key>
+			<integer>10800</integer>
+		</dict>
 	</dict>
 	<key>stats</key>
 	<dict>

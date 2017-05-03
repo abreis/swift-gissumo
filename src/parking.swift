@@ -27,9 +27,17 @@ class FixedLifetimeModel: ParkDurationModel {
 // The dual-Gamma model, returning a random duration based on the time of parking
 class DualGammaParkingModel: ParkDurationModel {
 	let rng: Random
+	var dayTimeDelta: Int = 0
 
 	init() { rng = Random() }
-	init(withSeed seed: Int) { rng = Random(withSeed: seed) }
+	init(withSeed seed: Int?=nil, dayTimeDelta: Int=0) {
+		if seed != nil {
+			rng = Random(withSeed: seed!)
+		} else {
+			rng = Random()
+		}
+		self.dayTimeDelta = dayTimeDelta
+	}
 
 	let gammaCoefficientTable: [Int:(d1: Double, d2: Double, ks: Double, ts: Double, kl: Double, tl: Double)] = [
 		3 : (0.5642, 0.4358,  1.272, 298.7, 15.00, 43.73),
@@ -59,8 +67,8 @@ class DualGammaParkingModel: ParkDurationModel {
 			exit(EXIT_FAILURE)
 		}
 
-		// Convert the time of parking to hours
-		let hourOfParking = Int( floor(timeOfParking.fpSeconds/3600.0) )
+		// Convert the time of parking to hours and apply day time delta
+		let hourOfParking = Int( floor( (timeOfParking.fpSeconds + Double(dayTimeDelta))/3600.0) )
 
 		// We only have data for vehicles parking in hours [3:21[
 		guard 3...21 ~= hourOfParking else {

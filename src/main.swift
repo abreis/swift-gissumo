@@ -228,7 +228,13 @@ let main = {
 
 	switch parkingModelInUse {
 	case "DualGammaParkingModel":
-		simCity.parkingDurationModelInUse = DualGammaParkingModel(withSeed: parkingModelSeed)
+		guard let dualGammaConfig = parkingConfig["DualGammaParkingModel"] as? NSDictionary,
+			let configDayTimeDelta = dualGammaConfig["dayTimeDelta"] as? Int
+			else {
+				print("Error: Please provide a day time delta for DualGammaParkingModel.")
+				exit(EXIT_FAILURE)
+		}
+		simCity.parkingDurationModelInUse = DualGammaParkingModel(withSeed: parkingModelSeed, dayTimeDelta: configDayTimeDelta)
 	case "NakagamiParkingModel":
 		simCity.parkingDurationModelInUse = NakagamiParkingModel()
 	case "FixedLifetimeModel":

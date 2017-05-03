@@ -46,6 +46,12 @@ A GISSUMO configuration file is an XML Property List with the .plist extension.
   - `inUse`: select a parking model to use, by name.
   - `<modelName>`: the parameters of a given model.
 
+  Parking models:
+
+  - `FixedLifetimeModel`:
+    - `maxDuration`: a maximum duration for a parked car to be active.
+  - `DualGammaParkingModel`:
+    - `dayTimeDelta`: difference between simulation time and real time. e.g., if the floating car data start corresponds to 3AM, set dayTimeDelta to 3*3600.
 
 * `stats`
 
