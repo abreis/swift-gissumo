@@ -1,8 +1,10 @@
-#!/usr/bin/env python3 -i
+#!/usr/bin/env python3
+#env python3 -u -OO
+#PYTHONUNBUFFERED="YES" PYTHONOPTIMIZE=2
 import os, sys, math, random
 
-## Configuration
 
+## Configuration
 # Random seed number
 randomSeed = 31338
 random.seed(a = randomSeed)
@@ -17,10 +19,10 @@ fringeFactor = 1.0
 
 # File locations
 netFileLocation="map_clean3.net.xml"
-sumoTools="/Users/abreis/Development/SUMO/sumo-0.28.0/tools"
+sumoTools="/usr/share/sumo/tools"
 
 # SUMO connection
-sumoHost="192.168.99.100"
+sumoHost="127.0.0.1"
 sumoPort=8813
 
 # Load SUMO libs
@@ -55,7 +57,7 @@ startTime = 3*3600
 stopTime = 21*3600
 # startTime = 8*3600
 # stopTime = 9*3600
-maxNewVehiclesPerSecond = 4
+maxNewVehiclesPerSecond = 1
 targetActiveVehicleCount = 55
 nextVehicleID = 0
 numForcedParkingEvents = 4000
@@ -76,14 +78,94 @@ print("Forcing {:d} parking events from {:d}h{:02d}m to {:d}h{:02d}m".format(
 
 
 
+def addNewVehicles(count):
+	global nextVehicleID, globalActiveVehicleIDs
+
+	while count > 0:
+		count -= 1
+
+		# Get a vehicle ID
+		vid = nextVehicleID
+		nextVehicleID += 1
+		vehicleName = "v{:d}".format(vid)
+		# Get a trip edge pair
+		newTrip = tripgen.makeNewTrip()
+		# Create a new route with the just-created trip
+		routeName = "trip{:d}".format(vid)
+		traci.route.add(routeName, [newTrip[0], newTrip[1]])
+		# Add the vehicle
+		traci.vehicle.add(vehicleName, routeName)
+		# Track the vehicle
+		globalActiveVehicleIDs.append(vehicleName)
+		# Debug
+		if debug: print("{:.1f}\tAdd vehicle {:8s}\tsource {:12s}\tsink {:12s}".format(nowTime/timeMultiplier, vehicleName, newTrip[0], newTrip[1]) )
+
+
+
+
+def randomParkVehicles(count):
+	global globalActiveVehicleIDs, globalParkedVehicleIDs
+
+	# Draw #count random vehicles (must all be different)
+	vehIDsToPark = []
+	while True:
+		newIndex = random.randrange(0, len(globalActiveVehicleIDs), 1)
+		newParkID = globalActiveVehicleIDs[newIndex]
+		if newParkID not in vehIDsToPark:
+			vehIDsToPark.append(newParkID)
+			if len(vehIDsToPark) == count:
+				break
+
+	# Park the vehicles
+	for parkVehID in vehIDsToPark:
+		traci.vehicle.remove(parkVehID)
+		globalActiveVehicleIDs.remove(parkVehID)
+		globalParkedVehicleIDs.append(parkVehID)
+
+	# Add new active vehicles to compensate
+	if len(globalActiveVehicleIDs) < targetActiveVehicleCount:
+		addNewVehicles(count)
+
+
+
+
+def updateVehicleLists():
+	global globalActiveVehicleIDs, globalParkedVehicleIDs, uncontrolledParkings, reachedStability
+
+	sumoVehicleList = traci.vehicle.getIDList()
+
+	# Check vehicles going from parked to active (SUMO limitation)
+	if reachedStability:
+		for sumoActiveVeh in sumoVehicleList:
+			if sumoActiveVeh in globalParkedVehicleIDs:
+				print("{:.1f}\t[info] Assumed parked vehicle {:s} is now active.".format(nowTime/timeMultiplier, sumoActiveVeh))
+				globalActiveVehicleIDs.append(sumoActiveVeh)
+				globalParkedVehicleIDs.remove(sumoActiveVeh)
+				if uncontrolledParkings > 0:
+					uncontrolledParkings -= 1
+
+	# Vehicles now missing from the active list are parked
+	for gActiveVeh in globalActiveVehicleIDs:
+		if gActiveVeh not in sumoVehicleList:
+			globalActiveVehicleIDs.remove(gActiveVeh)
+			globalParkedVehicleIDs.append(gActiveVeh)
+			if reachedStability:
+				uncontrolledParkings += 1
+
+
+
 ## Main loop
 reachedStability = False
-uncontrolledParkings=0
-parkedVehicleCounter=0
+globalActiveVehicleIDs = []
+globalParkedVehicleIDs = []
+uncontrolledParkings = 0
+
 while nowTime < ((stopTime-startTime)*timeMultiplier):
+	## Update vehicle lists
+	updateVehicleLists()
 
 	## Reroute vehicles near their arrival spots to another destination
-	for actVID in traci.vehicle.getIDList():
+	for actVID in globalActiveVehicleIDs:
 		# Our criteria (not ideal) is finding a vehicle on its third-to-last (or lower) destination edge.
 		# Sometimes the vehicle will reach its destination edge and be removed in a single timestep,
 		# so we try to reroute it on its third-to-last edge.
@@ -98,33 +180,13 @@ while nowTime < ((stopTime-startTime)*timeMultiplier):
 
 
 	## Add new vehicles to near the target number of active vehicles
-	if targetActiveVehicleCount > traci.vehicle.getIDCount():
+	if len(globalActiveVehicleIDs) < targetActiveVehicleCount:
 		# Find how many vehicles are missing and limit new additions to maxNewVehiclesPerSecond
-		numberOfNewVehicles = targetActiveVehicleCount-traci.vehicle.getIDCount()
+		numberOfNewVehicles = targetActiveVehicleCount - len(globalActiveVehicleIDs)
 		numberOfNewVehicles = maxNewVehiclesPerSecond if numberOfNewVehicles>maxNewVehiclesPerSecond else numberOfNewVehicles
+		addNewVehicles(count = numberOfNewVehicles)
 
-		# If the target number of vehicles was reached earlier, then 
-		# some vehicles have not been rerouted in time and parked outside
-		# our control
-		if reachedStability:
-			uncontrolledParkings+=numberOfNewVehicles
-			parkedVehicleCounter+=numberOfNewVehicles
-		for nullVar in range(0, numberOfNewVehicles):
-			## Add a new Vehicle
-			# Get a vehicle ID
-			vid = nextVehicleID
-			nextVehicleID+=1
-			vehicleName = "veh{:d}".format(vid)
-			# Get a trip edge pair
-			newTrip = tripgen.makeNewTrip()
-			# Create a new route with the just-created trip
-			routeName = "trip{:d}".format(vid)
-			traci.route.add(routeName, [newTrip[0], newTrip[1]])
-			# Add the vehicle
-			traci.vehicle.add(vehicleName, routeName)
-			# Debug
-			if debug: print("{:.1f}\tAdd vehicle {:8s}\tsource {:12s}\tsink {:12s}".format(nowTime/timeMultiplier, vehicleName, newTrip[0], newTrip[1]) )
-	# The first time the above if: is met, mark stability as reached
+	# The first time the above if: is not met, mark stability as reached
 	elif not reachedStability:
 		reachedStability = True
 
@@ -134,6 +196,7 @@ while nowTime < ((stopTime-startTime)*timeMultiplier):
 	if actualTime in parkingEvents:
 		willPark = parkingEvents[actualTime]
 		if willPark > 0:
+			print("{:.1f}\t[info] ActualTime {:.1f} will park {:d} uncontrolled {:d} parked {:d}".format(nowTime/timeMultiplier, actualTime, willPark, uncontrolledParkings, len(globalParkedVehicleIDs)))
 			# Count any uncontrolled parkings towards the number of parking events we must execute
 			if uncontrolledParkings > 0:
 				deltaParkings = willPark-uncontrolledParkings
@@ -153,31 +216,14 @@ while nowTime < ((stopTime-startTime)*timeMultiplier):
 
 			# Now force parking events if willPark > 0
 			if willPark > 0:
-				activeVehicles = traci.vehicle.getIDList()
-				activeVehicleCount = len(activeVehicles)
-
-				vehIDsToPark = []
-
-				# Draw #willPark random vehicles (must all be different)
-				while True:
-					newIndex = random.randrange(0, activeVehicleCount, 1)
-					newParkID = activeVehicles[newIndex]
-					if newParkID not in vehIDsToPark:
-						vehIDsToPark.append(newParkID)
-						if len(vehIDsToPark)==willPark:
-							break
-
-				# Park the vehicles
-				for parkVehID in vehIDsToPark:
-					traci.vehicle.remove(parkVehID)
-					parkedVehicleCounter += 1
+				randomParkVehicles(count = willPark)
 
 
 	## Advance simulation
 	traci.simulationStep()
 	nowTime = traci.simulation.getCurrentTime()
 
-	print("{:.1f}\t{:d} vehicles, {:d} parking events".format(nowTime/timeMultiplier, traci.vehicle.getIDCount(), parkedVehicleCounter) )
+	print("{:.1f}\t{:d} vehicles, {:d} parking events, {:.2f}% done".format(nowTime/timeMultiplier, len(globalActiveVehicleIDs), len(globalParkedVehicleIDs), nowTime/((stopTime-startTime)*timeMultiplier)*100.0 ) )
 # Main loop (end)
 
 traci.close()
