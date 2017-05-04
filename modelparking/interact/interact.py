@@ -1,29 +1,44 @@
 #!/usr/bin/env python3
 #env python3 -u -OO
 #PYTHONUNBUFFERED="YES" PYTHONOPTIMIZE=2
-import os, sys, math, random
+import os, sys, math, random, optparse
+
+optParser = optparse.OptionParser()
+optParser.add_option("--seed", type="int", default=31338, help="random number generator seed")
+optParser.add_option("--startTime", type="int", default=3*3600, help="start time, in seconds")
+optParser.add_option("--stopTime", type="int", default=21*3600, help="stop time, in seconds")
+optParser.add_option("--maxPerSecond", type="int", default=1, help="add N vehicles per second at most")
+optParser.add_option("--targetActive", type="int", default=55, help="try to maintain N active vehicles")
+optParser.add_option("--parkingEvents", type="int", default=4000, help="number of parking events to force")
+optParser.add_option("--minDistance", type="int", default=250, help="minimum distance for new trips")
+optParser.add_option("--fringeFactor", type="float", default=1.0, help="fringe factor for new trips")
+optParser.add_option("--debug", action="store_true", default=False, help="enable debug output")
+optParser.add_option("--sumoPort", type="int", default=8813, help="SUMO listening port")
+optParser.add_option("--sumoAddress", type="string", default="127.0.0.1", help="SUMO IP address")
+optParser.add_option("--netFile", type="string", default="map_clean3.net.xml", help="location of the SUMO network file")
+
+(options, args) = optParser.parse_args()
 
 
 ## Configuration
 # Random seed number
-randomSeed = 31338
-random.seed(a = randomSeed)
+random.seed(a = options.seed)
 
 # Minimum distance when generating new trips
 # Porto Map #02 -- 1 sq.km. -- (41.1679,-8.6227),(41.1598,-8.6094), BBoxDiameter (maximum trip distance without intermediates) = 2473
-minDistance = 250
+minDistance = options.minDistance
 
 # Fringe factor
 # On a smaller map, increasing fringe-factor can cause cars to pool up around city edges and cause congestion
-fringeFactor = 1.0
+fringeFactor = options.fringeFactor
 
 # File locations
-netFileLocation="map_clean3.net.xml"
+netFileLocation=options.netFile
 sumoTools="/usr/share/sumo/tools"
 
 # SUMO connection
-sumoHost="127.0.0.1"
-sumoPort=8813
+sumoHost=options.sumoAddress
+sumoPort=options.sumoPort
 
 # Load SUMO libs
 sys.path.append(sumoTools)
@@ -32,7 +47,7 @@ import traci
 # Load our own modules
 sys.path.append("modules/")
 import tripgen
-tripgen.setup(netfile=netFileLocation, fringefactor=fringeFactor, mindistance=minDistance, seed=randomSeed)
+tripgen.setup(netfile=netFileLocation, fringefactor=fringeFactor, mindistance=minDistance, seed=options.seed)
 import parkstat
 
 # Open connection to sumo
@@ -52,16 +67,14 @@ print(" {:d} polygons".format(traci.polygon.getIDCount()) )
 print(" {:d} POIs".format(traci.poi.getIDCount()) )
 
 
-debug = False
-startTime = 3*3600
-stopTime = 21*3600
-# startTime = 8*3600
-# stopTime = 9*3600
-maxNewVehiclesPerSecond = 1
-targetActiveVehicleCount = 55
-nextVehicleID = 0
-numForcedParkingEvents = 4000
+debug = options.debug
+startTime = options.startTime
+stopTime = options.stopTime
+maxNewVehiclesPerSecond = options.maxPerSecond
+targetActiveVehicleCount = options.targetActive
+numForcedParkingEvents = options.parkingEvents
 
+nextVehicleID = 0
 timeMultiplier = 1000 # SUMO tracks milliseconds
 timeStep = traci.simulation.getDeltaT()
 nowTime = traci.simulation.getCurrentTime() # Should be 0
@@ -69,11 +82,11 @@ nowTime = traci.simulation.getCurrentTime() # Should be 0
 # Distribute parking events
 parkingEvents = parkstat.distributeEvents(numForcedParkingEvents,startTime=startTime,endTime=stopTime)
 print("Forcing {:d} parking events from {:d}h{:02d}m to {:d}h{:02d}m".format(
-	sum(parkingEvents.values()), 
-	math.floor( startTime/3600 ), 
+	sum(parkingEvents.values()),
+	math.floor( startTime/3600 ),
 	math.floor( (startTime % 3600)/60 ),
-	math.floor( stopTime/3600 ), 
-	math.floor( (stopTime % 3600)/60 ) ) 
+	math.floor( stopTime/3600 ),
+	math.floor( (stopTime % 3600)/60 ) )
 	, "({:d} requested)".format(numForcedParkingEvents))
 
 
@@ -87,7 +100,7 @@ def addNewVehicles(count):
 		# Get a vehicle ID
 		vid = nextVehicleID
 		nextVehicleID += 1
-		vehicleName = "v{:d}".format(vid)
+		vehicleName = "{:d}".format(vid)
 		# Get a trip edge pair
 		newTrip = tripgen.makeNewTrip()
 		# Create a new route with the just-created trip

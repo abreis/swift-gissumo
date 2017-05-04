@@ -14,7 +14,7 @@ RUN apt-get update
 # - xml validator
 RUN apt-get install -y \
 software-properties-common \
-curl nano python python3 libxml2-utils 
+curl nano ssh python python3 libxml2-utils
 
 # Install SUMO
 RUN add-apt-repository ppa:sumo/stable

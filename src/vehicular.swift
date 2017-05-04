@@ -249,8 +249,6 @@ class City {
 			print("\(events.now.asSeconds) City.determineBounds():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell) }
 	}
 
-	/// Periodically flush old events and push stat data to files
-
 	/// Schedule mobility events and determine bounds from the FCD data
 	func scheduleMobilityAndDetermineBounds(fromTSV fcdTSV: inout [String], stopTime configStopTime: Double = 0.0) {
 		// Auxiliary variable to ensure we get time-sorted data

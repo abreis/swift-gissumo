@@ -127,6 +127,7 @@ for xmlTimestep in fcdXML["fcd-export"]["timestep"] {
 			//let v_speed = Double(s_speed)
 			else {
 				print("Error: Unable to convert vehicle properties.")
+				print(vehicle.element as Any)
 				exit(EXIT_FAILURE)
 		}
 		// Write data to tsv file
