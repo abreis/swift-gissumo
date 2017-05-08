@@ -284,6 +284,9 @@ class WeightedProductModel: DecisionAlgorithm {
 				.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
 			      "Parked car \(pcar.id) deciding, neighborMaps: (d1: \(pcar.neighborMaps.filter({$1.distance == 1}).count), d2: \(pcar.neighborMaps.filter({$1.distance == 2}).count))") }
 
+		if pcar.city.stats.hooks["decisionDetailWPM"] != nil {
+			pcar.city.stats.writeToHook("decisionDetailWPM", data: "Parked car \(pcar.id) deciding, neighborMaps: (d1: \(pcar.neighborMaps.filter({$1.distance == 1}).count), d2: \(pcar.neighborMaps.filter({$1.distance == 2}).count))\n")
+		}
 
 		/// 1. Algorithm runs if at least one 1-hop neighbor RSU is present, otherwise the vehicle becomes an RSU straight away
 		if pcar.neighborMaps.filter({$1.distance == 1}).count == 0 {
@@ -291,6 +294,10 @@ class WeightedProductModel: DecisionAlgorithm {
 				print("\(pcar.city.events.now.asSeconds) WeightedProductModel.decide():"
 					.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
 				      "Parked car \(pcar.id) has no 1-hop neighbors, converting to RSU") }
+
+			if pcar.city.stats.hooks["decisionDetailWPM"] != nil {
+				pcar.city.stats.writeToHook("decisionDetailWPM", data: "Parked car \(pcar.id) has no 1-hop neighbors, converting to RSU\n")
+			}
 
 			pcar.city.convertEntity(pcar, to: .roadsideUnit)
 			return
@@ -351,6 +358,10 @@ class WeightedProductModel: DecisionAlgorithm {
 				.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),
 			      "Evaluating \(combinations.count) solutions at parked car \(pcar.id)" ) }
 
+		if pcar.city.stats.hooks["decisionDetailWPM"] != nil {
+			pcar.city.stats.writeToHook("decisionDetailWPM", data: "Evaluating \(combinations.count) solutions at parked car \(pcar.id)\n")
+		}
+
 		// Combinatorial generation tested correctly
 		//		// Ensure the combinations array is of length (n choose 2)+n+1
 		//		func factorial(_ factorialNumber: Int) -> UInt64 {
@@ -406,6 +417,11 @@ class WeightedProductModel: DecisionAlgorithm {
 					      "Depth 2 Signal | Saturation | Reference maps\n")
 					print(localMapOfCoverage.cleanDescription(replacing: 0).mergeHorizontally(toTheLeftOf: localMapOfSaturation.cleanDescription(replacing: 0)).mergeHorizontally(toTheLeftOf: referenceVehicleObstructionMask.cleanDescription(replacing: Character("B"))) )
 				}
+
+				if pcar.city.stats.hooks["decisionDetailWPM"] != nil {
+					let hookData: String = "Depth 2 Signal | Saturation | Reference maps\n" + localMapOfCoverage.cleanDescription(replacing: 0).mergeHorizontally(toTheLeftOf: localMapOfSaturation.cleanDescription(replacing: 0)).mergeHorizontally(toTheLeftOf: referenceVehicleObstructionMask.cleanDescription(replacing: Character("B"))) + "\n"
+					pcar.city.stats.writeToHook("decisionDetailWPM", data: hookData)
+				}
 			}
 
 			// Apply selected maps (in the combination) to the local maps
@@ -424,6 +440,11 @@ class WeightedProductModel: DecisionAlgorithm {
 				print(localMapOfCoverage.cleanDescription(replacing: 0).mergeHorizontally(toTheLeftOf: localMapOfSaturation.cleanDescription(replacing: 0)).mergeHorizontally(toTheLeftOf: referenceVehicleObstructionMask.cleanDescription(replacing: Character("B"))) )
 			}
 
+			if pcar.city.stats.hooks["decisionDetailWPM"] != nil {
+				let hookData: String = "Signal | Saturation | Reference map for combination \(combination)\n" + localMapOfCoverage.cleanDescription(replacing: 0).mergeHorizontally(toTheLeftOf: localMapOfSaturation.cleanDescription(replacing: 0)).mergeHorizontally(toTheLeftOf: referenceVehicleObstructionMask.cleanDescription(replacing: Character("B"))) + "\n"
+
+				pcar.city.stats.writeToHook("decisionDetailWPM", data: hookData)
+			}
 
 			/// Attribute Scoring Functions
 			// Linear asig
@@ -505,6 +526,16 @@ class WeightedProductModel: DecisionAlgorithm {
 					  "abat", String(format: "%.2f", combinationStats.abat),
 					  "wpm",  String(format: "%.2f", combinationStats.wpmScore) ) }
 
+			if pcar.city.stats.hooks["decisionDetailWPM"] != nil {
+				let hookData: String = "Combination \(combination)" +
+					" asig " + String(format: "%.2f", combinationStats.asig) +
+					" asat " + String(format: "%.2f", combinationStats.asat) +
+					" acov " + String(format: "%.2f", combinationStats.acov) +
+					" abat " + String(format: "%.2f", combinationStats.abat) +
+					" wpm "  + String(format: "%.2f", combinationStats.wpmScore) + "\n"
+				pcar.city.stats.writeToHook("decisionDetailWPM", data: hookData)
+			}
+
 			return combinationStats
 		}
 
@@ -532,6 +563,17 @@ class WeightedProductModel: DecisionAlgorithm {
 					.padding(toLength: 54, withPad: " ", startingAt: 0),
 				      "\(String(format: "%.2f", scoredCombination.stats.wpmScore).lightGray())\t\(scoredCombination.combination)")
 			}
+		}
+
+		if pcar.city.stats.hooks["decisionDetailWPM"] != nil {
+			var hookData: String = ""
+			hookData += "Combinations ordered by score:\n"
+			hookData += "score\tcombination\n"
+			for scoredCombination in scoredCombinations {
+				hookData += String(format: "%.2f", scoredCombination.stats.wpmScore)
+				hookData += "\t\(scoredCombination.combination)\n"
+			}
+			pcar.city.stats.writeToHook("decisionDetailWPM", data: hookData)
 		}
 
 		// Pick the best combination and execute it: send 'RSU disable' messages to RSUs disabled in the chosen solution

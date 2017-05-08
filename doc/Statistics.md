@@ -79,6 +79,11 @@ Available hooks:
   Prints the metrics used to compute the decision score when the WeightedProductModel decision algorithm is selected.
 
 
+* decisionDetailWPM (trigger)
+
+  Prints a detailed log of all RSU election decisions, complete with all coverage maps received, resulting local maps, etcetera, for the WeightedProductModel algorithm.
+
+
 * movingAverageWPM (interval)
 
   Prints an exponential moving average of past decisions' signal and saturation stats of the winning combination.

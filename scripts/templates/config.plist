@@ -72,6 +72,8 @@
 			<false/>
 			<key>decisionWPM</key>
 			<true/>
+			<key>decisionDetailWPM</key>
+			<true/>
 			<key>movingAverageWPM</key>
 			<true/>
 			<key>decisionCCE</key>
