@@ -340,8 +340,8 @@ class City {
 				let missingVehicleIDs = cityVehicleIDs.subtracting(fcdVehicleIDs)
 
 				// Debug
-				if debug.contains("EventList.scheduleMobilityEvents()"){
-					print("\(events.now.asSeconds) EventList.scheduleMobilityEvents():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Timestep", timestep.time, "sees:" )
+				if debug.contains("City.scheduleMobility()"){
+					print("\(events.now.asSeconds) City.scheduleMobility():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Timestep", timestep.time, "sees:" )
 					print("\t\tFCD vehicles:", fcdVehicleIDs)
 					print("\t\tCity vehicles:", cityVehicleIDs)
 					print("\t\tNew vehicles:", newVehicleIDs)
@@ -389,19 +389,26 @@ class City {
 			} // autoreleasepool
 
 		} while entryPosition < fcdTSV.count
+
+		if debug.contains("City.determineBounds()"){
+			print("\(events.now.asSeconds) City.determineBounds():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "City bounds", bounds, "cell size", cellSize, "top left cell", topLeftCell) }
 	}
 
 	/// Remove Roadside Units in the network whose expiry time is elapsed
 	func recurringExpireFixedRoadEntities() -> () {
 		let currentTime = events.now
+		var debugTrackIDs: (roadsideUnits: [UInt], parkedCars: [UInt]) = ([], [])
+
 		for rsu in roadsideUnits {
 			if (currentTime - rsu.creationTime!) >= rsu.lifetime {
+				debugTrackIDs.roadsideUnits.append(rsu.id)
 				removeEntity(rsu)
 			}
 		}
 
 		for parkedCar in parkedCars {
 			if (currentTime - parkedCar.creationTime!) >= parkedCar.lifetime {
+				debugTrackIDs.parkedCars.append(parkedCar.id)
 				removeEntity(parkedCar)
 			}
 		}
@@ -412,6 +419,12 @@ class City {
 			let nextExpireEvent = SimulationEvent(time: nextEventTime, type: .mobility, action: { self.recurringExpireFixedRoadEntities() }, description: "expire fixedroadentities")
 			self.events.add(newEvent: nextExpireEvent)
 		}
+
+		// Debug
+		if debug.contains("City.recurringExpireEntities()"){
+			if !debugTrackIDs.parkedCars.isEmpty || !debugTrackIDs.roadsideUnits.isEmpty {
+				print("\(events.now.asSeconds) City.recurringExpireEntities():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Expire RSUs \(debugTrackIDs.roadsideUnits), parkedCars: \(debugTrackIDs.parkedCars)") }
+			}
 	}
 
 	/// Match a vehicle ID to a Vehicle entity
@@ -653,7 +666,7 @@ class City {
 		case .parkedCar:
 			guard	let pIndex = parkedCars.index( where: {$0.id == e_id} ),
 					let pGID = parkedCars[pIndex].gid else {
-						print("Error: Trying to remove a non-existent parked car.")
+						print("Error: Trying to remove a non-existent parked car (ID: \(e_id)).")
 						exit(EXIT_FAILURE)
 			}
 			eGID = pGID

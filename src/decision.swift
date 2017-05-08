@@ -130,6 +130,8 @@ class CellCoverageEffects: DecisionAlgorithm {
 	}
 
 	func decide(_ pcar: ParkedCar) {
+		guard pcar.city.parkedCars.contains(pcar) && pcar.active else { return }
+
 //		let mapPayloadList = pcar.payloadBuffer.filter( {$0.payload.type == .coverageMap} )
 
 		// Run algorithm if at least 1 coverage map was received
@@ -275,6 +277,8 @@ class WeightedProductModel: DecisionAlgorithm {
 
 	/// Weighted Product Model decision
 	func decide(_ pcar: ParkedCar) {
+		guard pcar.city.parkedCars.contains(pcar) && pcar.active else { return }
+
 		if debug.contains("WeightedProductModel.decide()") {
 			print("\(pcar.city.events.now.asSeconds) WeightedProductModel.decide():"
 				.padding(toLength: 54, withPad: " ", startingAt: 0).cyan(),

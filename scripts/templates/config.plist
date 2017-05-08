@@ -181,7 +181,9 @@
 		<false/>
 		<key>EventList.add()</key>
 		<false/>
-		<key>EventList.scheduleMobilityEvents()</key>
+		<key>City.scheduleMobility()</key>
+		<false/>
+		<key>City.recurringExpireEntities()</key>
 		<false/>
 		<key>FixedRoadEntity.trackSignalStrength()</key>
 		<false/>
