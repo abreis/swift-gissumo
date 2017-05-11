@@ -564,6 +564,10 @@ class City {
 		// Get the car's lifetime (if available)
 		if (parkingDurationModelInUse != nil) {
 			newParkedCar.lifetime = parkingDurationModelInUse!.getParkingDuration(timeOfParking: events.now)
+
+			if stats.hooks["parkedDurationModel"] != nil {
+				stats.writeToHook("parkedDurationModel", data: "\(events.now.asSeconds)\t\(p_id)\t\(newParkedCar.lifetime.asSeconds)\n")
+			}
 		}
 
 		// Append the new vehicle to the city's vehicle list

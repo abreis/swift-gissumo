@@ -94,6 +94,8 @@
 			<false/>
 			<key>parkedRoadsideUnitLifetime</key>
 			<true/>
+			<key>parkedDurationModel</key>
+			<false/>
 			<key>obstructionMask</key>
 			<false/>
 			<key>packetTrace</key>

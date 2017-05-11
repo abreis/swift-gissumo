@@ -15,8 +15,8 @@ assert sys.version_info >= (3,5)
 
 # Process command line options
 parser = optparse.OptionParser()
-parser.add_option("-t", "--template", dest="templateFile", default="description.template", help="read list of entries from file", metavar="FILE")
-parser.add_option("-c", "--config", dest="configFile", default="config.plist", help="don't print status messages to stdout", metavar="FILE")
+parser.add_option("-t", "--template", dest="templateFile", default="description.template", help="read list of entries from template", metavar="FILE")
+parser.add_option("-c", "--config", dest="configFile", default="config.plist", help="fetch entries from configuration file", metavar="FILE")
 parser.add_option("-o", "--output", dest="outputFile", default="description.txt", help="write description to file", metavar="FILE")
 
 (options, args) = parser.parse_args()

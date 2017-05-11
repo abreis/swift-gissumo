@@ -285,7 +285,7 @@ class WeightedProductModel: DecisionAlgorithm {
 			      "Parked car \(pcar.id) deciding, neighborMaps: (d1: \(pcar.neighborMaps.filter({$1.distance == 1}).count), d2: \(pcar.neighborMaps.filter({$1.distance == 2}).count))") }
 
 		if pcar.city.stats.hooks["decisionDetailWPM"] != nil {
-			pcar.city.stats.writeToHook("decisionDetailWPM", data: "Parked car \(pcar.id) deciding, neighborMaps: (d1: \(pcar.neighborMaps.filter({$1.distance == 1}).count), d2: \(pcar.neighborMaps.filter({$1.distance == 2}).count))\n")
+			pcar.city.stats.writeToHook("decisionDetailWPM", data: "\(pcar.city.events.now.asSeconds) Parked car \(pcar.id) deciding, neighborMaps: (d1: \(pcar.neighborMaps.filter({$1.distance == 1}).count), d2: \(pcar.neighborMaps.filter({$1.distance == 2}).count))\n")
 		}
 
 		/// 1. Algorithm runs if at least one 1-hop neighbor RSU is present, otherwise the vehicle becomes an RSU straight away

@@ -523,6 +523,10 @@ class Statistics {
 		if hooks["parkedRoadsideUnitLifetime"] != nil {
 			writeToHook("parkedRoadsideUnitLifetime", data: "rsuID\(separator)created\(separator)removed\(separator)lifetime\(terminator)")
 		}
+
+		if hooks["parkedDurationModel"] != nil {
+			writeToHook("parkedDurationModel", data: "time\(separator)parkedID\(separator)lifetime\(terminator)")
+		}
 	}
 
 
