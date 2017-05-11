@@ -1,0 +1,5 @@
+module libgsl [system] {
+    header "/usr/local/Cellar/gsl/2.3/include/gsl/gsl_cdf.h"
+	link "gsl"
+    export *
+}

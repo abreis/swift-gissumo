@@ -37,6 +37,8 @@ struct Time: Equatable, Comparable, Hashable, ExpressibleByFloatLiteral, CustomS
 	// FloatLiteralConvertible: initialize with a Float (assumes Seconds are provided)
 	init(floatLiteral value: Double) { self.init(seconds: Double(value))}
 	// Various specific initializers
+	init(minutes       min: Int) { nanoseconds =  min * 1000000000 * 60 }
+	init(minutes       min: Double) { nanoseconds =  Int(min * 1000000000.0 * 60.0) }
 	init(seconds       sec: Int) { nanoseconds =  sec * 1000000000 }
 	init(milliseconds msec: Int) { nanoseconds = msec * 1000000 }
 	init(microseconds µsec: Int) { nanoseconds = µsec * 1000 }
@@ -245,7 +247,7 @@ class EventList {
 		let insertedAtTime = list.add(newEvent: newEvent)
 
 		if debug.contains("EventList.add()") {
-			print("\(now.asSeconds) EventList.add():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Add new event of type", newEvent.type, "at time", insertedAtTime.asSeconds)
+			print("\(now.asSeconds) EventList.add():".padding(toLength: 54, withPad: " ", startingAt: 0).cyan(), "Add new \(newEvent.type) event at \(insertedAtTime.asSeconds): \(newEvent.description)")
 		}
 	}
 
