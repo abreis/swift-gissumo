@@ -141,8 +141,8 @@
 				<real>1</real>
 				<key>mu</key>
 				<real>1</real>
-				<key>mapRequestReach</key>
-				<string>1hop</string>
+				<key>mapRequestDepth</key>
+				<integer>1</integer>
 				<key>saturationThreshold</key>
 				<integer>2</integer>
 			</dict>
