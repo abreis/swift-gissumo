@@ -1,0 +1,6 @@
+stopTime
+decision.triggerDelay
+decision.algorithm.CellCoverageEffects.kappa
+decision.algorithm.CellCoverageEffects.lambda
+decision.algorithm.CellCoverageEffects.mu
+decision.algorithm.CellCoverageEffects.saturationThreshold
