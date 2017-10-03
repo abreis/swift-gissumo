@@ -102,6 +102,8 @@
 			<false/>
 			<key>simulationTime</key>
 			<true/>
+			<key>topology</key>
+			<true/>
 		</dict>
 	</dict>
 	<key>decision</key>
