@@ -5,7 +5,7 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.tsv</string>
 	<key>stopTime</key>
-	<integer>28800</integer>
+	<integer>7200</integer>
 	<key>locationSRID</key>
 	<integer>27492</integer>
 	<key>useHaversine</key>
@@ -36,11 +36,11 @@
 		<key>seed</key>
 		<integer>31338</integer>
 		<key>inUse</key>
-		<string>DualGammaParkingModel</string>
+		<string>FixedLifetimeModel</string>
 		<key>FixedLifetimeModel</key>
 		<dict>
 			<key>maxDuration</key>
-			<integer>0</integer>
+			<integer>7200</integer>
 		</dict>
 		<key>DualGammaParkingModel</key>
 		<dict>
@@ -67,29 +67,29 @@
 			<key>cityCoverageEvolution</key>
 			<true/>
 			<key>signalAndSaturationEvolution</key>
-			<false/>
+			<true/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
 			<key>decisionWPM</key>
-			<true/>
+			<false/>
 			<key>decisionDetailWPM</key>
-			<true/>
+			<false/>
 			<key>movingAverageWPM</key>
-			<true/>
+			<false/>
 			<key>decisionCCE</key>
-			<false/>
+			<true/>
 			<key>decisionDetailCCE</key>
-			<false/>
+			<true/>
 			<key>finalCityCoverageMap</key>
-			<true/>
+			<false/>
 			<key>finalCityCoverageStats</key>
-			<true/>
+			<false/>
 			<key>finalCityEntitiesMap</key>
-			<true/>
+			<false/>
 			<key>finalCitySaturationMap</key>
-			<true/>
+			<false/>
 			<key>finalCitySaturationStats</key>
-			<true/>
+			<false/>
 			<key>finalRoadsideUnitCoverageMaps</key>
 			<false/>
 			<key>parkedRoadsideUnitLifetime</key>
@@ -102,8 +102,6 @@
 			<false/>
 			<key>simulationTime</key>
 			<true/>
-			<key>topology</key>
-			<true/>
 		</dict>
 	</dict>
 	<key>decision</key>
@@ -113,7 +111,7 @@
 		<key>algorithm</key>
 		<dict>
 			<key>inUse</key>
-			<string>WeightedProductModel</string>
+			<string>CellCoverageEffects</string>
 			<key>WeightedProductModel</key>
 			<dict>
 				<key>wsig</key>
@@ -142,7 +140,7 @@
 				<key>lambda</key>
 				<real>1</real>
 				<key>mu</key>
-				<real>1</real>
+				<real>4</real>
 				<key>mapRequestDepth</key>
 				<integer>1</integer>
 				<key>saturationThreshold</key>

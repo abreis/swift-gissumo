@@ -35,15 +35,16 @@ class Decision {
 					let kappa = cellCoverageEffectsConfig["kappa"] as? Double,
 					let lambda = cellCoverageEffectsConfig["lambda"] as? Double,
 					let mu = cellCoverageEffectsConfig["mu"] as? Double,
-					let requestReachConfig = cellCoverageEffectsConfig["mapRequestReach"] as? String,
-					["1hop","2hop","geocast2r"].contains(requestReachConfig)
+					let mapRequestDepth = cellCoverageEffectsConfig["mapRequestDepth"] as? UInt
+//					let requestReachConfig = cellCoverageEffectsConfig["mapRequestReach"] as? String,
+//					["1hop","2hop","geocast2r"].contains(requestReachConfig)
 			else {
 				print("Error: Invalid parameters for CellCoverageEffects algorithm.")
 				exit(EXIT_FAILURE)
 			}
 
 			let satThresh = cellCoverageEffectsConfig["saturationThreshold"] as? Int
-			algorithm = CellCoverageEffects(κ: kappa, λ: lambda, μ: mu, requestReach: requestReachConfig, saturationThreshold: satThresh)
+			algorithm = CellCoverageEffects(κ: kappa, λ: lambda, μ: mu, mapRequestDepth: mapRequestDepth, saturationThreshold: satThresh)
 
 		case "WeightedProductModel":
 			guard let weightedProductModelConfig = algoConfig["WeightedProductModel"] as? NSDictionary,
@@ -94,13 +95,13 @@ class CellCoverageEffects: DecisionAlgorithm {
 	let kappa, lambda, mu: Double
 	var saturationThreshold: Int = -1
 	let mapRequestWaitingTime = SimulationTime(seconds: 1)
-	let requestReach: String
+	var mapRequestDepth: UInt = 1
 
-	init(κ: Double, λ: Double, μ: Double, requestReach reqReach: String, saturationThreshold: Int? = nil) {
-		kappa = κ
-		lambda = λ
-		mu = μ
-		requestReach = reqReach
+	init(κ: Double, λ: Double, μ: Double, mapRequestDepth: UInt, saturationThreshold: Int? = nil) {
+		self.kappa = κ
+		self.lambda = λ
+		self.mu = μ
+		self.mapRequestDepth = mapRequestDepth
 		if let satThresh = saturationThreshold { self.saturationThreshold = satThresh }
 	}
 
@@ -108,20 +109,20 @@ class CellCoverageEffects: DecisionAlgorithm {
 		guard pcar.city.parkedCars.contains(pcar) && pcar.active else { return }
 
 		// 1. Send a request for neighbor coverage maps
-		var l3requestType: Packet.Destination
-		switch(requestReach) {
-		case "1hop":
-			l3requestType = Packet.Destination.broadcast(hopLimit: 1)
-		case "2hop":
-			l3requestType = Packet.Destination.broadcast(hopLimit: 2)
-		case "geocast2r":
-			l3requestType = Packet.Destination.geocast(targetArea: Circle(centerIn: pcar.geo, radiusIn: pcar.city.network.maxRange) )
-		default:
-			print("Error: Coverage map request reach '\(requestReach)' not implemented.")
-			exit(EXIT_FAILURE)
-		}
+//		var l3requestType: Packet.Destination
+//		switch(requestReach) {
+//		case "1hop":
+//			l3requestType = Packet.Destination.broadcast(hopLimit: 1)
+//		case "2hop":
+//			l3requestType = Packet.Destination.broadcast(hopLimit: 2)
+//		case "geocast2r":
+//			l3requestType = Packet.Destination.geocast(targetArea: Circle(centerIn: pcar.geo, radiusIn: pcar.city.network.maxRange) )
+//		default:
+//			print("Error: Coverage map request reach '\(requestReach)' not implemented.")
+//			exit(EXIT_FAILURE)
+//		}
 
-		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: l3requestType, payload: Payload(type: .coverageMapRequest, content: CoverageMapRequest(depth: 1).toPayload().content) )
+		let covMapRequestPacket = Packet(id: pcar.city.network.getNextPacketID(), created: pcar.city.events.now, l2src: pcar.id, l3src: pcar.id, l3dst: Packet.Destination.broadcast(hopLimit: 1), payload: CoverageMapRequest(depth: mapRequestDepth).toPayload() )
 		pcar.broadcastPacket(covMapRequestPacket)
 
 		// 2. Schedule an event to process the coverage maps and make the decision

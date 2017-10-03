@@ -1,0 +1,5 @@
+This simulation set evaluates 5 rounds of multiple periods (2,3,4,5), where:
+arrivalTime = (1/period) per second
+
+The battery attribute is inactive
+RSUs do not disable themselves

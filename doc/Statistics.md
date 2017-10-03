@@ -97,3 +97,7 @@ Available hooks:
 * packetTrace (immediate)
 
   Prints a trace of all packets that are broadcast in the simulation.
+
+* topology (end)
+
+  Prints pcRSU topology data (nodes, links) and the connection strength between neighboring pcRSUs.

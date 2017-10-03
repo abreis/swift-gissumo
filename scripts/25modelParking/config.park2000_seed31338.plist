@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>floatingCarDataFile</key>
-	<string>work/fcdout.tsv</string>
+	<string>fcddata_park2000/model_start3h_stop21h_active55_park2000_seed31338.fcd.tsv</string>
 	<key>stopTime</key>
-	<integer>28800</integer>
+	<integer>75600</integer>
 	<key>locationSRID</key>
 	<integer>27492</integer>
 	<key>useHaversine</key>
@@ -67,7 +67,7 @@
 			<key>cityCoverageEvolution</key>
 			<true/>
 			<key>signalAndSaturationEvolution</key>
-			<false/>
+			<true/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
 			<key>decisionWPM</key>
@@ -75,41 +75,39 @@
 			<key>decisionDetailWPM</key>
 			<true/>
 			<key>movingAverageWPM</key>
-			<true/>
+			<false/>
 			<key>decisionCCE</key>
 			<false/>
 			<key>decisionDetailCCE</key>
 			<false/>
 			<key>finalCityCoverageMap</key>
-			<true/>
+			<false/>
 			<key>finalCityCoverageStats</key>
-			<true/>
+			<false/>
 			<key>finalCityEntitiesMap</key>
-			<true/>
+			<false/>
 			<key>finalCitySaturationMap</key>
-			<true/>
+			<false/>
 			<key>finalCitySaturationStats</key>
-			<true/>
+			<false/>
 			<key>finalRoadsideUnitCoverageMaps</key>
 			<false/>
 			<key>parkedRoadsideUnitLifetime</key>
 			<true/>
 			<key>parkedDurationModel</key>
-			<false/>
+			<true/>
 			<key>obstructionMask</key>
 			<false/>
 			<key>packetTrace</key>
 			<false/>
 			<key>simulationTime</key>
-			<true/>
-			<key>topology</key>
-			<true/>
+			<false/>
 		</dict>
 	</dict>
 	<key>decision</key>
 	<dict>
 		<key>triggerDelay</key>
-		<integer>50</integer>
+		<integer>240</integer>
 		<key>algorithm</key>
 		<dict>
 			<key>inUse</key>
@@ -119,17 +117,17 @@
 				<key>wsig</key>
 				<integer>1</integer>
 				<key>wsat</key>
-				<integer>1</integer>
+				<real>0.2</real>
 				<key>wcov</key>
-				<integer>1</integer>
+				<real>0.3</real>
 				<key>wbat</key>
-				<integer>1</integer>
+				<integer>0</integer>
 				<key>minRedundancy</key>
 				<integer>1</integer>
 				<key>mapRequestDepth</key>
 				<integer>2</integer>
 				<key>disableThreshold</key>
-				<real>0.1</real>
+				<real>0.05</real>
 				<key>abatNoImpactTime</key>
 				<integer>1800</integer>
 				<key>abatMaxActiveTime</key>
@@ -143,8 +141,8 @@
 				<real>1</real>
 				<key>mu</key>
 				<real>1</real>
-				<key>mapRequestDepth</key>
-				<integer>1</integer>
+				<key>mapRequestReach</key>
+				<string>1hop</string>
 				<key>saturationThreshold</key>
 				<integer>2</integer>
 			</dict>
@@ -153,7 +151,7 @@
 	<key>gis</key>
 	<dict>
 		<key>database</key>
-		<string>gisdb</string>
+		<string>gisdb7</string>
 		<key>host</key>
 		<string>10.0.0.10</string>
 		<key>password</key>

@@ -1,0 +1,8 @@
+Analyze the distribution of RSU active time without a battery-usage-specific weight attribute. Parameters are:
+wsig: 1.00
+wsat: 0.20
+wcov: 0.30
+wbat: 0.00
+rsuLifetime: 7200 (2 hours)
+
+fcddata: stop28800 period2

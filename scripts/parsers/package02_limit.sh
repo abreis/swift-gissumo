@@ -11,6 +11,7 @@
 # - meanSignal
 # - meanSaturation
 # - signalToSaturation
+# - coverageDistribution
 #
 # Run from the location where the 'simulations' folder is present.
 
@@ -36,6 +37,7 @@ declare -a PARSERS=(
 "meanSignal_limit full"
 "meanSaturation_limit full"
 "signalToSaturation_limit full"
+"singles/horizontalCoverageDistribution 3000"
 )
 
 # Check for the presence of a simulation folder

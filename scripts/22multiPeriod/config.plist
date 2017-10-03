@@ -5,15 +5,15 @@
 	<key>floatingCarDataFile</key>
 	<string>work/fcdout.tsv</string>
 	<key>stopTime</key>
-	<integer>28800</integer>
+	<integer>7200</integer>
+	<key>rsuLifetime</key>
+	<integer>0</integer>
 	<key>locationSRID</key>
 	<integer>27492</integer>
 	<key>useHaversine</key>
 	<true/>
 	<key>dataFlushInterval</key>
 	<integer>120</integer>
-	<key>rangeMultiplier</key>
-	<real>1</real>
 	<key>innerBounds</key>
 	<dict>
 		<key>x</key>
@@ -29,23 +29,6 @@
 			<real>41.1679</real>
 			<key>min</key>
 			<real>41.1598</real>
-		</dict>
-	</dict>
-	<key>parking</key>
-	<dict>
-		<key>seed</key>
-		<integer>31338</integer>
-		<key>inUse</key>
-		<string>DualGammaParkingModel</string>
-		<key>FixedLifetimeModel</key>
-		<dict>
-			<key>maxDuration</key>
-			<integer>0</integer>
-		</dict>
-		<key>DualGammaParkingModel</key>
-		<dict>
-			<key>dayTimeDelta</key>
-			<integer>10800</integer>
 		</dict>
 	</dict>
 	<key>stats</key>
@@ -67,49 +50,43 @@
 			<key>cityCoverageEvolution</key>
 			<true/>
 			<key>signalAndSaturationEvolution</key>
-			<false/>
+			<true/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
 			<key>decisionWPM</key>
 			<true/>
-			<key>decisionDetailWPM</key>
-			<true/>
 			<key>movingAverageWPM</key>
-			<true/>
+			<false/>
 			<key>decisionCCE</key>
 			<false/>
 			<key>decisionDetailCCE</key>
 			<false/>
 			<key>finalCityCoverageMap</key>
-			<true/>
+			<false/>
 			<key>finalCityCoverageStats</key>
-			<true/>
+			<false/>
 			<key>finalCityEntitiesMap</key>
-			<true/>
+			<false/>
 			<key>finalCitySaturationMap</key>
-			<true/>
+			<false/>
 			<key>finalCitySaturationStats</key>
-			<true/>
+			<false/>
 			<key>finalRoadsideUnitCoverageMaps</key>
 			<false/>
 			<key>parkedRoadsideUnitLifetime</key>
 			<true/>
-			<key>parkedDurationModel</key>
-			<false/>
 			<key>obstructionMask</key>
 			<false/>
 			<key>packetTrace</key>
 			<false/>
 			<key>simulationTime</key>
 			<true/>
-			<key>topology</key>
-			<true/>
 		</dict>
 	</dict>
 	<key>decision</key>
 	<dict>
 		<key>triggerDelay</key>
-		<integer>50</integer>
+		<integer>240</integer>
 		<key>algorithm</key>
 		<dict>
 			<key>inUse</key>
@@ -119,11 +96,11 @@
 				<key>wsig</key>
 				<integer>1</integer>
 				<key>wsat</key>
-				<integer>1</integer>
+				<real>0.2</real>
 				<key>wcov</key>
-				<integer>1</integer>
+				<real>0.3</real>
 				<key>wbat</key>
-				<integer>1</integer>
+				<integer>0</integer>
 				<key>minRedundancy</key>
 				<integer>1</integer>
 				<key>mapRequestDepth</key>
@@ -143,8 +120,8 @@
 				<real>1</real>
 				<key>mu</key>
 				<real>1</real>
-				<key>mapRequestDepth</key>
-				<integer>1</integer>
+				<key>mapRequestReach</key>
+				<string>1hop</string>
 				<key>saturationThreshold</key>
 				<integer>2</integer>
 			</dict>
@@ -187,9 +164,7 @@
 		<false/>
 		<key>EventList.add()</key>
 		<false/>
-		<key>City.scheduleMobility()</key>
-		<false/>
-		<key>City.recurringExpireEntities()</key>
+		<key>EventList.scheduleMobilityEvents()</key>
 		<false/>
 		<key>FixedRoadEntity.trackSignalStrength()</key>
 		<false/>

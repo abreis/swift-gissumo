@@ -482,6 +482,38 @@ class Statistics {
 				writeToHook("obstructionMask", data: "Please generate and provide an obstruction mask first.")
 			}
 		}
+
+		if hooks["topology"] != nil {
+			let rsuIDs: String = city.roadsideUnits.reduce("", {$0 + "\($1.id)\(separator)\($1.geo.x)\(separator)\($1.geo.y)\(terminator)"} )
+			writeToHook("topology", data: rsuIDs)
+			writeToHook("topology", data: "edge\(separator)distance\(separator)signal\(terminator)")
+
+			for rsu in city.roadsideUnits {
+				// Get and print this RSU's links
+				var neighborGIDs: [UInt] = city.getFeatureGIDs(inCircleWithRadius:city.network.maxRange, center: rsu.geo, featureTypes: [.roadsideUnit])
+				if neighborGIDs.count > 0 {
+					// Remove ourselves from the list
+					if let selfGID = rsu.gid,
+						let selfIndex = neighborGIDs.index(of: selfGID) {
+						neighborGIDs.remove(at: selfIndex)
+					}
+					// Match GIDs to RSUs
+					let matchingRSUs = city.roadsideUnits.filter( {neighborGIDs.contains($0.gid!)} )
+
+					// Iterate on neighbor RSUs
+					for neighborRSU in matchingRSUs {
+						// Get distance, LOS, link strength
+						let neighDistance = city.gis.getDistance(fromPoint: rsu.geo, toPoint: neighborRSU.geo)
+						let neighLOS = city.gis.checkForLineOfSight(fromPoint: rsu.geo, toPoint: neighborRSU.geo)
+						let neighSignalStrength = city.network.getSignalStrength(neighDistance, neighLOS)
+
+						// Output link
+						let linkData: String = "\(rsu.id) -> \(neighborRSU.id)\(separator)\(neighDistance)\(separator)\(neighSignalStrength)\(terminator)"
+						writeToHook("topology", data: linkData)
+					}
+				}
+			}
+		}
 	}
 
 

@@ -11,8 +11,8 @@
 # - meanSignal
 # - meanSaturation
 # - signalToSaturation
-# - distribution of active RSU time
-# - TODO decision analysis
+# - coverageDistribution
+# - roadsideUnitLifetime
 #
 # Run from the location where the 'simulations' folder is present.
 
@@ -26,7 +26,7 @@ SIMDIR=$1
 VISDIR=plots
 SIMDESCR=description.txt
 SCRIPTDIR=$(dirname $0)
-PACKAGENAME=package02_limit
+PACKAGENAME=package03_limit
 TEXSUBDIR=tex
 PACKAGEDIR=${SIMDIR}/${VISDIR}/${PACKAGENAME}
 LOGFILE=${PACKAGEDIR}/${PACKAGENAME}.log
@@ -38,8 +38,8 @@ declare -a PARSERS=(
 "meanSignal_limit full"
 "meanSaturation_limit full"
 "signalToSaturation_limit full"
-"roadsideUnitLifetime"
 "singles/horizontalCoverageDistribution 3000"
+"roadsideUnitLifetime"
 )
 
 # Check for the presence of a simulation folder

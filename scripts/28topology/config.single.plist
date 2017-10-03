@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>floatingCarDataFile</key>
-	<string>work/fcdout.tsv</string>
+	<string>fcddata/map.stop7200period2seed31338.fcd.tsv</string>
 	<key>stopTime</key>
-	<integer>28800</integer>
+	<integer>2400</integer>
 	<key>locationSRID</key>
 	<integer>27492</integer>
 	<key>useHaversine</key>
@@ -36,11 +36,11 @@
 		<key>seed</key>
 		<integer>31338</integer>
 		<key>inUse</key>
-		<string>DualGammaParkingModel</string>
+		<string>FixedLifetimeModel</string>
 		<key>FixedLifetimeModel</key>
 		<dict>
 			<key>maxDuration</key>
-			<integer>0</integer>
+			<integer>7200</integer>
 		</dict>
 		<key>DualGammaParkingModel</key>
 		<dict>
@@ -67,7 +67,7 @@
 			<key>cityCoverageEvolution</key>
 			<true/>
 			<key>signalAndSaturationEvolution</key>
-			<false/>
+			<true/>
 			<key>cityCoverageMapEvolution</key>
 			<false/>
 			<key>decisionWPM</key>
@@ -75,21 +75,21 @@
 			<key>decisionDetailWPM</key>
 			<true/>
 			<key>movingAverageWPM</key>
-			<true/>
+			<false/>
 			<key>decisionCCE</key>
 			<false/>
 			<key>decisionDetailCCE</key>
 			<false/>
 			<key>finalCityCoverageMap</key>
-			<true/>
+			<false/>
 			<key>finalCityCoverageStats</key>
-			<true/>
+			<false/>
 			<key>finalCityEntitiesMap</key>
-			<true/>
+			<false/>
 			<key>finalCitySaturationMap</key>
-			<true/>
+			<false/>
 			<key>finalCitySaturationStats</key>
-			<true/>
+			<false/>
 			<key>finalRoadsideUnitCoverageMaps</key>
 			<false/>
 			<key>parkedRoadsideUnitLifetime</key>
@@ -101,7 +101,7 @@
 			<key>packetTrace</key>
 			<false/>
 			<key>simulationTime</key>
-			<true/>
+			<false/>
 			<key>topology</key>
 			<true/>
 		</dict>
@@ -109,7 +109,7 @@
 	<key>decision</key>
 	<dict>
 		<key>triggerDelay</key>
-		<integer>50</integer>
+		<integer>150</integer>
 		<key>algorithm</key>
 		<dict>
 			<key>inUse</key>
@@ -119,17 +119,17 @@
 				<key>wsig</key>
 				<integer>1</integer>
 				<key>wsat</key>
-				<integer>1</integer>
+				<real>0.2</real>
 				<key>wcov</key>
-				<integer>1</integer>
+				<real>0.3</real>
 				<key>wbat</key>
-				<integer>1</integer>
+				<integer>0</integer>
 				<key>minRedundancy</key>
 				<integer>1</integer>
 				<key>mapRequestDepth</key>
 				<integer>2</integer>
 				<key>disableThreshold</key>
-				<real>0.1</real>
+				<real>0.05</real>
 				<key>abatNoImpactTime</key>
 				<integer>1800</integer>
 				<key>abatMaxActiveTime</key>
@@ -153,7 +153,7 @@
 	<key>gis</key>
 	<dict>
 		<key>database</key>
-		<string>gisdb</string>
+		<string>gisdb0</string>
 		<key>host</key>
 		<string>10.0.0.10</string>
 		<key>password</key>
