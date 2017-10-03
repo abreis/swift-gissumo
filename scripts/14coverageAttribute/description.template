@@ -1,0 +1,9 @@
+stopTime
+rsuLifetime
+decision.triggerDelay
+decision.algorithm.WeightedProductModel.wsig
+decision.algorithm.WeightedProductModel.wsat
+decision.algorithm.WeightedProductModel.wcov
+decision.algorithm.WeightedProductModel.wbat
+decision.algorithm.WeightedProductModel.minRedundancy
+decision.algorithm.WeightedProductModel.mapRequestDepth
